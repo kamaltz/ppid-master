@@ -1,33 +1,45 @@
-import { TrendingUp, FileCheck, Clock, Users } from "lucide-react";
-
-const stats = [
-  {
-    icon: <FileCheck className="h-8 w-8 text-white" />,
-    number: "1,247",
-    label: "Permohonan Selesai",
-    description: "Total permohonan yang telah diproses"
-  },
-  {
-    icon: <Clock className="h-8 w-8 text-white" />,
-    number: "7",
-    label: "Hari Rata-rata",
-    description: "Waktu penyelesaian permohonan"
-  },
-  {
-    icon: <Users className="h-8 w-8 text-white" />,
-    number: "98%",
-    label: "Tingkat Kepuasan",
-    description: "Berdasarkan survei pemohon"
-  },
-  {
-    icon: <TrendingUp className="h-8 w-8 text-white" />,
-    number: "24/7",
-    label: "Akses Online",
-    description: "Portal informasi tersedia"
-  }
-];
+import { TrendingUp, FileCheck, Clock, FileText } from "lucide-react";
+import { usePublicStats } from '@/hooks/usePublicStats';
 
 const StatsSection = () => {
+  const { stats, isLoading } = usePublicStats();
+
+  const statsData = [
+    {
+      icon: <FileCheck className="h-8 w-8 text-white" />,
+      number: stats.permintaanSelesai.toString(),
+      label: "Permohonan Selesai",
+      description: "Total permohonan yang telah diproses"
+    },
+    {
+      icon: <Clock className="h-8 w-8 text-white" />,
+      number: stats.rataRataHari.toString(),
+      label: "Hari Rata-rata",
+      description: "Waktu penyelesaian permohonan"
+    },
+    {
+      icon: <FileText className="h-8 w-8 text-white" />,
+      number: stats.totalInformasi.toString(),
+      label: "Informasi Tersedia",
+      description: "Total informasi publik"
+    },
+    {
+      icon: <TrendingUp className="h-8 w-8 text-white" />,
+      number: "24/7",
+      label: "Akses Online",
+      description: "Portal informasi tersedia"
+    }
+  ];
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-gradient-to-r from-blue-800 to-blue-600">
+        <div className="container mx-auto px-4 text-center">
+          <div className="text-white">Memuat statistik...</div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="py-16 bg-gradient-to-r from-blue-800 to-blue-600">
       <div className="container mx-auto px-4">
@@ -41,7 +53,7 @@ const StatsSection = () => {
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
+          {statsData.map((stat, index) => (
             <div
               key={index}
               className="bg-white/10 backdrop-blur-sm p-6 rounded-lg text-center hover:bg-white/20 transition-all duration-300"

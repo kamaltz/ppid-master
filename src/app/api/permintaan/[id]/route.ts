@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPermintaanById, updateStatusPermintaan, deletePermintaan } from '../../../../../lib/controllers/permintaanController';
+import { getAuthUser } from '../../../../../lib/middleware/authMiddleware';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const user = getAuthUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     let responseData: any;
     let statusCode = 200;
     
     const req = {
       params,
       headers: Object.fromEntries(request.headers.entries()),
-      user: { userId: 1, role: 'Admin' } // TODO: Get from auth middleware
+      user
     } as any;
     
     const res = {
@@ -38,6 +44,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const user = getAuthUser(request);
+    if (!user || !['PPID', 'PPID_Pelaksana', 'Admin'].includes(user.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     const body = await request.json();
     let responseData: any;
     let statusCode = 200;
@@ -46,7 +57,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       params,
       body,
       headers: Object.fromEntries(request.headers.entries()),
-      user: { userId: 1, role: 'PPID' } // TODO: Get from auth middleware
+      user
     } as any;
     
     const res = {
@@ -75,13 +86,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const user = getAuthUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     let responseData: any;
     let statusCode = 200;
     
     const req = {
       params,
       headers: Object.fromEntries(request.headers.entries()),
-      user: { userId: 1, role: 'Admin' } // TODO: Get from auth middleware
+      user
     } as any;
     
     const res = {

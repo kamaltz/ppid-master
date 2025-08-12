@@ -4,40 +4,25 @@ import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import Chart from "@/components/ui/Chart";
-import { useRealtimeData } from "@/hooks/useRealtimeData";
-
-interface Request {
-  id: string;
-  nama: string;
-  email: string;
-  jenis_informasi: string;
-  status: string;
-  tanggal: string;
-}
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function DashboardPage() {
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
-  const { requests, stats, chartData, isLoading, lastUpdate, refreshData } = useRealtimeData();
+  const { permintaan, stats, chartData, isLoading, lastUpdate, refreshData } = useDashboardData();
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "text-yellow-600 bg-yellow-100";
-      case "processing": return "text-blue-600 bg-blue-100";
-      case "approved": return "text-green-600 bg-green-100";
-      case "rejected": return "text-red-600 bg-red-100";
+      case "Diajukan": return "text-yellow-600 bg-yellow-100";
+      case "Diproses": return "text-blue-600 bg-blue-100";
+      case "Selesai": return "text-green-600 bg-green-100";
+      case "Ditolak": return "text-red-600 bg-red-100";
       default: return "text-gray-600 bg-gray-100";
     }
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending": return "Menunggu";
-      case "processing": return "Diproses";
-      case "approved": return "Disetujui";
-      case "rejected": return "Ditolak";
-      default: return status;
-    }
+    return status;
   };
 
   return (
@@ -85,8 +70,8 @@ export default function DashboardPage() {
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-yellow-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Menunggu</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                <p className="text-sm font-medium text-gray-600">Diajukan</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.diajukan}</p>
               </div>
             </div>
           </div>
@@ -96,7 +81,7 @@ export default function DashboardPage() {
               <FileText className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Diproses</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.processing}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.diproses}</p>
               </div>
             </div>
           </div>
@@ -105,8 +90,8 @@ export default function DashboardPage() {
             <div className="flex items-center">
               <CheckCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Disetujui</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+                <p className="text-sm font-medium text-gray-600">Selesai</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.selesai}</p>
               </div>
             </div>
           </div>
@@ -116,7 +101,7 @@ export default function DashboardPage() {
               <AlertCircle className="h-8 w-8 text-red-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Ditolak</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.ditolak}</p>
               </div>
             </div>
           </div>
@@ -178,16 +163,16 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {requests.slice(0, 10).map((request) => (
+                {permintaan.slice(0, 10).map((request) => (
                   <tr key={request.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {request.nama}
+                      {request.pemohon?.nama || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {request.email}
+                      {request.pemohon?.email || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {request.jenis_informasi}
+                      {request.rincian_informasi?.substring(0, 50)}...
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
@@ -195,7 +180,7 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {request.tanggal}
+                      {new Date(request.tanggal_permintaan).toLocaleDateString('id-ID')}
                     </td>
                   </tr>
                 ))}

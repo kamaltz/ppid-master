@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRoleAccess } from "@/src/lib/useRoleAccess";
-import { ROLES, getRoleDisplayName } from "@/src/lib/roleUtils";
+import { useRoleAccess } from "@/lib/useRoleAccess";
+import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { User, Mail, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 

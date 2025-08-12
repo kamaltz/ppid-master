@@ -79,24 +79,75 @@ export const getAdminData = async (endpoint: string, token: string) => {
   return await response.json();
 };
 
-export const createRequest = async (requestData, token) => {
+export const createRequest = async (requestData: any, token: string) => {
   if (!token) {
     throw new Error("No auth token provided");
   }
-  try {
-    const response = await apiClient.post("/permintaan", requestData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Create Request API error:",
-      error.response?.data || error.message
-    );
-    throw error.response?.data || new Error("Failed to create request");
+  
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(requestData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: "Failed to create request" }));
+    throw new Error(errorData.error || "Failed to create request");
   }
+
+  return await response.json();
+};
+
+export const getPermintaan = async (token: string, params?: { page?: number; limit?: number; status?: string }) => {
+  if (!token) {
+    throw new Error("No auth token provided");
+  }
+
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.append('page', params.page.toString());
+  if (params?.limit) searchParams.append('limit', params.limit.toString());
+  if (params?.status) searchParams.append('status', params.status);
+
+  const url = `${process.env.NEXT_PUBLIC_API_URL}/permintaan${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: "Failed to fetch requests" }));
+    throw new Error(errorData.error || "Failed to fetch requests");
+  }
+
+  return await response.json();
+};
+
+export const updatePermintaanStatus = async (id: string, statusData: any, token: string) => {
+  if (!token) {
+    throw new Error("No auth token provided");
+  }
+  
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(statusData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: "Failed to update request" }));
+    throw new Error(errorData.error || "Failed to update request");
+  }
+
+  return await response.json();
 };
 
 export const registerUser = async (userData: unknown) => {

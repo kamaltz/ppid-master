@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { useRealtimeData } from "@/hooks/useRealtimeData";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { updatePermintaanStatus } from "@/lib/api";
 import { X, CheckSquare, Square } from "lucide-react";
 
 interface Permohonan {
@@ -18,50 +19,74 @@ interface Permohonan {
 
 export default function AdminPermohonanPage() {
   const { userRole } = useRoleAccess();
-  const { requests: allRequests } = useRealtimeData();
+  const { permintaan, isLoading, refreshData } = useDashboardData();
   const [selectedPermohonan, setSelectedPermohonan] = useState<Permohonan | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   
-  // Convert realtime data directly without useState
-  const permohonan = allRequests.map(req => ({
-    id: parseInt(req.id.replace('REQ', '')),
-    nama: req.nama,
-    email: req.email,
-    informasi: req.jenis_informasi,
-    status: req.status === 'pending' ? 'Pending' : 
-            req.status === 'processing' ? 'Diproses' :
-            req.status === 'approved' ? 'Selesai' : 'Ditolak',
-    tanggal: req.tanggal
+  // Convert database data to component format
+  const permohonan = permintaan.map(req => ({
+    id: req.id,
+    nama: req.pemohon?.nama || 'N/A',
+    email: req.pemohon?.email || 'N/A',
+    informasi: req.rincian_informasi,
+    status: req.status,
+    tanggal: new Date(req.tanggal_permintaan).toLocaleDateString('id-ID')
   }));
 
-  const updateStatus = (id: number, newStatus: string) => {
+  const updateStatus = async (id: number, newStatus: string) => {
     const currentPermohonan = permohonan.find(p => p.id === id);
     if (!currentPermohonan) return;
     
     let confirmMessage = '';
     let successMessage = '';
     
-    if (currentPermohonan.status === 'Pending' && newStatus === 'Diproses') {
-      confirmMessage = `Yakin ingin menerima dan meneruskan permohonan REQ${String(id).padStart(3, '0')} ke PPID Pelaksana?`;
-      successMessage = `Permohonan REQ${String(id).padStart(3, '0')} diterima PPID Utama dan diteruskan ke PPID Pelaksana`;
+    if (currentPermohonan.status === 'Diajukan' && newStatus === 'Diproses') {
+      confirmMessage = `Yakin ingin menerima dan memproses permohonan ${id}?`;
+      successMessage = `Permohonan ${id} diterima dan sedang diproses`;
     } else if (currentPermohonan.status === 'Diproses' && newStatus === 'Selesai') {
-      confirmMessage = `Yakin ingin menyelesaikan permohonan REQ${String(id).padStart(3, '0')}?`;
-      successMessage = `Permohonan REQ${String(id).padStart(3, '0')} berhasil diselesaikan`;
+      confirmMessage = `Yakin ingin menyelesaikan permohonan ${id}?`;
+      successMessage = `Permohonan ${id} berhasil diselesaikan`;
     } else if (currentPermohonan.status === 'Diproses' && newStatus === 'Ditolak') {
-      confirmMessage = `Yakin ingin menolak permohonan REQ${String(id).padStart(3, '0')}? Tindakan ini tidak dapat dibatalkan.`;
-      successMessage = `Permohonan REQ${String(id).padStart(3, '0')} ditolak`;
+      confirmMessage = `Yakin ingin menolak permohonan ${id}? Tindakan ini tidak dapat dibatalkan.`;
+      successMessage = `Permohonan ${id} ditolak`;
     }
     
     if (confirmMessage && confirm(confirmMessage)) {
-      alert(successMessage);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No token found');
+        
+        await updatePermintaanStatus(id.toString(), { status: newStatus }, token);
+        alert(successMessage);
+        refreshData(); // Refresh data after update
+      } catch (error) {
+        alert('Gagal mengupdate status');
+      }
     }
   };
 
-  const deletePermohonan = (id: number) => {
+  const deletePermohonan = async (id: number) => {
     const item = permohonan.find(p => p.id === id);
-    if (confirm(`Yakin ingin menghapus permohonan REQ${String(id).padStart(3, '0')} dari "${item?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      alert(`Permohonan REQ${String(id).padStart(3, '0')} berhasil dihapus`);
+    if (confirm(`Yakin ingin menghapus permohonan ${id} dari "${item?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No token found');
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete');
+        
+        alert(`Permohonan ${id} berhasil dihapus`);
+        refreshData(); // Refresh data after delete
+      } catch (error) {
+        alert('Gagal menghapus permohonan');
+      }
     }
   };
   
@@ -115,7 +140,7 @@ export default function AdminPermohonanPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Diajukan': return 'bg-yellow-100 text-yellow-800';
       case 'Diproses': return 'bg-blue-100 text-blue-800';
       case 'Selesai': return 'bg-green-100 text-green-800';
       case 'Ditolak': return 'bg-red-100 text-red-800';
@@ -196,7 +221,20 @@ export default function AdminPermohonanPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {permohonan.map((item) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  Loading...
+                </td>
+              </tr>
+            ) : permohonan.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  Belum ada permohonan
+                </td>
+              </tr>
+            ) : (
+              permohonan.map((item) => (
               <tr key={item.id} className={selectedIds.includes(item.id) ? 'bg-blue-50' : ''}>
                 <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
                   <td className="px-6 py-4">
@@ -222,12 +260,12 @@ export default function AdminPermohonanPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.tanggal}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
-                    {item.status === 'Pending' ? (
+                    {item.status === 'Diajukan' ? (
                       <button 
                         onClick={() => updateStatus(item.id, 'Diproses')}
                         className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
                       >
-                        Terima & Teruskan
+                        Proses
                       </button>
                     ) : item.status === 'Diproses' ? (
                       <div className="flex gap-1">
@@ -264,7 +302,8 @@ export default function AdminPermohonanPage() {
                   </RoleGuard>
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -286,7 +325,7 @@ export default function AdminPermohonanPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-600">ID Permohonan</label>
-                <p className="text-gray-900">REQ{String(selectedPermohonan.id).padStart(3, '0')}</p>
+                <p className="text-gray-900">{selectedPermohonan.id}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Nama Pemohon</label>

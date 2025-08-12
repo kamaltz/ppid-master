@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllPermintaan, createPermintaan, getPermintaanStats } from '../../../../lib/controllers/permintaanController';
+import { getAuthUser } from '../../../../lib/middleware/authMiddleware';
 
 export async function GET(request: NextRequest) {
   try {
+    const user = getAuthUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const url = new URL(request.url);
     const isStats = url.searchParams.get('stats') === 'true';
     
@@ -12,7 +18,7 @@ export async function GET(request: NextRequest) {
     const req = {
       query: Object.fromEntries(request.nextUrl.searchParams.entries()),
       headers: Object.fromEntries(request.headers.entries()),
-      user: { userId: 1, role: 'Admin' } // TODO: Get from auth middleware
+      user
     } as any;
     
     const res = {
@@ -46,6 +52,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = getAuthUser(request);
+    if (!user || user.role !== 'Pemohon') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     const body = await request.json();
     
     let responseData: any;
@@ -54,7 +65,7 @@ export async function POST(request: NextRequest) {
     const req = {
       body,
       headers: Object.fromEntries(request.headers.entries()),
-      user: { userId: 1, role: 'Pemohon' } // TODO: Get from auth middleware
+      user
     } as any;
     
     const res = {

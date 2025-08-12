@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "seed": "npx ts-node lib/scripts/seedUsers.ts",
+    "seed": "node lib/scripts/resetDatabase.js",
+    "reset-db": "node lib/scripts/resetDatabase.js",
+    "clear-crud": "node lib/scripts/clearCrudData.js",
     "reset-admin": "npx ts-node lib/scripts/resetAdminPassword.ts"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.536.0",
     "next": "15.4.5",

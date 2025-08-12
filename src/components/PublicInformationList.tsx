@@ -7,7 +7,7 @@ import { FileText } from "lucide-react";
 
 // Definisikan tipe data untuk konsistensi
 interface Informasi {
-  id_informasi: number;
+  id: number;
   judul: string;
   ringkasan_isi_informasi: string;
   klasifikasi: string;
@@ -19,26 +19,20 @@ export default function PublicInformationList() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API call with dummy data since backend endpoint doesn't exist
-    const dummyData: Informasi[] = [
-      {
-        id_informasi: 1,
-        judul: "Laporan Keuangan Tahunan 2023",
-        ringkasan_isi_informasi: "Laporan keuangan lengkap Diskominfo Kabupaten Garut tahun 2023",
-        klasifikasi: "Informasi Berkala"
-      },
-      {
-        id_informasi: 2,
-        judul: "Struktur Organisasi PPID",
-        ringkasan_isi_informasi: "Struktur organisasi dan tugas PPID Diskominfo Kabupaten Garut",
-        klasifikasi: "Informasi Setiap Saat"
+    const fetchInformasi = async () => {
+      try {
+        setLoading(true);
+        const data = await getPublicData('/informasi');
+        setInformasi(data.data || []);
+      } catch (err) {
+        setError('Gagal memuat informasi publik');
+        setInformasi([]);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setTimeout(() => {
-      setInformasi(dummyData);
-      setLoading(false);
-    }, 500);
+    };
+
+    fetchInformasi();
   }, []);
 
   if (loading) return <p className="text-center">Memuat informasi...</p>;
@@ -48,7 +42,7 @@ export default function PublicInformationList() {
     <div className="space-y-4">
       {informasi.length > 0 ? (
         informasi.map((item) => (
-          <Card key={item.id_informasi}>
+          <Card key={item.id}>
             <CardHeader className="flex flex-row items-center gap-4">
               <FileText className="h-8 w-8 text-blue-800" />
               <div>

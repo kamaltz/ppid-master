@@ -27,7 +27,7 @@ const Chart = ({ data, type, title, height = 300 }: ChartProps) => {
     }
   }, [data, animatedData]);
 
-  const maxValue = Math.max(...data.map(d => d.value));
+  const maxValue = Math.max(...data.map(d => d.value), 1); // Prevent 0 or NaN
 
   const BarChart = () => (
     <div className="flex items-end justify-between h-full space-x-2">
@@ -37,7 +37,7 @@ const Chart = ({ data, type, title, height = 300 }: ChartProps) => {
             <div
               className="w-8 rounded-t transition-all duration-1000 ease-out"
               style={{
-                height: `${(item.value / maxValue) * (height - 60)}px`,
+                height: `${Math.max((item.value / maxValue) * (height - 60), 2)}px`,
                 backgroundColor: item.color
               }}
             />
@@ -53,8 +53,8 @@ const Chart = ({ data, type, title, height = 300 }: ChartProps) => {
 
   const LineChart = () => {
     const points = animatedData.map((item, index) => ({
-      x: 10 + (index / (animatedData.length - 1)) * 80,
-      y: 20 + (1 - (item.value / (maxValue || 1))) * 60
+      x: 10 + (animatedData.length > 1 ? (index / (animatedData.length - 1)) * 80 : 40),
+      y: 20 + (1 - (item.value / Math.max(maxValue, 1))) * 60
     }));
 
     const pathData = points.reduce((path, point, index) => {
@@ -92,14 +92,26 @@ const Chart = ({ data, type, title, height = 300 }: ChartProps) => {
   };
 
   const PieChart = () => {
-    const total = animatedData.reduce((sum, item) => sum + item.value, 0);
+    const total = Math.max(animatedData.reduce((sum, item) => sum + item.value, 0), 1);
     let currentAngle = 0;
+
+    if (total === 1 && animatedData.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center text-gray-500">
+            <div className="text-lg">Tidak ada data</div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="flex items-center justify-center h-full">
         <div className="relative">
           <svg width="200" height="200" viewBox="0 0 200 200">
             {animatedData.map((item, index) => {
+              if (item.value === 0) return null;
+              
               const percentage = (item.value / total) * 100;
               const angle = (percentage / 100) * 360;
               const startAngle = currentAngle;

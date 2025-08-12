@@ -1,115 +1,60 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRoleAccess } from "@/lib/useRoleAccess";
+import { useState } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import RichTextEditor from "@/components/ui/RichTextEditor";
-import FileUpload from "@/components/ui/FileUpload";
-
-interface Informasi {
-  id: number;
-  judul: string;
-  kategori: string;
-  status: string;
-  tanggal: string;
-  konten: string;
-  files: FileItem[];
-}
-
-interface FileItem {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  url?: string;
-}
+import { useInformasiData } from "@/hooks/useInformasiData";
 
 export default function AdminInformasiPage() {
-  const [informasi, setInformasi] = useState<Informasi[]>([
-    {
-      id: 1,
-      judul: "Laporan Keuangan 2023",
-      kategori: "Berkala",
-      status: "Aktif",
-      tanggal: "2024-01-15",
-      konten: "<p>Laporan keuangan tahun 2023 telah tersedia untuk diunduh.</p>",
-      files: []
-    },
-    {
-      id: 2,
-      judul: "Struktur Organisasi",
-      kategori: "Setiap Saat",
-      status: "Aktif",
-      tanggal: "2024-01-10",
-      konten: "<p>Struktur organisasi Diskominfo Kabupaten Garut.</p>",
-      files: []
-    }
-  ]);
-  
-  // Save to localStorage on component mount and updates
-  useEffect(() => {
-    localStorage.setItem('informasi_data', JSON.stringify(informasi));
-  }, [informasi]);
+  const { informasi, isLoading, createInformasi, updateInformasi, deleteInformasi } = useInformasiData();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ 
     judul: '', 
-    kategori: 'Berkala', 
-    status: 'Aktif', 
-    konten: '',
-    files: [] as FileItem[]
+    klasifikasi: 'Informasi Berkala', 
+    ringkasan_isi_informasi: '',
+    pejabat_penguasa_informasi: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editId) {
-      setInformasi(prev => prev.map(item => 
-        item.id === editId ? { ...item, ...formData } : item
-      ));
-    } else {
-      const newItem = {
-        id: Date.now(),
-        ...formData,
-        tanggal: new Date().toISOString().split('T')[0]
-      };
-      setInformasi(prev => [...prev, newItem]);
+    try {
+      if (editId) {
+        await updateInformasi(editId, formData);
+        alert('Informasi berhasil diperbarui');
+      } else {
+        await createInformasi(formData);
+        alert('Informasi berhasil ditambahkan');
+      }
+      setShowForm(false);
+      setEditId(null);
+      setFormData({ judul: '', klasifikasi: 'Informasi Berkala', ringkasan_isi_informasi: '', pejabat_penguasa_informasi: '' });
+    } catch (error) {
+      alert('Gagal menyimpan informasi');
     }
-    setShowForm(false);
-    setEditId(null);
-    setFormData({ judul: '', kategori: 'Berkala', status: 'Aktif', konten: '', files: [] });
   };
 
-  const handleEdit = (item: Informasi) => {
+  const handleEdit = (item: any) => {
     setFormData({ 
       judul: item.judul, 
-      kategori: item.kategori, 
-      status: item.status,
-      konten: item.konten,
-      files: item.files
+      klasifikasi: item.klasifikasi, 
+      ringkasan_isi_informasi: item.ringkasan_isi_informasi,
+      pejabat_penguasa_informasi: item.pejabat_penguasa_informasi || ''
     });
     setEditId(item.id);
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     const item = informasi.find(i => i.id === id);
     if (confirm(`Yakin ingin menghapus informasi "${item?.judul}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      setInformasi(prev => prev.filter(item => item.id !== id));
-      alert('Informasi berhasil dihapus');
+      try {
+        await deleteInformasi(id);
+        alert('Informasi berhasil dihapus');
+      } catch (error) {
+        alert('Gagal menghapus informasi');
+      }
     }
-  };
-
-  const handleFileUpload = (files: FileList) => {
-    const newFiles: FileItem[] = Array.from(files).map(file => ({
-      id: Date.now() + Math.random().toString(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      url: URL.createObjectURL(file)
-    }));
-    
-    setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
   };
 
   return (
@@ -141,30 +86,33 @@ export default function AdminInformasiPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Kategori</label>
+              <label className="block text-sm font-medium mb-1">Klasifikasi</label>
               <select
-                value={formData.kategori}
-                onChange={(e) => setFormData({...formData, kategori: e.target.value})}
+                value={formData.klasifikasi}
+                onChange={(e) => setFormData({...formData, klasifikasi: e.target.value})}
                 className="w-full border rounded px-3 py-2"
               >
-                <option value="Berkala">Berkala</option>
-                <option value="Setiap Saat">Setiap Saat</option>
-                <option value="Serta Merta">Serta Merta</option>
+                <option value="Informasi Berkala">Informasi Berkala</option>
+                <option value="Informasi Setiap Saat">Informasi Setiap Saat</option>
+                <option value="Informasi Serta Merta">Informasi Serta Merta</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Konten</label>
-              <RichTextEditor
-                value={formData.konten}
-                onChange={(value) => setFormData({...formData, konten: value})}
-                onFileUpload={handleFileUpload}
+              <label className="block text-sm font-medium mb-1">Ringkasan Isi Informasi</label>
+              <textarea
+                value={formData.ringkasan_isi_informasi}
+                onChange={(e) => setFormData({...formData, ringkasan_isi_informasi: e.target.value})}
+                className="w-full border rounded px-3 py-2 h-32"
+                required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">File Lampiran</label>
-              <FileUpload
-                files={formData.files}
-                onFilesChange={(files) => setFormData({...formData, files})}
+              <label className="block text-sm font-medium mb-1">Pejabat Penguasa Informasi</label>
+              <input
+                type="text"
+                value={formData.pejabat_penguasa_informasi}
+                onChange={(e) => setFormData({...formData, pejabat_penguasa_informasi: e.target.value})}
+                className="w-full border rounded px-3 py-2"
               />
             </div>
             <div className="flex space-x-2">
@@ -173,7 +121,7 @@ export default function AdminInformasiPage() {
               </button>
               <button 
                 type="button" 
-                onClick={() => {setShowForm(false); setEditId(null); setFormData({ judul: '', kategori: 'Berkala', status: 'Aktif', konten: '', files: [] });}}
+                onClick={() => {setShowForm(false); setEditId(null); setFormData({ judul: '', klasifikasi: 'Informasi Berkala', ringkasan_isi_informasi: '', pejabat_penguasa_informasi: '' });}}
                 className="bg-gray-500 text-white px-4 py-2 rounded"
               >
                 Batal
@@ -188,27 +136,36 @@ export default function AdminInformasiPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Klasifikasi</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pejabat</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Files</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {informasi.map((item) => (
-              <tr key={item.id}>
-                <td className="px-6 py-4 text-sm text-gray-900">{item.judul}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.kategori}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                    {item.status}
-                  </span>
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  Loading...
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.tanggal}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.files.length > 0 ? `${item.files.length} file(s)` : 'Tidak ada'}
+              </tr>
+            ) : informasi.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  Belum ada informasi publik
                 </td>
+              </tr>
+            ) : (
+              informasi.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-6 py-4 text-sm text-gray-900">{item.judul}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.klasifikasi}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.pejabat_penguasa_informasi || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {new Date(item.created_at).toLocaleDateString('id-ID')}
+                  </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
                     <button 
@@ -227,8 +184,9 @@ export default function AdminInformasiPage() {
                     </button>
                   </RoleGuard>
                 </td>
-              </tr>
-            ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
