@@ -1,229 +1,227 @@
 import { Request, Response } from "express";
 import { supabase } from "../lib/supabaseClient";
-import { AuthenticatedRequest } from "../types/custom.types";
-import { v4 as uuidv4 } from "uuid";
 
-export const createPermintaan = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  // Ambil ID pemohon dari token yang sudah diverifikasi oleh middleware
-  const id_pemohon = req.user?.userId;
-
-  if (!id_pemohon) {
-    return res
-      .status(403)
-      .json({ error: "Akses ditolak. ID Pemohon tidak ditemukan di token." });
-  }
-
-  // Data pemohon tidak lagi diambil dari body
-  const { informasi_diminta, tujuan } = req.body;
-
-  if (!informasi_diminta || !tujuan) {
-    return res
-      .status(400)
-      .json({ error: "Informasi yang diminta dan tujuan wajib diisi." });
-  }
-
-  try {
-    const no_pendaftaran = `REQ-${Date.now()}`;
-
-    const { data: permintaan, error } = await supabase
-      .from("permohonan_informasi")
-      .insert([
-        {
-          no_pendaftaran,
-          id_pemohon: id_pemohon, // Gunakan ID dari token
-          rincian_informasi_diminta: informasi_diminta,
-          tujuan_penggunaan_informasi: tujuan,
-        },
-      ])
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    res
-      .status(201)
-      .json({ message: "Permintaan berhasil dikirim", data: permintaan });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal membuat permohonan: " + err.message });
-  }
-};
-
-/**
- * Membuat permohonan informasi baru (public endpoint).
- */
-export const createPermintaanPublic = async (req: Request, res: Response) => {
-  const { nama_pemohon, nik, email, informasi_diminta, tujuan } = req.body;
-
-  if (!nama_pemohon || !nik || !email || !informasi_diminta || !tujuan) {
-    return res.status(400).json({ error: "Semua kolom wajib diisi." });
-  }
-
-  try {
-    // Cari pemohon berdasarkan NIK/SK. Jika tidak ada, buat baru.
-    let { data: pemohon } = await supabase
-      .from("pemohon_informasi_publik")
-      .select("id_pemohon")
-      .eq("nik_sk_badan_hukum", nik)
-      .single();
-
-    if (!pemohon) {
-      const { data: newPemohon, error: createError } = await supabase
-        .from("pemohon_informasi_publik")
-        .insert([{ nama: nama_pemohon, nik_sk_badan_hukum: nik, email }])
-        .select("id_pemohon")
-        .single();
-      if (createError) throw createError;
-      pemohon = newPemohon;
-    }
-
-    const no_pendaftaran = `REQ-${Date.now()}`;
-
-    // Simpan data permohonan baru
-    const { data: permintaan, error: permintaanError } = await supabase
-      .from("permohonan_informasi")
-      .insert([
-        {
-          no_pendaftaran,
-          id_pemohon: pemohon!.id_pemohon,
-          rincian_informasi_diminta: informasi_diminta,
-          tujuan_penggunaan_informasi: tujuan,
-        },
-      ])
-      .select()
-      .single();
-
-    if (permintaanError) throw permintaanError;
-
-    res
-      .status(201)
-      .json({ message: "Permintaan berhasil dikirim", data: permintaan });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal membuat permohonan: " + err.message });
-  }
-};
-
-/**
- * Mengambil semua data permohonan.
- * (Admin Only)
- */
+// GET - Ambil semua permintaan (Admin/PPID dapat melihat semua, Pemohon hanya miliknya)
 export const getAllPermintaan = async (req: Request, res: Response) => {
+  const { status, page = 1, limit = 10 } = req.query as { 
+    status?: string; 
+    page?: string; 
+    limit?: string; 
+  };
+  const { userId, role } = (req as any).user;
+
   try {
-    const { data, error } = await supabase
-      .from("permohonan_informasi")
-      .select(
-        `
+    let query = supabase
+      .from("permintaan_informasi")
+      .select(`
         *,
-        pemohon_informasi_publik (*)
-      `
-      )
-      .order("tanggal", { ascending: false }); // Urutkan dari yang terbaru
+        pemohon:pemohon_id(nama, email)
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    res.status(200).json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/**
- * Mengambil satu data permohonan berdasarkan ID (nomor pendaftaran).
- * (Admin Only)
- */
-export const getPermintaanById = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  try {
-    const { data, error } = await supabase
-      .from("permohonan_informasi")
-      .select(`*, pemohon_informasi_publik (*)`)
-      .eq("no_pendaftaran", id)
-      .single();
-
-    if (error) throw error;
-    if (!data)
-      return res.status(404).json({ error: "Permohonan tidak ditemukan." });
-
-    res.status(200).json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Fungsi baru untuk PPID Utama menugaskan permohonan
-export const assignPermohonan = async (req: Request, res: Response) => {
-  const { id } = req.params; // no_pendaftaran
-  const { no_pegawai_pelaksana } = req.body;
-
-  if (!no_pegawai_pelaksana) {
-    return res
-      .status(400)
-      .json({ error: "Nomor pegawai PPID Pelaksana wajib diisi." });
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("permohonan_informasi")
-      .update({
-        ditugaskan_kepada: no_pegawai_pelaksana,
-        status_permohonan: "diteruskan_ke_pelaksana",
-      })
-      .eq("no_pendaftaran", id)
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === "23503")
-        return res
-          .status(404)
-          .json({ error: "PPID Pelaksana tidak ditemukan." });
-      throw error;
+    // Filter berdasarkan role
+    if (role === 'Pemohon') {
+      query = query.eq('pemohon_id', userId);
     }
-    if (!data)
-      return res.status(404).json({ error: "Permohonan tidak ditemukan." });
 
-    res.status(200).json({ message: "Permohonan berhasil ditugaskan", data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    if (status) {
+      query = query.eq('status', status);
+    }
 
-export const finalizePermohonan = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { status, alasan_penolakan } = req.body;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    query = query.range(offset, offset + parseInt(limit) - 1);
 
-  if (!status || !["disetujui", "ditolak"].includes(status)) {
-    return res.status(400).json({
-      error: 'Status tidak valid. Gunakan "disetujui" atau "ditolak".',
-    });
-  }
-  if (status === "ditolak" && !alasan_penolakan) {
-    return res.status(400).json({
-      error: 'Alasan penolakan wajib diisi jika status adalah "ditolak".',
-    });
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("permohonan_informasi")
-      .update({
-        status_permohonan: status,
-        alasan_penolakan: status === "ditolak" ? alasan_penolakan : null,
-      })
-      .eq("no_pendaftaran", id)
-      .select()
-      .single();
-
+    const { data, error, count } = await query;
     if (error) throw error;
-    if (!data)
-      return res.status(404).json({ error: "Permohonan tidak ditemukan." });
 
     res.status(200).json({
-      message: `Status permohonan berhasil diubah menjadi ${status}`,
       data,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / parseInt(limit))
+      }
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Gagal mengambil data permintaan: " + err.message });
+  }
+};
+
+// GET - Ambil permintaan berdasarkan ID
+export const getPermintaanById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { userId, role } = (req as any).user;
+
+  try {
+    let query = supabase
+      .from("permintaan_informasi")
+      .select(`
+        *,
+        pemohon:pemohon_id(nama, email, no_telepon, alamat)
+      `)
+      .eq("id", id);
+
+    // Pemohon hanya bisa melihat permintaan miliknya
+    if (role === 'Pemohon') {
+      query = query.eq('pemohon_id', userId);
+    }
+
+    const { data, error } = await query.single();
+    if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ error: "Permintaan tidak ditemukan" });
+    }
+
+    res.status(200).json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: "Gagal mengambil permintaan: " + err.message });
+  }
+};
+
+// POST - Buat permintaan baru (Pemohon only)
+export const createPermintaan = async (req: Request, res: Response) => {
+  const { 
+    rincian_informasi, 
+    tujuan_penggunaan, 
+    cara_memperoleh_informasi, 
+    cara_mendapat_salinan 
+  } = req.body;
+  const { userId } = (req as any).user;
+
+  if (!rincian_informasi || !tujuan_penggunaan) {
+    return res.status(400).json({ 
+      error: "Rincian informasi dan tujuan penggunaan wajib diisi." 
+    });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("permintaan_informasi")
+      .insert([{
+        pemohon_id: userId,
+        rincian_informasi,
+        tujuan_penggunaan,
+        cara_memperoleh_informasi,
+        cara_mendapat_salinan,
+        status: 'Diajukan',
+        tanggal_permintaan: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json({ 
+      message: "Permintaan berhasil diajukan", 
+      data 
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Gagal mengajukan permintaan: " + err.message });
+  }
+};
+
+// PUT - Update status permintaan (PPID only)
+export const updateStatusPermintaan = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status, catatan_ppid, estimasi_waktu, biaya } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ error: "Status wajib diisi." });
+  }
+
+  try {
+    const updateData: any = {
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    if (catatan_ppid) updateData.catatan_ppid = catatan_ppid;
+    if (estimasi_waktu) updateData.estimasi_waktu = estimasi_waktu;
+    if (biaya !== undefined) updateData.biaya = biaya;
+
+    // Set tanggal sesuai status
+    if (status === 'Diproses') {
+      updateData.tanggal_diproses = new Date().toISOString();
+    } else if (status === 'Selesai') {
+      updateData.tanggal_selesai = new Date().toISOString();
+    } else if (status === 'Ditolak') {
+      updateData.tanggal_ditolak = new Date().toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from("permintaan_informasi")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ error: "Permintaan tidak ditemukan" });
+    }
+
+    res.status(200).json({ 
+      message: "Status permintaan berhasil diperbarui", 
+      data 
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Gagal memperbarui status: " + err.message });
+  }
+};
+
+// DELETE - Hapus permintaan (Admin only atau Pemohon untuk permintaan miliknya yang masih 'Diajukan')
+export const deletePermintaan = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { userId, role } = (req as any).user;
+
+  try {
+    let query = supabase.from("permintaan_informasi").select("*").eq("id", id);
+    
+    // Pemohon hanya bisa hapus permintaan miliknya yang masih 'Diajukan'
+    if (role === 'Pemohon') {
+      query = query.eq('pemohon_id', userId).eq('status', 'Diajukan');
+    }
+
+    const { data: existingData, error: selectError } = await query.single();
+    if (selectError || !existingData) {
+      return res.status(404).json({ error: "Permintaan tidak ditemukan atau tidak dapat dihapus" });
+    }
+
+    const { error } = await supabase
+      .from("permintaan_informasi")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    res.status(200).json({ 
+      message: "Permintaan berhasil dihapus" 
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Gagal menghapus permintaan: " + err.message });
+  }
+};
+
+// GET - Dashboard stats untuk PPID
+export const getPermintaanStats = async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from("permintaan_informasi")
+      .select("status");
+
+    if (error) throw error;
+
+    const stats = {
+      total: data.length,
+      diajukan: data.filter(p => p.status === 'Diajukan').length,
+      diproses: data.filter(p => p.status === 'Diproses').length,
+      selesai: data.filter(p => p.status === 'Selesai').length,
+      ditolak: data.filter(p => p.status === 'Ditolak').length
+    };
+
+    res.status(200).json(stats);
+  } catch (err: any) {
+    res.status(500).json({ error: "Gagal mengambil statistik: " + err.message });
   }
 };
