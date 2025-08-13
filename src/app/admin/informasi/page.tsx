@@ -61,7 +61,7 @@ export default function AdminInformasiPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Kelola Informasi</h1>
-        <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+        <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
           <button 
             onClick={() => setShowForm(true)}
             className="bg-blue-800 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -167,7 +167,7 @@ export default function AdminInformasiPage() {
                     {new Date(item.created_at).toLocaleDateString('id-ID')}
                   </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                     <button 
                       onClick={() => handleEdit(item)}
                       className="text-blue-600 hover:text-blue-900"
@@ -175,7 +175,7 @@ export default function AdminInformasiPage() {
                       Edit
                     </button>
                   </RoleGuard>
-                  <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                     <button 
                       onClick={() => handleDelete(item.id)}
                       className="text-red-600 hover:text-red-900"

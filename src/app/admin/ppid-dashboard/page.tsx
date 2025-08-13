@@ -39,6 +39,24 @@ export default function PPIDDashboardPage() {
       color: "bg-orange-500",
       stats: "0 Total",
       pending: "0 Menunggu"
+    },
+    {
+      title: "Pengelolaan Informasi",
+      description: "Kelola informasi publik yang tersedia",
+      icon: Info,
+      href: "/admin/informasi",
+      color: "bg-green-500",
+      stats: "0 Total",
+      pending: "0 Draft"
+    },
+    {
+      title: "Pengelolaan Akun",
+      description: "Kelola akun pengguna sistem",
+      icon: Users,
+      href: "/admin/akun",
+      color: "bg-purple-500",
+      stats: "0 Total",
+      pending: "0 Pending"
     }
   ];
 

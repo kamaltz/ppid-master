@@ -281,7 +281,7 @@ export default function AdminPermohonanPage() {
       </div>
       
       {/* Bulk Actions */}
-      <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+      <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
         {selectedIds.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between">
@@ -301,7 +301,7 @@ export default function AdminPermohonanPage() {
                 >
                   Tolak Semua
                 </button>
-                <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                   <button
                     onClick={() => handleBulkAction('hapus')}
                     className="px-3 py-1 bg-red-800 text-white text-sm rounded hover:bg-red-900"
@@ -325,7 +325,7 @@ export default function AdminPermohonanPage() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+              <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                 <th className="px-6 py-3 text-left">
                   <button
                     onClick={handleSelectAll}
@@ -359,7 +359,7 @@ export default function AdminPermohonanPage() {
             ) : (
               permohonan.map((item) => (
               <tr key={item.id} className={selectedIds.includes(item.id) ? 'bg-blue-50' : ''}>
-                <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+                <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleSelectItem(item.id)}
@@ -382,7 +382,7 @@ export default function AdminPermohonanPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.tanggal}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
+                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                     {item.status === 'Diajukan' ? (
                       <button 
                         onClick={() => updateStatus(item.id, 'Diproses')}
@@ -415,7 +415,7 @@ export default function AdminPermohonanPage() {
                   >
                     Detail
                   </button>
-                  <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                     <button 
                       onClick={() => deletePermohonan(item.id)}
                       className="text-red-600 hover:text-red-900 text-xs"
