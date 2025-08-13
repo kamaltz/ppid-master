@@ -9,15 +9,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    // Remove duplicate token verification since it's already done above
+
     const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET!);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const page = parseInt(searchParams.get('page') || '1');
     const status = searchParams.get('status');
 
-    const where = status ? { status } : {};
+    // Filter based on user role
+    let where: any = {};
+    
+    // PPID Pelaksana only sees requests that are being processed
+    if (decoded.role === 'PPID_PELAKSANA') {
+      where.status = 'Diproses';
+    } else if (status) {
+      where.status = status;
+    }
+    
     const skip = (page - 1) * limit;
 
     const [requests, total] = await Promise.all([

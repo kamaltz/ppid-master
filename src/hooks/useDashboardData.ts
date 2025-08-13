@@ -53,6 +53,11 @@ export const useDashboardData = () => {
         }
       } catch (dbError) {
         console.log('Database failed, using localStorage:', dbError);
+        // For PPID Pelaksana, don't show localStorage data if API fails
+        const userRole = localStorage.getItem('user_role');
+        if (userRole === 'PPID_PELAKSANA') {
+          permintaanData = [];
+        }
       }
       
       // If no database data, use localStorage
