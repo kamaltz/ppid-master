@@ -5,6 +5,7 @@ import { getRoleDisplayName } from "@/lib/roleUtils";
 import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import Chart from "@/components/ui/Chart";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { populateTestData, clearTestData } from "@/lib/generateTestData";
 
 export default function DashboardPage() {
   const { getUserRole } = useAuth();
@@ -37,7 +38,7 @@ export default function DashboardPage() {
               Login sebagai: <span className="font-semibold text-blue-600">
                 {getRoleDisplayName(userRole)}
               </span> | 
-              Update terakhir: {lastUpdate.toLocaleTimeString('id-ID')}
+              Update terakhir: {lastUpdate ? lastUpdate.toLocaleTimeString('id-ID') : 'Tidak tersedia'}
               <span className="inline-block w-2 h-2 bg-green-500 rounded-full ml-2 animate-pulse"></span>
             </p>
           </div>
@@ -49,6 +50,55 @@ export default function DashboardPage() {
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
+            </button>
+            {permintaan.length === 0 && (
+              <button
+                onClick={() => {
+                  populateTestData();
+                  refreshData();
+                }}
+                className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Generate Test Data
+              </button>
+            )}
+            <button
+              onClick={() => {
+                localStorage.removeItem('permintaan');
+                refreshData();
+              }}
+              className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              Clear Cache
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/test-insert', { method: 'POST' });
+                  const result = await response.json();
+                  console.log('Test insert result:', result);
+                  refreshData();
+                } catch (error) {
+                  console.error('Test insert error:', error);
+                }
+              }}
+              className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Insert DB Test
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/debug-data');
+                  const result = await response.json();
+                  console.log('Debug data:', result);
+                } catch (error) {
+                  console.error('Debug error:', error);
+                }
+              }}
+              className="px-3 py-2 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+            >
+              Debug Data
             </button>
             <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
               {getRoleDisplayName(userRole)}
@@ -180,8 +230,31 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {permintaan.slice(0, 10).map((request) => {
-                  const isValidDate = request.created_at && !isNaN(new Date(request.created_at).getTime());
+                {permintaan.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      <div className="flex flex-col items-center">
+                        <FileText className="w-12 h-12 text-gray-300 mb-2" />
+                        <p className="text-lg font-medium">Belum ada data permohonan</p>
+                        <p className="text-sm">Data akan muncul setelah ada permohonan baru atau gunakan tombol "Generate Test Data"</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : permintaan.slice(0, 10).map((request) => {
+                  // Simple date display
+                  let dateDisplay = 'Tanggal tidak tersedia';
+                  let timeDisplay = '-';
+                  
+                  try {
+                    const date = new Date(request.created_at);
+                    if (!isNaN(date.getTime())) {
+                      dateDisplay = date.toLocaleDateString('id-ID');
+                      timeDisplay = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    }
+                  } catch (e) {
+                    // Keep default values
+                  }
+                  
                   return (
                     <tr key={request.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -220,25 +293,10 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {isValidDate ? (
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {new Date(request.created_at).toLocaleDateString('id-ID', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {new Date(request.created_at).toLocaleTimeString('id-ID', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">Tanggal tidak valid</span>
-                        )}
+                        <div className="flex flex-col">
+                          <span className="font-medium">{dateDisplay}</span>
+                          <span className="text-xs text-gray-400">{timeDisplay}</span>
+                        </div>
                       </td>
                     </tr>
                   );

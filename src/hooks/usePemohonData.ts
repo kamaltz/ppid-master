@@ -5,7 +5,7 @@ interface PermintaanData {
   id: number;
   rincian_informasi: string;
   status: string;
-  tanggal_permintaan: string;
+  created_at: string;
   catatan_ppid?: string;
 }
 

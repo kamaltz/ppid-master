@@ -1,66 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/lib/supabaseClient';
+import { prisma } from '../../../../lib/lib/prismaClient';
 
 export async function POST() {
   try {
-    // Get first pemohon ID
-    const { data: pemohonData } = await supabase
-      .from('pemohon')
-      .select('id')
-      .limit(1)
-      .single();
+    // Get or create a pemohon
+    let pemohon = await prisma.pemohon.findFirst();
     
-    if (!pemohonData) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'No pemohon found in database'
+    if (!pemohon) {
+      pemohon = await prisma.pemohon.create({
+        data: {
+          email: 'test@example.com',
+          hashed_password: 'test',
+          nama: 'Test User',
+          nik: '1234567890123456',
+          no_telepon: '081234567890'
+        }
       });
     }
     
-    const testData = {
-      pemohon_id: pemohonData.id,
-      rincian_informasi: 'Test permintaan',
-      tujuan_penggunaan: 'Test purpose',
-      cara_memperoleh_informasi: 'Email',
-      cara_mendapat_salinan: 'Email',
-      status: 'Diajukan',
-      tanggal_permintaan: new Date().toISOString(),
-      created_at: new Date().toISOString()
-    };
+    // Create test request with explicit date
+    const testRequest = await prisma.request.create({
+      data: {
+        pemohon_id: pemohon.id,
+        rincian_informasi: 'Test permintaan informasi dari API',
+        tujuan_penggunaan: 'Test purpose untuk pengujian',
+        cara_memperoleh_informasi: 'Email',
+        cara_mendapat_salinan: 'Email',
+        status: 'Diajukan'
+      }
+    });
     
-    const { data, error } = await supabase
-      .from('permintaan_informasi')
-      .insert([testData])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Direct insert error:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-        full: error
-      });
-      return NextResponse.json({ 
-        success: false, 
-        error: error.message || 'Insert failed',
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-    }
+    console.log('Created test request:', testRequest);
     
     return NextResponse.json({ 
       success: true, 
-      data 
+      data: {
+        ...testRequest,
+        created_at: testRequest.created_at.toISOString(),
+        updated_at: testRequest.updated_at.toISOString()
+      }
     });
     
   } catch (error: any) {
+    console.error('Test insert error:', error);
     return NextResponse.json({ 
       success: false, 
       error: error.message 
-    });
+    }, { status: 500 });
   }
 }

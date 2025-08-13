@@ -45,8 +45,12 @@ export async function GET(request: NextRequest) {
     // Join the data
     const requestsWithPemohon = requests.map(request => ({
       ...request,
+      created_at: request.created_at.toISOString(), // Ensure proper ISO string format
+      updated_at: request.updated_at.toISOString(),
       pemohon: pemohonMap.get(request.pemohon_id) || { nama: 'Unknown', email: 'Unknown', nik: null }
     }));
+
+    console.log('API Response sample:', requestsWithPemohon[0]);
 
     return NextResponse.json({ 
       data: requestsWithPemohon,

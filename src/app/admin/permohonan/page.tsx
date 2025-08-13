@@ -25,14 +25,26 @@ export default function AdminPermohonanPage() {
   const [selectAll, setSelectAll] = useState(false);
   
   // Convert database data to component format
-  const permohonan = permintaan.map(req => ({
-    id: req.id,
-    nama: req.pemohon?.nama || 'N/A',
-    email: req.pemohon?.email || 'N/A',
-    informasi: req.rincian_informasi,
-    status: req.status,
-    tanggal: new Date(req.tanggal_permintaan).toLocaleDateString('id-ID')
-  }));
+  const permohonan = permintaan.map(req => {
+    let tanggalDisplay = 'Tanggal tidak tersedia';
+    try {
+      const date = new Date(req.created_at);
+      if (!isNaN(date.getTime())) {
+        tanggalDisplay = date.toLocaleDateString('id-ID');
+      }
+    } catch (e) {
+      // Keep default value
+    }
+    
+    return {
+      id: req.id,
+      nama: req.pemohon?.nama || 'N/A',
+      email: req.pemohon?.email || 'N/A',
+      informasi: req.rincian_informasi,
+      status: req.status,
+      tanggal: tanggalDisplay
+    };
+  });
 
   const updateStatus = async (id: number, newStatus: string) => {
     const currentPermohonan = permohonan.find(p => p.id === id);

@@ -10,7 +10,7 @@ interface PermintaanData {
   id: number;
   rincian_informasi: string;
   status: string;
-  tanggal_permintaan: string;
+  created_at: string;
   catatan_ppid?: string;
 }
 
@@ -163,7 +163,14 @@ export default function PemohonDashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(request.tanggal_permintaan).toLocaleDateString('id-ID')}
+                      {(() => {
+                        try {
+                          const date = new Date(request.created_at);
+                          return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                        } catch (e) {
+                          return 'Tanggal tidak tersedia';
+                        }
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-sm space-x-2">
                       <button 
@@ -236,7 +243,16 @@ export default function PemohonDashboardPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Tanggal Pengajuan</label>
-                <p className="text-gray-900">{new Date(selectedRequest.tanggal_permintaan).toLocaleDateString('id-ID')}</p>
+                <p className="text-gray-900">
+                  {(() => {
+                    try {
+                      const date = new Date(selectedRequest.created_at);
+                      return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                    } catch (e) {
+                      return 'Tanggal tidak tersedia';
+                    }
+                  })()}
+                </p>
               </div>
             </div>
             
