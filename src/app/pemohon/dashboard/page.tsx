@@ -2,16 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PlusCircle, FileText, Clock, CheckCircle, AlertTriangle, X, User } from "lucide-react";
+import { PlusCircle, FileText, Clock, CheckCircle, AlertTriangle, X, User, Download, Paperclip } from "lucide-react";
 import AccessibilityHelper from "@/components/accessibility/AccessibilityHelper";
 import { usePemohonData } from "@/hooks/usePemohonData";
 
 interface PermintaanData {
   id: number;
   rincian_informasi: string;
+  tujuan_penggunaan?: string;
+  cara_memperoleh_informasi?: string;
+  cara_mendapat_salinan?: string;
   status: string;
   created_at: string;
   catatan_ppid?: string;
+  file_attachments?: string | string[];
 }
 
 export default function PemohonDashboardPage() {
@@ -228,6 +232,59 @@ export default function PemohonDashboardPage() {
               <div>
                 <label className="text-sm font-medium text-gray-600">Informasi Diminta</label>
                 <p className="text-gray-900">{selectedRequest.rincian_informasi}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Tujuan Penggunaan</label>
+                <p className="text-gray-900">{selectedRequest.tujuan_penggunaan || 'Tidak ada'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Cara Memperoleh Informasi</label>
+                <p className="text-gray-900">{selectedRequest.cara_memperoleh_informasi || 'Tidak ada'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Cara Mendapat Salinan</label>
+                <p className="text-gray-900">{selectedRequest.cara_mendapat_salinan || 'Tidak ada'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">File Lampiran</label>
+                <div className="mt-2 space-y-2">
+                  {(() => {
+                    console.log('Full request object:', selectedRequest);
+                    console.log('File attachments:', selectedRequest.file_attachments);
+                    console.log('Type:', typeof selectedRequest.file_attachments);
+                    
+                    if (!selectedRequest.file_attachments) {
+                      return <span className="text-sm text-gray-500">Tidak ada file lampiran</span>;
+                    }
+                    
+                    try {
+                      let files = selectedRequest.file_attachments;
+                      if (typeof files === 'string') {
+                        console.log('Parsing string:', files);
+                        files = JSON.parse(files);
+                      }
+                      
+                      console.log('Parsed files:', files);
+                      
+                      if (Array.isArray(files) && files.length > 0) {
+                        return files.map((fileName, index) => (
+                          <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <Paperclip className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-700 flex-1">{fileName}</span>
+                            <button className="text-blue-600 hover:text-blue-800 text-xs">
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ));
+                      }
+                      
+                      return <span className="text-sm text-gray-500">Array kosong atau bukan array</span>;
+                    } catch (e) {
+                      console.error('Error parsing files:', e);
+                      return <span className="text-sm text-gray-500">Error: {String(selectedRequest.file_attachments)}</span>;
+                    }
+                  })()}
+                </div>
               </div>
               {selectedRequest.catatan_ppid && (
                 <div>

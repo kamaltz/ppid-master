@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
+import { FileText, Download, Paperclip } from "lucide-react";
 
 export default function DetailPermohonanPage() {
   const [request, setRequest] = useState<any>(null);
@@ -132,26 +133,44 @@ export default function DetailPermohonanPage() {
             day: 'numeric'
           })}</p>
         </div>
-        {request.file_attachments && (
-          <div>
-            <h3 className="font-semibold">File Lampiran:</h3>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              {(() => {
-                try {
-                  const files = JSON.parse(request.file_attachments);
+        <div>
+          <h3 className="font-semibold">File Lampiran:</h3>
+          <div className="bg-gray-50 p-3 rounded-lg">
+            {(() => {
+              console.log('File attachments raw:', request.file_attachments);
+              
+              if (!request.file_attachments) {
+                return <span className="text-sm text-gray-500">Tidak ada file lampiran</span>;
+              }
+              
+              try {
+                let files = request.file_attachments;
+                if (typeof files === 'string') {
+                  files = JSON.parse(files);
+                }
+                
+                if (Array.isArray(files) && files.length > 0) {
                   return files.map((fileName, index) => (
-                    <div key={index} className="flex items-center space-x-2 py-1">
-                      <FileText className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm">{fileName}</span>
+                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded border mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Paperclip className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">{fileName}</span>
+                      </div>
+                      <button className="text-blue-600 hover:text-blue-800">
+                        <Download className="w-4 h-4" />
+                      </button>
                     </div>
                   ));
-                } catch {
-                  return <span className="text-sm text-gray-500">File tidak dapat ditampilkan</span>;
                 }
-              })()} 
-            </div>
+                
+                return <span className="text-sm text-gray-500">Tidak ada file lampiran</span>;
+              } catch (e) {
+                console.error('Error parsing files:', e);
+                return <span className="text-sm text-gray-500">Raw data: {String(request.file_attachments)}</span>;
+              }
+            })()} 
           </div>
-        )}
+        </div>
         {request.catatan_ppid && (
           <div>
             <h3 className="font-semibold">Catatan PPID:</h3>

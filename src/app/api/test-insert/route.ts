@@ -18,15 +18,16 @@ export async function POST() {
       });
     }
     
-    // Create test request with explicit date
+    // Create test request with file attachments
     const testRequest = await prisma.request.create({
       data: {
         pemohon_id: pemohon.id,
-        rincian_informasi: 'Test permintaan informasi dari API',
+        rincian_informasi: 'Test permintaan informasi dari API dengan file attachment',
         tujuan_penggunaan: 'Test purpose untuk pengujian',
         cara_memperoleh_informasi: 'Email',
         cara_mendapat_salinan: 'Email',
-        status: 'Diajukan'
+        status: 'Diajukan',
+        file_attachments: JSON.stringify(['dokumen1.pdf', 'lampiran.docx', 'foto_ktp.jpg'])
       }
     });
     

@@ -4,9 +4,13 @@ import { getPermintaan } from '@/lib/api';
 interface PermintaanData {
   id: number;
   rincian_informasi: string;
+  tujuan_penggunaan?: string;
+  cara_memperoleh_informasi?: string;
+  cara_mendapat_salinan?: string;
   status: string;
   created_at: string;
   catatan_ppid?: string;
+  file_attachments?: string | string[];
 }
 
 export const usePemohonData = () => {
