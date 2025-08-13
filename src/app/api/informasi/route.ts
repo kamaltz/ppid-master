@@ -1,72 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllInformasi, createInformasi } from '../../../../lib/controllers/informasiControllerPrisma';
+import { prisma } from '../../../../lib/lib/prismaClient';
+import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest) {
   try {
-    let responseData: any;
-    let statusCode = 200;
-    
-    const req = {
-      query: Object.fromEntries(request.nextUrl.searchParams.entries()),
-      headers: Object.fromEntries(request.headers.entries()),
-    } as any;
-    
-    const res = {
-      status: (code: number) => {
-        statusCode = code;
-        return {
-          json: (data: any) => {
-            responseData = data;
-          }
-        };
-      },
-      json: (data: any) => {
-        responseData = data;
-      }
-    } as any;
-    
-    await getAllInformasi(req, res);
-    return NextResponse.json(responseData, { status: statusCode });
+    const { searchParams } = new URL(request.url);
+    const klasifikasi = searchParams.get('klasifikasi');
+    const search = searchParams.get('search');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+
+    const where: any = {};
+    if (klasifikasi) where.klasifikasi = klasifikasi;
+    if (search) {
+      where.OR = [
+        { judul: { contains: search, mode: 'insensitive' } },
+        { ringkasan_isi_informasi: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      prisma.informasiPublik.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.informasiPublik.count({ where })
+    ]);
+
+    return NextResponse.json({
+      data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Get informasi error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+
+    const { judul, klasifikasi, ringkasan_isi_informasi, file_url, pejabat_penguasa_informasi } = await request.json();
     
-    let responseData: any;
-    let statusCode = 200;
-    
-    const req = {
-      body,
-      headers: Object.fromEntries(request.headers.entries()),
-    } as any;
-    
-    const res = {
-      status: (code: number) => {
-        statusCode = code;
-        return {
-          json: (data: any) => {
-            responseData = data;
-          }
-        };
-      },
-      json: (data: any) => {
-        responseData = data;
-      }
-    } as any;
-    
-    await createInformasi(req, res);
-    return NextResponse.json(responseData, { status: statusCode });
+    if (!judul || !klasifikasi || !ringkasan_isi_informasi) {
+      return NextResponse.json({ error: 'Judul, klasifikasi, dan ringkasan wajib diisi' }, { status: 400 });
+    }
+
+    const data = await prisma.informasiPublik.create({
+      data: { judul, klasifikasi, ringkasan_isi_informasi, file_url, pejabat_penguasa_informasi }
+    });
+
+    return NextResponse.json({ message: 'Informasi berhasil ditambahkan', data });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Create informasi error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

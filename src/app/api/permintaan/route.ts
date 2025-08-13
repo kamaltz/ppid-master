@@ -10,14 +10,30 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    jwt.verify(token, process.env.JWT_SECRET!);
 
-    const requests = await prisma.request.findMany({
-      orderBy: { created_at: 'desc' },
-      take: 50
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = parseInt(searchParams.get('page') || '1');
+    const status = searchParams.get('status');
+
+    const where = status ? { status } : {};
+    const skip = (page - 1) * limit;
+
+    const [requests, total] = await Promise.all([
+      prisma.request.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.request.count({ where })
+    ]);
+
+    return NextResponse.json({ 
+      data: requests,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
-
-    return NextResponse.json({ data: requests });
   } catch (error) {
     console.error('Get permintaan error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -34,17 +50,23 @@ export async function POST(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
 
-    const { rincian_informasi, tujuan_penggunaan } = await request.json();
+    const { rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan } = await request.json();
+
+    if (!rincian_informasi || !tujuan_penggunaan) {
+      return NextResponse.json({ error: 'Rincian informasi dan tujuan penggunaan wajib diisi' }, { status: 400 });
+    }
 
     const newRequest = await prisma.request.create({
       data: {
         pemohon_id: decoded.userId,
         rincian_informasi,
-        tujuan_penggunaan
+        tujuan_penggunaan,
+        cara_memperoleh_informasi: cara_memperoleh_informasi || 'Email',
+        cara_mendapat_salinan: cara_mendapat_salinan || 'Email'
       }
     });
 
-    return NextResponse.json({ message: 'Request created', data: newRequest });
+    return NextResponse.json({ message: 'Permintaan berhasil dibuat', data: newRequest });
   } catch (error) {
     console.error('Create permintaan error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

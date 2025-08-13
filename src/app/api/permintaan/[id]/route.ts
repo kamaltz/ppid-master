@@ -1,125 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPermintaanById, updateStatusPermintaan, deletePermintaan } from '../../../../../lib/controllers/permintaanController';
-import { getAuthUser } from '../../../../../lib/middleware/authMiddleware';
+import { prisma } from '../../../../../lib/lib/prismaClient';
+import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = getAuthUser(request);
-    if (!user) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    let responseData: any;
-    let statusCode = 200;
-    
-    const req = {
-      params,
-      headers: Object.fromEntries(request.headers.entries()),
-      user
-    } as any;
-    
-    const res = {
-      status: (code: number) => {
-        statusCode = code;
-        return {
-          json: (data: any) => {
-            responseData = data;
-          }
-        };
-      },
-      json: (data: any) => {
-        responseData = data;
-      }
-    } as any;
-    
-    await getPermintaanById(req, res);
-    return NextResponse.json(responseData, { status: statusCode });
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+
+    const permintaan = await prisma.request.findUnique({
+      where: { id: parseInt(params.id) }
+    });
+
+    if (!permintaan) {
+      return NextResponse.json({ error: 'Permintaan tidak ditemukan' }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: permintaan });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = getAuthUser(request);
-    if (!user || !['PPID', 'PPID_Pelaksana', 'Admin'].includes(user.role)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const body = await request.json();
-    let responseData: any;
-    let statusCode = 200;
-    
-    const req = {
-      params,
-      body,
-      headers: Object.fromEntries(request.headers.entries()),
-      user
-    } as any;
-    
-    const res = {
-      status: (code: number) => {
-        statusCode = code;
-        return {
-          json: (data: any) => {
-            responseData = data;
-          }
-        };
-      },
-      json: (data: any) => {
-        responseData = data;
-      }
-    } as any;
-    
-    await updateStatusPermintaan(req, res);
-    return NextResponse.json(responseData, { status: statusCode });
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+
+    const { status, catatan_ppid } = await request.json();
+
+    const updatedRequest = await prisma.request.update({
+      where: { id: parseInt(params.id) },
+      data: { status, catatan_ppid }
+    });
+
+    return NextResponse.json({ message: 'Status berhasil diperbarui', data: updatedRequest });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = getAuthUser(request);
-    if (!user) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    let responseData: any;
-    let statusCode = 200;
-    
-    const req = {
-      params,
-      headers: Object.fromEntries(request.headers.entries()),
-      user
-    } as any;
-    
-    const res = {
-      status: (code: number) => {
-        statusCode = code;
-        return {
-          json: (data: any) => {
-            responseData = data;
-          }
-        };
-      },
-      json: (data: any) => {
-        responseData = data;
-      }
-    } as any;
-    
-    await deletePermintaan(req, res);
-    return NextResponse.json(responseData, { status: statusCode });
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+
+    await prisma.request.delete({
+      where: { id: parseInt(params.id) }
+    });
+
+    return NextResponse.json({ message: 'Permintaan berhasil dihapus' });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
