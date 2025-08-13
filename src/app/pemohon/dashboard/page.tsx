@@ -5,6 +5,8 @@ import Link from "next/link";
 import { PlusCircle, FileText, Clock, CheckCircle, AlertTriangle, X, User, Download, Paperclip } from "lucide-react";
 import AccessibilityHelper from "@/components/accessibility/AccessibilityHelper";
 import { usePemohonData } from "@/hooks/usePemohonData";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 interface PermintaanData {
   id: number;
@@ -41,10 +43,43 @@ export default function PemohonDashboardPage() {
     }
   };
   
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   const handleWithdrawRequest = (id: string) => {
-    if (confirm(`Yakin ingin menarik kembali permohonan ${id}? Tindakan ini tidak dapat dibatalkan.`)) {
-      alert(`Permohonan ${id} berhasil ditarik kembali`);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Tarik Permohonan',
+      message: `Apakah Anda yakin ingin menarik kembali permohonan #${id}? Tindakan ini tidak dapat dibatalkan dan permohonan akan dihapus dari sistem.`,
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          // Simulate API call
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          setSuccessModal({
+            isOpen: true,
+            title: 'Berhasil Ditarik',
+            message: `Permohonan #${id} berhasil ditarik kembali dari sistem.`
+          });
+        } catch (error) {
+          alert('Gagal menarik permohonan');
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    });
   };
   
   const handleWithdrawKeberatan = (id: string) => {
@@ -325,7 +360,24 @@ export default function PemohonDashboardPage() {
         </div>
       )}
       
-
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type="danger"
+        isLoading={isProcessing}
+      />
+      
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+        title={successModal.title}
+        message={successModal.message}
+      />
       
       <AccessibilityHelper />
     </div>

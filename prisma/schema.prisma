@@ -37,7 +37,7 @@ model Ppid {
   email           String   @unique
   hashed_password String
   nama            String
-  role            String   @default("PPID")
+  role            String   @default("PPID_PELAKSANA")
   created_at      DateTime @default(now())
 
   @@map("ppid")

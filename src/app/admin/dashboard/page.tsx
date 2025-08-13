@@ -5,7 +5,7 @@ import { getRoleDisplayName } from "@/lib/roleUtils";
 import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import Chart from "@/components/ui/Chart";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { populateTestData, clearTestData } from "@/lib/generateTestData";
+
 
 export default function DashboardPage() {
   const { getUserRole } = useAuth();
@@ -51,55 +51,7 @@ export default function DashboardPage() {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
-            {permintaan.length === 0 && (
-              <button
-                onClick={() => {
-                  populateTestData();
-                  refreshData();
-                }}
-                className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Generate Test Data
-              </button>
-            )}
-            <button
-              onClick={() => {
-                localStorage.removeItem('permintaan');
-                refreshData();
-              }}
-              className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              Clear Cache
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/test-insert', { method: 'POST' });
-                  const result = await response.json();
-                  console.log('Test insert result:', result);
-                  refreshData();
-                } catch (error) {
-                  console.error('Test insert error:', error);
-                }
-              }}
-              className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              Insert DB Test
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/debug-data');
-                  const result = await response.json();
-                  console.log('Debug data:', result);
-                } catch (error) {
-                  console.error('Debug error:', error);
-                }
-              }}
-              className="px-3 py-2 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-            >
-              Debug Data
-            </button>
+
             <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
               {getRoleDisplayName(userRole)}
             </div>

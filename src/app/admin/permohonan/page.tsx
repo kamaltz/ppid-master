@@ -7,6 +7,8 @@ import RoleGuard from "@/components/auth/RoleGuard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { updatePermintaanStatus } from "@/lib/api";
 import { X, CheckSquare, Square } from "lucide-react";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 interface Permohonan {
   id: number;
@@ -26,6 +28,19 @@ export default function AdminPermohonanPage() {
   const [selectedPermohonan, setSelectedPermohonan] = useState<Permohonan | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'success';
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', type: 'warning', onConfirm: () => {} });
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Convert database data to component format
   const permohonan = permintaan.map(req => {
@@ -52,60 +67,98 @@ export default function AdminPermohonanPage() {
     };
   });
 
-  const updateStatus = async (id: number, newStatus: string) => {
+  const updateStatus = (id: number, newStatus: string) => {
     const currentPermohonan = permohonan.find(p => p.id === id);
     if (!currentPermohonan) return;
     
-    let confirmMessage = '';
+    let title = '';
+    let message = '';
+    let successTitle = '';
     let successMessage = '';
+    let type: 'warning' | 'danger' | 'success' = 'warning';
     
     if (currentPermohonan.status === 'Diajukan' && newStatus === 'Diproses') {
-      confirmMessage = `Yakin ingin menerima dan memproses permohonan ${id}?`;
-      successMessage = `Permohonan ${id} diterima dan sedang diproses`;
+      title = 'Proses Permohonan';
+      message = `Apakah Anda yakin ingin memproses permohonan #${id} dari ${currentPermohonan.nama}? Permohonan akan diteruskan ke PPID Pelaksana.`;
+      successTitle = 'Berhasil Diproses';
+      successMessage = `Permohonan #${id} berhasil diterima dan sedang diproses oleh PPID Pelaksana.`;
+      type = 'success';
     } else if (currentPermohonan.status === 'Diproses' && newStatus === 'Selesai') {
-      confirmMessage = `Yakin ingin menyelesaikan permohonan ${id}?`;
-      successMessage = `Permohonan ${id} berhasil diselesaikan`;
+      title = 'Selesaikan Permohonan';
+      message = `Apakah Anda yakin ingin menyelesaikan permohonan #${id}? Pemohon akan mendapatkan notifikasi bahwa permohonan telah selesai.`;
+      successTitle = 'Permohonan Selesai';
+      successMessage = `Permohonan #${id} berhasil diselesaikan. Pemohon telah diberitahu melalui email.`;
+      type = 'success';
     } else if (currentPermohonan.status === 'Diproses' && newStatus === 'Ditolak') {
-      confirmMessage = `Yakin ingin menolak permohonan ${id}? Tindakan ini tidak dapat dibatalkan.`;
-      successMessage = `Permohonan ${id} ditolak`;
+      title = 'Tolak Permohonan';
+      message = `Apakah Anda yakin ingin menolak permohonan #${id}? Tindakan ini tidak dapat dibatalkan dan pemohon akan diberitahu.`;
+      successTitle = 'Permohonan Ditolak';
+      successMessage = `Permohonan #${id} telah ditolak. Pemohon akan menerima notifikasi penolakan.`;
+      type = 'danger';
     }
     
-    if (confirmMessage && confirm(confirmMessage)) {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
-        
-        await updatePermintaanStatus(id.toString(), { status: newStatus }, token);
-        alert(successMessage);
-        refreshData(); // Refresh data after update
-      } catch (error) {
-        alert('Gagal mengupdate status');
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          const token = localStorage.getItem('auth_token');
+          if (!token) throw new Error('No token found');
+          
+          await updatePermintaanStatus(id.toString(), { status: newStatus }, token);
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          setSuccessModal({ isOpen: true, title: successTitle, message: successMessage });
+          refreshData();
+        } catch (error) {
+          alert('Gagal mengupdate status');
+        } finally {
+          setIsProcessing(false);
+        }
       }
-    }
+    });
   };
 
-  const deletePermohonan = async (id: number) => {
+  const deletePermohonan = (id: number) => {
     const item = permohonan.find(p => p.id === id);
-    if (confirm(`Yakin ingin menghapus permohonan ${id} dari "${item?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
-        
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) throw new Error('Failed to delete');
-        
-        alert(`Permohonan ${id} berhasil dihapus`);
-        refreshData(); // Refresh data after delete
-      } catch (error) {
-        alert('Gagal menghapus permohonan');
+    if (!item) return;
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Permohonan',
+      message: `Apakah Anda yakin ingin menghapus permohonan #${id} dari ${item.nama}? Tindakan ini tidak dapat dibatalkan dan semua data terkait akan hilang permanen.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          const token = localStorage.getItem('auth_token');
+          if (!token) throw new Error('No token found');
+          
+          const response = await fetch(`/api/permintaan/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) throw new Error('Failed to delete');
+          
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          setSuccessModal({
+            isOpen: true,
+            title: 'Berhasil Dihapus',
+            message: `Permohonan #${id} berhasil dihapus dari sistem.`
+          });
+          refreshData();
+        } catch (error) {
+          alert('Gagal menghapus permohonan');
+        } finally {
+          setIsProcessing(false);
+        }
       }
-    }
+    });
   };
   
   const handleSelectAll = () => {
@@ -131,29 +184,81 @@ export default function AdminPermohonanPage() {
       return;
     }
     
-    let confirmMessage = '';
+    let title = '';
+    let message = '';
+    let successTitle = '';
     let successMessage = '';
+    let type: 'warning' | 'danger' | 'success' = 'warning';
     
     switch (action) {
       case 'terima':
-        confirmMessage = `Yakin ingin menerima ${selectedIds.length} permohonan yang dipilih?`;
-        successMessage = `${selectedIds.length} permohonan berhasil diterima`;
+        title = 'Proses Massal';
+        message = `Apakah Anda yakin ingin memproses ${selectedIds.length} permohonan sekaligus? Semua permohonan akan diteruskan ke PPID Pelaksana.`;
+        successTitle = 'Berhasil Diproses';
+        successMessage = `${selectedIds.length} permohonan berhasil diterima dan sedang diproses.`;
+        type = 'success';
         break;
       case 'tolak':
-        confirmMessage = `Yakin ingin menolak ${selectedIds.length} permohonan yang dipilih?`;
-        successMessage = `${selectedIds.length} permohonan berhasil ditolak`;
+        title = 'Tolak Massal';
+        message = `Apakah Anda yakin ingin menolak ${selectedIds.length} permohonan sekaligus? Tindakan ini tidak dapat dibatalkan.`;
+        successTitle = 'Berhasil Ditolak';
+        successMessage = `${selectedIds.length} permohonan berhasil ditolak.`;
+        type = 'danger';
         break;
       case 'hapus':
-        confirmMessage = `Yakin ingin menghapus ${selectedIds.length} permohonan yang dipilih? Tindakan ini tidak dapat dibatalkan.`;
-        successMessage = `${selectedIds.length} permohonan berhasil dihapus`;
+        title = 'Hapus Massal';
+        message = `Apakah Anda yakin ingin menghapus ${selectedIds.length} permohonan sekaligus? Tindakan ini tidak dapat dibatalkan dan semua data akan hilang permanen.`;
+        successTitle = 'Berhasil Dihapus';
+        successMessage = `${selectedIds.length} permohonan berhasil dihapus dari sistem.`;
+        type = 'danger';
         break;
     }
     
-    if (confirm(confirmMessage)) {
-      alert(successMessage);
-      setSelectedIds([]);
-      setSelectAll(false);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          const token = localStorage.getItem('auth_token');
+          if (!token) throw new Error('No token found');
+          
+          if (action === 'hapus') {
+            // Delete each selected request
+            for (const id of selectedIds) {
+              const response = await fetch(`/api/permintaan/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              if (!response.ok) {
+                throw new Error(`Failed to delete request ${id}`);
+              }
+            }
+          } else {
+            // Update status for each selected request
+            const newStatus = action === 'terima' ? 'Diproses' : 'Ditolak';
+            for (const id of selectedIds) {
+              await updatePermintaanStatus(id.toString(), { status: newStatus }, token);
+            }
+          }
+          
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          setSuccessModal({ isOpen: true, title: successTitle, message: successMessage });
+          setSelectedIds([]);
+          setSelectAll(false);
+          refreshData();
+        } catch (error) {
+          console.error('Bulk action error:', error);
+          alert('Gagal melakukan aksi massal');
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -392,6 +497,25 @@ export default function AdminPermohonanPage() {
           </div>
         </div>
       )}
+      
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        isLoading={isProcessing}
+      />
+      
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+        title={successModal.title}
+        message={successModal.message}
+      />
     </div>
   );
 }

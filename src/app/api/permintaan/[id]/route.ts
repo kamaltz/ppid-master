@@ -9,29 +9,25 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET!);
 
-    const permintaan = await prisma.request.findUnique({
-      where: { id: parseInt(params.id) }
+    const requestData = await prisma.request.findUnique({
+      where: { id: parseInt(params.id) },
+      include: {
+        pemohon: {
+          select: { id: true, nama: true, email: true, nik: true, no_telepon: true, alamat: true }
+        }
+      }
     });
 
-    if (!permintaan) {
-      return NextResponse.json({ error: 'Permintaan tidak ditemukan' }, { status: 404 });
+    if (!requestData) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
-    // Get pemohon data
-    const pemohon = await prisma.pemohon.findUnique({
-      where: { id: permintaan.pemohon_id },
-      select: { id: true, nama: true, email: true, nik: true, no_telepon: true, alamat: true }
-    });
-
-    const permintaanWithPemohon = {
-      ...permintaan,
-      pemohon: pemohon || { nama: 'Unknown', email: 'Unknown' }
-    };
-
-    return NextResponse.json({ data: permintaanWithPemohon });
+    return NextResponse.json({ data: requestData });
   } catch (error) {
+    console.error('Get request error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -43,17 +39,28 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET!);
 
     const { status, catatan_ppid } = await request.json();
 
     const updatedRequest = await prisma.request.update({
       where: { id: parseInt(params.id) },
-      data: { status, catatan_ppid }
+      data: {
+        status,
+        catatan_ppid,
+        updated_at: new Date()
+      },
+      include: {
+        pemohon: {
+          select: { id: true, nama: true, email: true, nik: true, no_telepon: true, alamat: true }
+        }
+      }
     });
 
-    return NextResponse.json({ message: 'Status berhasil diperbarui', data: updatedRequest });
+    return NextResponse.json({ data: updatedRequest });
   } catch (error) {
+    console.error('Update request error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -65,14 +72,16 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET!);
 
     await prisma.request.delete({
       where: { id: parseInt(params.id) }
     });
 
-    return NextResponse.json({ message: 'Permintaan berhasil dihapus' });
+    return NextResponse.json({ message: 'Request deleted successfully' });
   } catch (error) {
+    console.error('Delete request error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
