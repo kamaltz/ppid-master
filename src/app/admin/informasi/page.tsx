@@ -1,48 +1,177 @@
 "use client";
 
-import { useState } from "react";
-import { ROLES } from "@/lib/roleUtils";
+import { useState, useRef, useEffect } from "react";
+import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useInformasiData } from "@/hooks/useInformasiData";
+import { useAuth } from "@/context/AuthContext";
+import { X, Upload, Link as LinkIcon, FileText } from "lucide-react";
 
 export default function AdminInformasiPage() {
   const { informasi, isLoading, createInformasi, updateInformasi, deleteInformasi } = useInformasiData();
+  const { getUserRole, user } = useAuth();
+  
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+  
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/kategori');
+      const data = await response.json();
+      if (data.success) {
+        setCategories(data.data);
+        if (data.data.length > 0 && !formData.klasifikasi) {
+          setFormData(prev => ({ ...prev, klasifikasi: data.data[0].slug }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ 
     judul: '', 
-    klasifikasi: 'Informasi Berkala', 
+    klasifikasi: '', 
     ringkasan_isi_informasi: '',
-    pejabat_penguasa_informasi: ''
+    tanggal_posting: new Date().toISOString().split('T')[0],
+    files: [] as File[],
+    existingFiles: [] as { name: string; url: string; size?: number }[],
+    links: [{ title: '', url: '' }] as { title: string; url: string }[]
   });
+  const [categories, setCategories] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Upload files first
+      const uploadedFiles = [];
+      for (const file of formData.files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const uploadResult = await uploadResponse.json();
+        if (uploadResult.success) {
+          uploadedFiles.push({
+            name: uploadResult.originalName,
+            url: uploadResult.url,
+            size: uploadResult.size
+          });
+        }
+      }
+      
+      // Combine existing files with newly uploaded files
+      const allFiles = [...formData.existingFiles, ...uploadedFiles];
+      
+      const submitData = {
+        judul: formData.judul,
+        klasifikasi: formData.klasifikasi,
+        ringkasan_isi_informasi: formData.ringkasan_isi_informasi,
+        tanggal_posting: formData.tanggal_posting,
+        pejabat_penguasa_informasi: getRoleDisplayName(getUserRole()) || 'PPID Diskominfo',
+        files: allFiles,
+        links: formData.links.filter(link => link.title.trim() !== '' && link.url.trim() !== '')
+      };
+      
       if (editId) {
-        await updateInformasi(editId, formData);
+        await updateInformasi(editId, submitData);
         alert('Informasi berhasil diperbarui');
       } else {
-        await createInformasi(formData);
+        await createInformasi(submitData);
         alert('Informasi berhasil ditambahkan');
       }
       setShowForm(false);
       setEditId(null);
-      setFormData({ judul: '', klasifikasi: 'Informasi Berkala', ringkasan_isi_informasi: '', pejabat_penguasa_informasi: '' });
+      setFormData({ 
+        judul: '', 
+        klasifikasi: categories.length > 0 ? categories[0].slug : '', 
+        ringkasan_isi_informasi: '',
+        tanggal_posting: new Date().toISOString().split('T')[0],
+        files: [],
+        existingFiles: [],
+        links: [{ title: '', url: '' }]
+      });
     } catch (error) {
+      console.error('Error:', error);
       alert('Gagal menyimpan informasi');
     }
   };
 
   const handleEdit = (item: any) => {
+    // Parse links if it's a JSON string
+    let parsedLinks = [{ title: '', url: '' }];
+    if (item.links) {
+      try {
+        parsedLinks = typeof item.links === 'string' ? JSON.parse(item.links) : item.links;
+        if (!Array.isArray(parsedLinks) || parsedLinks.length === 0) {
+          parsedLinks = [{ title: '', url: '' }];
+        }
+      } catch (e) {
+        parsedLinks = [{ title: '', url: '' }];
+      }
+    }
+    
+    // Parse existing files
+    let existingFiles = [];
+    if (item.file_attachments) {
+      try {
+        existingFiles = typeof item.file_attachments === 'string' ? JSON.parse(item.file_attachments) : item.file_attachments;
+        if (!Array.isArray(existingFiles)) {
+          existingFiles = [];
+        }
+      } catch (e) {
+        existingFiles = [];
+      }
+    }
+    
     setFormData({ 
       judul: item.judul, 
       klasifikasi: item.klasifikasi, 
       ringkasan_isi_informasi: item.ringkasan_isi_informasi,
-      pejabat_penguasa_informasi: item.pejabat_penguasa_informasi || ''
+      tanggal_posting: item.tanggal_posting ? new Date(item.tanggal_posting).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      files: [],
+      existingFiles: existingFiles,
+      links: parsedLinks
     });
     setEditId(item.id);
     setShowForm(true);
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
+    }
+  };
+  
+  const removeFile = (index: number) => {
+    setFormData(prev => ({ ...prev, files: prev.files.filter((_, i) => i !== index) }));
+  };
+  
+  const removeExistingFile = (index: number) => {
+    setFormData(prev => ({ ...prev, existingFiles: prev.existingFiles.filter((_, i) => i !== index) }));
+  };
+  
+  const addLink = () => {
+    setFormData(prev => ({ ...prev, links: [...prev.links, { title: '', url: '' }] }));
+  };
+  
+  const updateLink = (index: number, field: 'title' | 'url', value: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      links: prev.links.map((link, i) => i === index ? { ...link, [field]: value } : link)
+    }));
+  };
+  
+  const removeLink = (index: number) => {
+    setFormData(prev => ({ ...prev, links: prev.links.filter((_, i) => i !== index) }));
   };
 
   const handleDelete = async (id: number) => {
@@ -74,55 +203,213 @@ export default function AdminInformasiPage() {
       {showForm && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-xl font-bold mb-4">{editId ? 'Edit' : 'Tambah'} Informasi</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Judul</label>
-              <input
-                type="text"
-                value={formData.judul}
-                onChange={(e) => setFormData({...formData, judul: e.target.value})}
-                className="w-full border rounded px-3 py-2"
-                required
-              />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Judul</label>
+                <input
+                  type="text"
+                  value={formData.judul}
+                  onChange={(e) => setFormData({...formData, judul: e.target.value})}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Tanggal Posting</label>
+                <input
+                  type="date"
+                  value={formData.tanggal_posting}
+                  onChange={(e) => setFormData({...formData, tanggal_posting: e.target.value})}
+                  min="2020-01-01"
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                />
+              </div>
             </div>
+            
             <div>
-              <label className="block text-sm font-medium mb-1">Klasifikasi</label>
+              <label className="block text-sm font-medium mb-1">Kategori</label>
               <select
                 value={formData.klasifikasi}
                 onChange={(e) => setFormData({...formData, klasifikasi: e.target.value})}
                 className="w-full border rounded px-3 py-2"
+                required
               >
-                <option value="Informasi Berkala">Informasi Berkala</option>
-                <option value="Informasi Setiap Saat">Informasi Setiap Saat</option>
-                <option value="Informasi Serta Merta">Informasi Serta Merta</option>
+                <option value="">Pilih Kategori</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.slug}>
+                    {category.nama}
+                  </option>
+                ))}
               </select>
             </div>
+            
             <div>
-              <label className="block text-sm font-medium mb-1">Ringkasan Isi Informasi</label>
+              <label className="block text-sm font-medium mb-2">Isi Informasi</label>
               <textarea
                 value={formData.ringkasan_isi_informasi}
                 onChange={(e) => setFormData({...formData, ringkasan_isi_informasi: e.target.value})}
-                className="w-full border rounded px-3 py-2 h-32"
+                className="w-full border rounded px-3 py-2 min-h-[200px] resize-y"
+                placeholder="Masukkan isi informasi lengkap..."
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Gunakan format teks biasa. Paragraf baru akan dipisahkan otomatis.
+              </p>
             </div>
+            
             <div>
-              <label className="block text-sm font-medium mb-1">Pejabat Penguasa Informasi</label>
-              <input
-                type="text"
-                value={formData.pejabat_penguasa_informasi}
-                onChange={(e) => setFormData({...formData, pejabat_penguasa_informasi: e.target.value})}
-                className="w-full border rounded px-3 py-2"
-              />
+              <label className="block text-sm font-medium mb-2">File Lampiran</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  <Upload className="w-4 h-4" />
+                  Pilih File
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Format: PDF, Word, Excel, JPG, PNG (Max 10MB per file)
+                </p>
+                
+                {/* Existing Files */}
+                {formData.existingFiles.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-gray-600 mb-2">File yang sudah ada:</p>
+                    <div className="space-y-2">
+                      {formData.existingFiles.map((file, index) => (
+                        <div key={`existing-${index}`} className="flex items-center justify-between bg-blue-50 p-2 rounded">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm font-medium">{file.name}</span>
+                            {file.size && (
+                              <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeExistingFile(index)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Hapus file"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* New Files */}
+                {formData.files.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-gray-600 mb-2">File baru yang akan diupload:</p>
+                    <div className="space-y-2">
+                      {formData.files.map((file, index) => (
+                        <div key={`new-${index}`} className="flex items-center justify-between bg-green-50 p-2 rounded">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-green-600" />
+                            <span className="text-sm">{file.name}</span>
+                            <span className="text-xs text-gray-500">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(index)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Hapus file"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Link Terkait</label>
+              <div className="space-y-3">
+                {formData.links.map((link, index) => (
+                  <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex items-start gap-2">
+                      <LinkIcon className="w-4 h-4 text-gray-500 mt-2" />
+                      <div className="flex-1 space-y-2">
+                        <input
+                          type="text"
+                          value={link.title}
+                          onChange={(e) => updateLink(index, 'title', e.target.value)}
+                          placeholder="Judul link (contoh: Dokumen Pendukung)"
+                          className="w-full border rounded px-3 py-2 text-sm"
+                        />
+                        <input
+                          type="url"
+                          value={link.url}
+                          onChange={(e) => updateLink(index, 'url', e.target.value)}
+                          placeholder="https://example.com"
+                          className="w-full border rounded px-3 py-2 text-sm"
+                        />
+                      </div>
+                      {formData.links.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeLink(index)}
+                          className="text-red-500 hover:text-red-700 mt-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addLink}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  + Tambah Link
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded">
+              <p className="text-sm text-blue-700">
+                <strong>Pejabat Penguasa Informasi:</strong> {getRoleDisplayName(getUserRole()) || 'PPID Diskominfo'}
+              </p>
+            </div>
+            
             <div className="flex space-x-2">
-              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+              <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
                 {editId ? 'Update' : 'Simpan'}
               </button>
               <button 
                 type="button" 
-                onClick={() => {setShowForm(false); setEditId(null); setFormData({ judul: '', klasifikasi: 'Informasi Berkala', ringkasan_isi_informasi: '', pejabat_penguasa_informasi: '' });}}
-                className="bg-gray-500 text-white px-4 py-2 rounded"
+                onClick={() => {
+                  setShowForm(false); 
+                  setEditId(null); 
+                  setFormData({ 
+                    judul: '', 
+                    klasifikasi: categories.length > 0 ? categories[0].slug : '', 
+                    ringkasan_isi_informasi: '',
+                    tanggal_posting: new Date().toISOString().split('T')[0],
+                    files: [],
+                    existingFiles: [],
+                    links: [{ title: '', url: '' }]
+                  });
+                }}
+                className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600"
               >
                 Batal
               </button>

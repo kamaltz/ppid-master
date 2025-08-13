@@ -42,6 +42,12 @@ const menuItems = [
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
   },
   {
+    href: "/admin/kategori",
+    icon: Users,
+    label: "Kategori Informasi",
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+  },
+  {
     href: "/admin/keberatan",
     icon: AlertTriangle,
     label: "Keberatan",

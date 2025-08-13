@@ -4,17 +4,40 @@ import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const informasi = await prisma.informasiPublik.findUnique({
-      where: { id: parseInt(params.id) }
-    });
-
-    if (!informasi) {
-      return NextResponse.json({ error: 'Informasi tidak ditemukan' }, { status: 404 });
+    const id = parseInt(params.id);
+    
+    if (isNaN(id)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'ID tidak valid' 
+      }, { status: 400 });
     }
-
-    return NextResponse.json({ data: informasi });
-  } catch (error) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    
+    const informasi = await prisma.informasiPublik.findUnique({
+      where: { id }
+    });
+    
+    if (!informasi) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Informasi tidak ditemukan' 
+      }, { status: 404 });
+    }
+    
+    // Parse links and file_attachments if they exist
+    const processedInformasi = {
+      ...informasi,
+      links: informasi.links ? JSON.parse(informasi.links) : [],
+      file_attachments: informasi.file_attachments ? JSON.parse(informasi.file_attachments) : []
+    };
+    
+    return NextResponse.json({ success: true, data: processedInformasi });
+  } catch (error: any) {
+    console.error('GET /api/informasi/[id] error:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch informasi' 
+    }, { status: 500 });
   }
 }
 
@@ -27,15 +50,33 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
 
-    const { judul, klasifikasi, ringkasan_isi_informasi, file_url, pejabat_penguasa_informasi } = await request.json();
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
+    }
 
-    const updatedInformasi = await prisma.informasiPublik.update({
-      where: { id: parseInt(params.id) },
-      data: { judul, klasifikasi, ringkasan_isi_informasi, file_url, pejabat_penguasa_informasi }
+    const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links } = await request.json();
+    
+    if (!judul || !klasifikasi || !ringkasan_isi_informasi) {
+      return NextResponse.json({ error: 'Judul, klasifikasi, dan ringkasan wajib diisi' }, { status: 400 });
+    }
+
+    const data = await prisma.informasiPublik.update({
+      where: { id },
+      data: { 
+        judul, 
+        klasifikasi, 
+        ringkasan_isi_informasi, 
+        tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : undefined,
+        pejabat_penguasa_informasi,
+        file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: any) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
+        links: links && links.length > 0 ? JSON.stringify(links.filter((l: any) => l.title && l.url)) : null
+      }
     });
 
-    return NextResponse.json({ message: 'Informasi berhasil diperbarui', data: updatedInformasi });
+    return NextResponse.json({ message: 'Informasi berhasil diperbarui', data });
   } catch (error) {
+    console.error('Update informasi error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -49,12 +90,18 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
 
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
+    }
+
     await prisma.informasiPublik.delete({
-      where: { id: parseInt(params.id) }
+      where: { id }
     });
 
     return NextResponse.json({ message: 'Informasi berhasil dihapus' });
   } catch (error) {
+    console.error('Delete informasi error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

@@ -60,12 +60,25 @@ model Request {
   @@map("requests")
 }
 
+model KategoriInformasi {
+  id          Int      @id @default(autoincrement())
+  nama        String   @unique
+  slug        String   @unique
+  deskripsi   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  @@map("kategori_informasi")
+}
+
 model InformasiPublik {
   id                         Int      @id @default(autoincrement())
   judul                      String
   klasifikasi                String
-  ringkasan_isi_informasi    String
-  file_url                   String?
+  ringkasan_isi_informasi    String   @db.Text
+  file_attachments           String?  @db.Text
+  links                      String?  @db.Text
+  tanggal_posting            DateTime @default(now())
   pejabat_penguasa_informasi String?
   created_at                 DateTime @default(now())
   updated_at                 DateTime @default(now()) @updatedAt

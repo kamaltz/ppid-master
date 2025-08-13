@@ -49,14 +49,22 @@ export async function POST(request: NextRequest) {
 
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
 
-    const { judul, klasifikasi, ringkasan_isi_informasi, file_url, pejabat_penguasa_informasi } = await request.json();
+    const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links } = await request.json();
     
     if (!judul || !klasifikasi || !ringkasan_isi_informasi) {
       return NextResponse.json({ error: 'Judul, klasifikasi, dan ringkasan wajib diisi' }, { status: 400 });
     }
 
     const data = await prisma.informasiPublik.create({
-      data: { judul, klasifikasi, ringkasan_isi_informasi, file_url, pejabat_penguasa_informasi }
+      data: { 
+        judul, 
+        klasifikasi, 
+        ringkasan_isi_informasi, 
+        tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : new Date(),
+        pejabat_penguasa_informasi,
+        file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: any) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
+        links: links && links.length > 0 ? JSON.stringify(links.filter((l: any) => l.title && l.url)) : null
+      }
     });
 
     return NextResponse.json({ message: 'Informasi berhasil ditambahkan', data });

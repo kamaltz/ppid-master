@@ -50,6 +50,15 @@ export default function PPIDDashboardPage() {
       pending: "0 Draft"
     },
     {
+      title: "Kategori Informasi",
+      description: "Kelola kategori dan klasifikasi informasi",
+      icon: Users,
+      href: "/admin/kategori",
+      color: "bg-indigo-500",
+      stats: "3 Total",
+      pending: "0 Draft"
+    },
+    {
       title: "Pengelolaan Akun",
       description: "Kelola akun pengguna sistem",
       icon: Users,
