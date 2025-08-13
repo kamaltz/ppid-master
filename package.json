@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest __tests__/api/basic-endpoints.test.js",
+    "test": "jest __tests__/api/permintaan.test.js",
     "test:all": "jest",
     "seed": "node scripts/seed.js",
     "seed:requests": "node scripts/seed-requests.js",

@@ -1,16 +1,6 @@
-const nextJest = require('next/jest')
-
-const createJestConfig = nextJest({
-  dir: './',
-})
-
-const customJestConfig = {
+module.exports = {
   testEnvironment: 'node',
-  testTimeout: 30000,
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^@/lib/(.*)$': '<rootDir>/lib/$1',
-  },
-}
-
-module.exports = createJestConfig(customJestConfig)
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  testMatch: ['**/__tests__/**/*.test.js'],
+  testTimeout: 30000
+};
