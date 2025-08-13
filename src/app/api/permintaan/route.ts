@@ -30,8 +30,26 @@ export async function GET(request: NextRequest) {
       prisma.request.count({ where })
     ]);
 
+    // Get all unique pemohon IDs
+    const pemohonIds = [...new Set(requests.map(r => r.pemohon_id).filter(Boolean))];
+    
+    // Fetch all pemohon data in one query
+    const pemohons = await prisma.pemohon.findMany({
+      where: { id: { in: pemohonIds } },
+      select: { id: true, nama: true, email: true, nik: true, no_telepon: true }
+    });
+    
+    // Create a map for quick lookup
+    const pemohonMap = new Map(pemohons.map(p => [p.id, p]));
+    
+    // Join the data
+    const requestsWithPemohon = requests.map(request => ({
+      ...request,
+      pemohon: pemohonMap.get(request.pemohon_id) || { nama: 'Unknown', email: 'Unknown', nik: null }
+    }));
+
     return NextResponse.json({ 
-      data: requests,
+      data: requestsWithPemohon,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
   } catch (error) {

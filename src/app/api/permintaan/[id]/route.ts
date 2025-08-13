@@ -19,7 +19,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Permintaan tidak ditemukan' }, { status: 404 });
     }
 
-    return NextResponse.json({ data: permintaan });
+    // Get pemohon data
+    const pemohon = await prisma.pemohon.findUnique({
+      where: { id: permintaan.pemohon_id },
+      select: { id: true, nama: true, email: true, nik: true, no_telepon: true, alamat: true }
+    });
+
+    const permintaanWithPemohon = {
+      ...permintaan,
+      pemohon: pemohon || { nama: 'Unknown', email: 'Unknown' }
+    };
+
+    return NextResponse.json({ data: permintaanWithPemohon });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

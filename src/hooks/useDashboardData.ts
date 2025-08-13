@@ -17,7 +17,7 @@ interface PermintaanData {
   };
   rincian_informasi: string;
   status: string;
-  tanggal_permintaan: string;
+  created_at: string;
 }
 
 export const useDashboardData = () => {
@@ -90,17 +90,60 @@ export const useDashboardData = () => {
     loadData();
   }, [loadData]);
 
-  // Generate chart data from real data
+  // Generate real-time chart data from database
+  const generateMonthlyData = (data: any[]) => {
+    const monthlyStats: { [key: string]: number } = {};
+    data.forEach((item: any) => {
+      if (!item.created_at) return;
+      const itemDate = new Date(item.created_at);
+      if (isNaN(itemDate.getTime())) return;
+      const month = itemDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+      monthlyStats[month] = (monthlyStats[month] || 0) + 1;
+    });
+    return Object.entries(monthlyStats).map(([month, count]) => ({ month, count: count || 0 }));
+  };
+
+  const generateDailyData = (data: any[]) => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
+    
+    return last7Days.map(date => {
+      const count = data.filter((item: any) => {
+        if (!item.created_at) return false;
+        const itemDate = new Date(item.created_at);
+        if (isNaN(itemDate.getTime())) return false;
+        return itemDate.toISOString().split('T')[0] === date;
+      }).length;
+      return { 
+        date: new Date(date).toLocaleDateString('id-ID', { weekday: 'short' }), 
+        count: count || 0 
+      };
+    });
+  };
+
+  const generateCategoryData = (data: any[]) => {
+    const categories: { [key: string]: number } = {};
+    data.forEach((item: any) => {
+      if (!item.rincian_informasi) return;
+      const category = item.rincian_informasi.length > 50 ? 'Informasi Kompleks' : 'Informasi Sederhana';
+      categories[category] = (categories[category] || 0) + 1;
+    });
+    return Object.entries(categories).map(([name, value]) => ({ name, value: value || 0 }));
+  };
+
   const chartData = {
     status: [
-      { name: 'Diajukan', value: stats.diajukan },
-      { name: 'Diproses', value: stats.diproses },
-      { name: 'Selesai', value: stats.selesai },
-      { name: 'Ditolak', value: stats.ditolak }
+      { name: 'Diajukan', value: stats.diajukan, color: '#3B82F6' },
+      { name: 'Diproses', value: stats.diproses, color: '#F59E0B' },
+      { name: 'Selesai', value: stats.selesai, color: '#10B981' },
+      { name: 'Ditolak', value: stats.ditolak, color: '#EF4444' }
     ],
-    monthly: [], // Can be implemented later with date grouping
-    daily: [],   // Can be implemented later with date grouping
-    category: [] // Can be implemented later with categorization
+    monthly: generateMonthlyData(permintaan),
+    daily: generateDailyData(permintaan),
+    category: generateCategoryData(permintaan)
   };
 
   return {

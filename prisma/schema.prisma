@@ -18,13 +18,15 @@ model Admin {
 }
 
 model Pemohon {
-  id              Int      @id @default(autoincrement())
-  email           String   @unique
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
   hashed_password String
   nama            String
+  nik             String?
   no_telepon      String?
   alamat          String?
-  created_at      DateTime @default(now())
+  created_at      DateTime  @default(now())
+  requests        Request[]
 
   @@map("pemohon")
 }
@@ -50,8 +52,10 @@ model Request {
   cara_mendapat_salinan     String   @default("Email")
   status                    String   @default("Diajukan")
   catatan_ppid              String?
+  file_attachments          String?  @db.Text
   created_at                DateTime @default(now())
   updated_at                DateTime @default(now()) @updatedAt
+  pemohon                   Pemohon  @relation(fields: [pemohon_id], references: [id])
 
   @@map("requests")
 }

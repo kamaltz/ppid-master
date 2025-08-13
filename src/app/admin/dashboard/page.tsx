@@ -30,7 +30,9 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Dashboard {getRoleDisplayName(userRole)}</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              📊 Dashboard {getRoleDisplayName(userRole)}
+            </h1>
             <p className="text-sm text-gray-500 mt-1">
               Login sebagai: <span className="font-semibold text-blue-600">
                 {getRoleDisplayName(userRole)}
@@ -107,33 +109,45 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Analytics Charts */}
+        {/* Enhanced Analytics Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Chart
-            type="bar"
-            title="Permohonan per Bulan"
-            data={chartData.monthly}
-          />
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-1 rounded-xl">
+            <Chart
+              type="pie"
+              title="📊 Status Permohonan"
+              data={chartData.status}
+              height={350}
+            />
+          </div>
           
-          <Chart
-            type="pie"
-            title="Status Permohonan"
-            data={chartData.status}
-          />
+          <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-1 rounded-xl">
+            <Chart
+              type="line"
+              title="📈 Tren Permohonan Harian (7 Hari Terakhir)"
+              data={chartData.daily}
+              height={350}
+            />
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Chart
-            type="line"
-            title="Tren Permohonan Harian"
-            data={chartData.daily}
-          />
+          <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-1 rounded-xl">
+            <Chart
+              type="bar"
+              title="📅 Permohonan per Bulan"
+              data={chartData.monthly}
+              height={300}
+            />
+          </div>
           
-          <Chart
-            type="bar"
-            title="Kategori Informasi"
-            data={chartData.category}
-          />
+          <div className="bg-gradient-to-br from-orange-50 to-amber-100 p-1 rounded-xl">
+            <Chart
+              type="donut"
+              title="🏷️ Kategori Informasi"
+              data={chartData.category}
+              height={300}
+            />
+          </div>
         </div>
 
         {/* Requests Table */}
@@ -146,13 +160,16 @@ export default function DashboardPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nama
+                    Pemohon
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                    NIK
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Jenis Informasi
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    File
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -163,27 +180,69 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {permintaan.slice(0, 10).map((request) => (
-                  <tr key={request.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {request.pemohon?.nama || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {request.pemohon?.email || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {request.rincian_informasi?.substring(0, 50)}...
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                        {getStatusLabel(request.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(request.tanggal_permintaan).toLocaleDateString('id-ID')}
-                    </td>
-                  </tr>
-                ))}
+                {permintaan.slice(0, 10).map((request) => {
+                  const isValidDate = request.created_at && !isNaN(new Date(request.created_at).getTime());
+                  return (
+                    <tr key={request.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <div className="text-sm font-medium text-gray-900">
+                            {request.pemohon?.nama || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {request.pemohon?.email || 'N/A'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {request.pemohon?.nik || request.pemohon?.no_telepon || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                        <div className="truncate" title={request.rincian_informasi}>
+                          {request.rincian_informasi?.substring(0, 40)}...
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {request.file_attachments ? (
+                          <div className="flex items-center space-x-1">
+                            <FileText className="w-4 h-4 text-blue-500" />
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {Array.isArray(request.file_attachments) ? request.file_attachments.length : 1} file
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Tidak ada</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
+                          {getStatusLabel(request.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {isValidDate ? (
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {new Date(request.created_at).toLocaleDateString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(request.created_at).toLocaleTimeString('id-ID', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Tanggal tidak valid</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

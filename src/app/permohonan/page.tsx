@@ -17,6 +17,7 @@ export default function PermohonanPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -42,19 +43,26 @@ export default function PermohonanPage() {
     
     if (!validateForm()) return;
     
+    setShowConfirmation(true);
+  };
+  
+  const confirmSubmit = async () => {
+    setShowConfirmation(false);
     setIsSubmitting(true);
     
     try {
       const response = await fetch('/api/submit-prisma', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           rincian_informasi: formData.rincian_informasi,
           tujuan_penggunaan: formData.tujuan_penggunaan,
           cara_memperoleh_informasi: formData.cara_memperoleh_informasi || 'Email',
-          cara_mendapat_salinan: formData.cara_mendapat_salinan || 'Email'
+          cara_mendapat_salinan: formData.cara_mendapat_salinan || 'Email',
+          file_attachments: files.length > 0 ? JSON.stringify(files.map(f => f.name)) : null
         })
       });
 
@@ -78,6 +86,10 @@ export default function PermohonanPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+  
+  const cancelSubmit = () => {
+    setShowConfirmation(false);
   };
   
   const handleChange = (field: string, value: string) => {
@@ -138,6 +150,28 @@ export default function PermohonanPage() {
       
       <div className="bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-semibold mb-6">Ajukan Permohonan Informasi Publik</h2>
+        
+        {/* Date Display */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <div className="text-blue-600">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-blue-800">Tanggal Pengajuan</p>
+              <p className="text-sm text-blue-600">
+                {new Date().toLocaleDateString('id-ID', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -253,6 +287,58 @@ export default function PermohonanPage() {
           </button>
         </form>
       </div>
+      
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Konfirmasi Permohonan</h3>
+            <div className="space-y-3 mb-6">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Rincian Informasi:</p>
+                <p className="text-sm text-gray-800 bg-gray-50 p-2 rounded">
+                  {formData.rincian_informasi.substring(0, 100)}{formData.rincian_informasi.length > 100 ? '...' : ''}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Tujuan Penggunaan:</p>
+                <p className="text-sm text-gray-800 bg-gray-50 p-2 rounded">
+                  {formData.tujuan_penggunaan.substring(0, 100)}{formData.tujuan_penggunaan.length > 100 ? '...' : ''}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Tanggal Pengajuan:</p>
+                <p className="text-sm text-gray-800 bg-gray-50 p-2 rounded">
+                  {new Date().toLocaleDateString('id-ID', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Apakah Anda yakin data permohonan sudah sesuai dan ingin mengirimkannya?
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelSubmit}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmSubmit}
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 bg-blue-800 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+              >
+                {isSubmitting ? 'Mengirim...' : 'Ya, Kirim'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
