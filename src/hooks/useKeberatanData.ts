@@ -22,10 +22,9 @@ export const useKeberatanData = () => {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       
       if (!token) {
-        console.error('No token found');
         return;
       }
 
@@ -44,7 +43,7 @@ export const useKeberatanData = () => {
   }, [loadData]);
 
   const updateKeberatanStatus = async (id: number, statusData: any) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/keberatan/${id}`, {
@@ -62,7 +61,7 @@ export const useKeberatanData = () => {
   };
 
   const deleteKeberatan = async (id: number) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/keberatan/${id}`, {

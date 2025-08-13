@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllInformasi, createInformasi } from '../../../../lib/controllers/informasiController';
+import { getAllInformasi, createInformasi } from '../../../../lib/controllers/informasiControllerPrisma';
 
 export async function GET(request: NextRequest) {
   try {

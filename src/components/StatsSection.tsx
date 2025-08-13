@@ -1,3 +1,5 @@
+"use client";
+
 import { TrendingUp, FileCheck, Clock, FileText } from "lucide-react";
 import { usePublicStats } from '@/hooks/usePublicStats';
 

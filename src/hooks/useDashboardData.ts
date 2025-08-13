@@ -35,16 +35,26 @@ export const useDashboardData = () => {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
       
-      if (!token) {
-        console.error('No token found');
-        return;
+      // Try database first, fallback to localStorage
+      let permintaanData = [];
+      
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          const permintaanResponse = await getPermintaan(token, { limit: 50 });
+          permintaanData = permintaanResponse.data || [];
+        }
+      } catch (dbError) {
+        console.log('Database failed, using localStorage:', dbError);
       }
-
-      // Get permintaan data
-      const permintaanResponse = await getPermintaan(token, { limit: 50 });
-      const permintaanData = permintaanResponse.data || [];
+      
+      // If no database data, use localStorage
+      if (permintaanData.length === 0) {
+        const localData = JSON.parse(localStorage.getItem('permintaan') || '[]');
+        permintaanData = localData;
+        console.log('Using localStorage data:', permintaanData.length, 'items');
+      }
       
       setPermintaan(permintaanData);
 

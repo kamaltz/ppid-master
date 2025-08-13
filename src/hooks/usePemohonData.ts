@@ -17,10 +17,10 @@ export const usePemohonData = () => {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       
       if (!token) {
-        console.error('No token found');
+        setPermintaan([]);
         return;
       }
 
@@ -32,6 +32,7 @@ export const usePemohonData = () => {
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Error loading pemohon data:', error);
+      setPermintaan([]);
     } finally {
       setIsLoading(false);
     }

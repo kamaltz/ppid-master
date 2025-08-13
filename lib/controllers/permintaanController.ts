@@ -12,10 +12,9 @@ export const getAllPermintaan = async (req: Request, res: Response) => {
 
   try {
     let query = supabase
-      .from("permintaan_informasi")
+      .from("requests")
       .select(`
-        *,
-        pemohon:pemohon_id(nama, email)
+        *
       `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
@@ -89,6 +88,8 @@ export const createPermintaan = async (req: Request, res: Response) => {
   } = req.body;
   const { userId } = (req as any).user;
 
+  console.log('Creating permintaan:', { userId, body: req.body });
+
   if (!rincian_informasi || !tujuan_penggunaan) {
     return res.status(400).json({ 
       error: "Rincian informasi dan tujuan penggunaan wajib diisi." 
@@ -96,28 +97,33 @@ export const createPermintaan = async (req: Request, res: Response) => {
   }
 
   try {
+    // Direct insert without foreign key constraints
     const { data, error } = await supabase
-      .from("permintaan_informasi")
-      .insert([{
-        pemohon_id: userId,
+      .from('requests')
+      .insert({
+        pemohon_id: parseInt(userId),
         rincian_informasi,
         tujuan_penggunaan,
-        cara_memperoleh_informasi,
-        cara_mendapat_salinan,
-        status: 'Diajukan',
-        tanggal_permintaan: new Date().toISOString(),
-        created_at: new Date().toISOString()
-      }])
+        cara_memperoleh_informasi: cara_memperoleh_informasi || 'Email',
+        cara_mendapat_salinan: cara_mendapat_salinan || 'Email',
+        status: 'Diajukan'
+      })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Insert error:', error);
+      throw new Error(`Insert failed: ${error.message || 'Unknown error'}`);
+    }
+    
+    console.log('Permintaan created successfully:', data);
     res.status(201).json({ 
       message: "Permintaan berhasil diajukan", 
       data 
     });
   } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengajukan permintaan: " + err.message });
+    console.error('createPermintaan controller error:', err);
+    res.status(500).json({ error: "Gagal mengajukan permintaan: " + (err?.message || 'Unknown error') });
   }
 };
 

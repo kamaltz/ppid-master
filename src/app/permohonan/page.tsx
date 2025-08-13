@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { createRequest } from "@/lib/api";
 import Link from "next/link";
 import { LogIn, UserPlus, AlertCircle, Upload, X } from "lucide-react";
 
 export default function PermohonanPage() {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
-    nama: '',
-    email: '',
-    informasi: ''
+    rincian_informasi: '',
+    tujuan_penggunaan: '',
+    cara_memperoleh_informasi: 'Email',
+    cara_mendapat_salinan: 'Email'
   });
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -19,22 +21,16 @@ export default function PermohonanPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.nama.trim()) {
-      newErrors.nama = 'Nama lengkap wajib diisi';
-    } else if (formData.nama.trim().length < 3) {
-      newErrors.nama = 'Nama minimal 3 karakter';
+    if (!formData.rincian_informasi.trim()) {
+      newErrors.rincian_informasi = 'Rincian informasi wajib diisi';
+    } else if (formData.rincian_informasi.trim().length < 10) {
+      newErrors.rincian_informasi = 'Rincian informasi minimal 10 karakter';
     }
     
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email wajib diisi';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Format email tidak valid';
-    }
-    
-    if (!formData.informasi.trim()) {
-      newErrors.informasi = 'Informasi yang diminta wajib diisi';
-    } else if (formData.informasi.trim().length < 10) {
-      newErrors.informasi = 'Deskripsi informasi minimal 10 karakter';
+    if (!formData.tujuan_penggunaan.trim()) {
+      newErrors.tujuan_penggunaan = 'Tujuan penggunaan wajib diisi';
+    } else if (formData.tujuan_penggunaan.trim().length < 5) {
+      newErrors.tujuan_penggunaan = 'Tujuan penggunaan minimal 5 karakter';
     }
     
     setErrors(newErrors);
@@ -49,14 +45,36 @@ export default function PermohonanPage() {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('Permohonan berhasil dikirim dan akan diproses oleh PPID Utama terlebih dahulu!');
-      setFormData({ nama: '', email: '', informasi: '' });
+      const response = await fetch('/api/submit-prisma', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          rincian_informasi: formData.rincian_informasi,
+          tujuan_penggunaan: formData.tujuan_penggunaan,
+          cara_memperoleh_informasi: formData.cara_memperoleh_informasi || 'Email',
+          cara_mendapat_salinan: formData.cara_mendapat_salinan || 'Email'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to submit request');
+      }
+
+      alert('Permohonan berhasil dikirim dan akan diproses oleh PPID!');
+      setFormData({
+        rincian_informasi: '',
+        tujuan_penggunaan: '',
+        cara_memperoleh_informasi: 'Email',
+        cara_mendapat_salinan: 'Email'
+      });
       setFiles([]);
       setErrors({});
-    } catch (error) {
-      alert('Gagal mengirim permohonan');
+    } catch (error: any) {
+      console.error('Error submitting request:', error);
+      alert(error.message || 'Gagal mengirim permohonan. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -123,60 +141,67 @@ export default function PermohonanPage() {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap *</label>
-            <input 
-              type="text" 
-              value={formData.nama}
-              onChange={(e) => handleChange('nama', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.nama ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-800'
-              }`}
-              placeholder="Masukkan nama lengkap"
-            />
-            {errors.nama && (
-              <div className="flex items-center mt-1 text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                {errors.nama}
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-            <input 
-              type="email" 
-              value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-800'
-              }`}
-              placeholder="contoh@email.com"
-            />
-            {errors.email && (
-              <div className="flex items-center mt-1 text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                {errors.email}
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Informasi yang Diminta *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Rincian Informasi yang Diminta *</label>
             <textarea 
               rows={4} 
-              value={formData.informasi}
-              onChange={(e) => handleChange('informasi', e.target.value)}
+              value={formData.rincian_informasi}
+              onChange={(e) => handleChange('rincian_informasi', e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.informasi ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-800'
+                errors.rincian_informasi ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-800'
               }`}
               placeholder="Jelaskan informasi yang Anda butuhkan secara detail..."
             />
-            {errors.informasi && (
+            {errors.rincian_informasi && (
               <div className="flex items-center mt-1 text-red-600 text-sm">
                 <AlertCircle className="w-4 h-4 mr-1" />
-                {errors.informasi}
+                {errors.rincian_informasi}
               </div>
             )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tujuan Penggunaan Informasi *</label>
+            <textarea 
+              rows={3} 
+              value={formData.tujuan_penggunaan}
+              onChange={(e) => handleChange('tujuan_penggunaan', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                errors.tujuan_penggunaan ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-800'
+              }`}
+              placeholder="Jelaskan untuk apa informasi ini akan digunakan..."
+            />
+            {errors.tujuan_penggunaan && (
+              <div className="flex items-center mt-1 text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.tujuan_penggunaan}
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cara Memperoleh Informasi *</label>
+            <select 
+              value={formData.cara_memperoleh_informasi}
+              onChange={(e) => handleChange('cara_memperoleh_informasi', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-800"
+            >
+              <option value="Melihat/Membaca">Melihat/Membaca</option>
+              <option value="Mendapat Salinan">Mendapat Salinan</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cara Mendapat Salinan *</label>
+            <select 
+              value={formData.cara_mendapat_salinan}
+              onChange={(e) => handleChange('cara_mendapat_salinan', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-800"
+            >
+              <option value="Mengambil Langsung">Mengambil Langsung</option>
+              <option value="Email">Email</option>
+              <option value="Pos">Pos</option>
+              <option value="Fax">Fax</option>
+            </select>
           </div>
           
           <div>

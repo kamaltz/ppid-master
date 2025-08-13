@@ -59,7 +59,7 @@ export const getPublicData = async (endpoint: string) => {
 
 export const getAdminData = async (endpoint: string, token: string) => {
   if (!token) {
-    throw new Error("No auth token provided");
+    throw new Error("Authentication required");
   }
 
   const response = await fetch(
@@ -81,8 +81,10 @@ export const getAdminData = async (endpoint: string, token: string) => {
 
 export const createRequest = async (requestData: any, token: string) => {
   if (!token) {
-    throw new Error("No auth token provided");
+    throw new Error("Authentication required");
   }
+  
+  console.log('createRequest called with:', { requestData, hasToken: !!token });
   
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan`, {
     method: "POST",
@@ -93,9 +95,18 @@ export const createRequest = async (requestData: any, token: string) => {
     body: JSON.stringify(requestData),
   });
 
+  console.log('Response status:', response.status);
+  
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: "Failed to create request" }));
-    throw new Error(errorData.error || "Failed to create request");
+    const errorText = await response.text();
+    console.error('Error response:', errorText);
+    
+    try {
+      const errorData = JSON.parse(errorText);
+      throw new Error(errorData.error || errorData.message || "Failed to create request");
+    } catch (parseError) {
+      throw new Error(`Server error (${response.status}): ${errorText}`);
+    }
   }
 
   return await response.json();
@@ -103,7 +114,7 @@ export const createRequest = async (requestData: any, token: string) => {
 
 export const getPermintaan = async (token: string, params?: { page?: number; limit?: number; status?: string }) => {
   if (!token) {
-    throw new Error("No auth token provided");
+    throw new Error("Authentication required");
   }
 
   const searchParams = new URLSearchParams();
@@ -130,7 +141,7 @@ export const getPermintaan = async (token: string, params?: { page?: number; lim
 
 export const updatePermintaanStatus = async (id: string, statusData: any, token: string) => {
   if (!token) {
-    throw new Error("No auth token provided");
+    throw new Error("Authentication required");
   }
   
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan/${id}`, {

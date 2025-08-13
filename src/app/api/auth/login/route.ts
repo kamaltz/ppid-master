@@ -1,37 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { login } from '../../../../../lib/controllers/authController';
+import { prisma } from '../../../../../lib/lib/prismaClient';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+interface UserResult {
+  id: number;
+  email: string;
+  hashed_password: string;
+  nama: string;
+  role: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    console.log('🔍 Login API called');
+    const { email, password } = await request.json();
+    console.log('📧 Email:', email);
     
-    let responseData: any;
-    let statusCode = 200;
+    if (!email || !password) {
+      console.log('❌ Missing email or password');
+      return NextResponse.json(
+        { error: "Email dan password wajib diisi." },
+        { status: 400 }
+      );
+    }
+
+    if (!process.env.JWT_SECRET) {
+      console.log('❌ JWT_SECRET not found');
+      return NextResponse.json(
+        { error: "JWT secret tidak dikonfigurasi." },
+        { status: 500 }
+      );
+    }
     
-    const req = {
-      body,
-      headers: Object.fromEntries(request.headers.entries()),
-    } as any;
+    console.log('🔍 Searching for user...');
+
+    // Find user across all tables
+    const [adminUser, ppidUser, pemohonUser] = await Promise.all([
+      prisma.admin.findUnique({ where: { email } }),
+      prisma.ppid.findUnique({ where: { email } }),
+      prisma.pemohon.findUnique({ where: { email } })
+    ]);
     
-    const res = {
-      status: (code: number) => {
-        statusCode = code;
-        return {
-          json: (data: any) => {
-            responseData = data;
-          }
-        };
+    console.log('👥 Users found:', { admin: !!adminUser, ppid: !!ppidUser, pemohon: !!pemohonUser });
+
+    let user: UserResult | null = null;
+
+    if (adminUser) {
+      user = { ...adminUser, role: "Admin" };
+      console.log('✅ Admin user found');
+    } else if (ppidUser) {
+      user = { ...ppidUser, role: ppidUser.role || "PPID" };
+      console.log('✅ PPID user found');
+    } else if (pemohonUser) {
+      user = { ...pemohonUser, role: "Pemohon" };
+      console.log('✅ Pemohon user found');
+    }
+
+    if (!user) {
+      console.log('❌ No user found');
+      return NextResponse.json(
+        { error: "Pengguna tidak ditemukan." },
+        { status: 404 }
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.hashed_password);
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: "Password salah." },
+        { status: 401 }
+      );
+    }
+
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email, 
+        role: user.role,
+        nama: user.nama
       },
-      json: (data: any) => {
-        responseData = data;
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
+    return NextResponse.json({
+      message: "Login berhasil", 
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        nama: user.nama,
+        role: user.role
       }
-    } as any;
-    
-    await login(req, res);
-    return NextResponse.json(responseData, { status: statusCode });
+    });
   } catch (error) {
+    console.error('❌ Login API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Terjadi kesalahan pada server: ' + (error as Error).message },
       { status: 500 }
     );
   }

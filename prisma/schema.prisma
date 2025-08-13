@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  hashed_password String
+  nama            String
+  created_at      DateTime @default(now())
+
+  @@map("admin")
+}
+
+model Pemohon {
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  hashed_password String
+  nama            String
+  no_telepon      String?
+  alamat          String?
+  created_at      DateTime @default(now())
+
+  @@map("pemohon")
+}
+
+model Ppid {
+  id              Int      @id @default(autoincrement())
+  no_pegawai      String   @unique
+  email           String   @unique
+  hashed_password String
+  nama            String
+  role            String   @default("PPID")
+  created_at      DateTime @default(now())
+
+  @@map("ppid")
+}
+
+model Request {
+  id                        Int      @id @default(autoincrement())
+  pemohon_id                Int
+  rincian_informasi         String
+  tujuan_penggunaan         String
+  cara_memperoleh_informasi String   @default("Email")
+  cara_mendapat_salinan     String   @default("Email")
+  status                    String   @default("Diajukan")
+  catatan_ppid              String?
+  created_at                DateTime @default(now())
+  updated_at                DateTime @default(now()) @updatedAt
+
+  @@map("requests")
+}
+
+model InformasiPublik {
+  id                         Int      @id @default(autoincrement())
+  judul                      String
+  klasifikasi                String
+  ringkasan_isi_informasi    String
+  file_url                   String?
+  pejabat_penguasa_informasi String?
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime @default(now()) @updatedAt
+
+  @@map("informasi_publik")
+}
