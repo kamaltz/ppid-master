@@ -12,6 +12,12 @@ export default function DashboardPage() {
   const userRole = getUserRole();
   const { permintaan, stats, chartData, isLoading, lastUpdate, refreshData } = useDashboardData();
 
+  // Redirect PPID to specialized dashboard
+  if (userRole === 'PPID_UTAMA') {
+    window.location.href = '/admin/ppid-dashboard';
+    return <div className="flex justify-center items-center h-screen">Redirecting...</div>;
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Diajukan": return "text-yellow-600 bg-yellow-100";

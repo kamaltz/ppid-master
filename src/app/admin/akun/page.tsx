@@ -122,7 +122,7 @@ export default function AdminAkunPage() {
   };
 
   return (
-    <RoleGuard requiredRoles={[ROLES.ADMIN]}>
+    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]}>
       <div className="p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Kelola Akun</h1>
