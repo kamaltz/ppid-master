@@ -11,6 +11,7 @@
     "lint": "next lint",
     "test": "jest __tests__/api/permintaan.test.js",
     "test:all": "jest",
+    "test:informasi": "jest __tests__/api/informasi.test.js __tests__/components/AdminInformasiPage.test.jsx __tests__/integration/informasi-flow.test.js",
     "seed": "node scripts/seed.js",
     "seed:requests": "node scripts/seed-requests.js",
     "seed:pg": "node lib/scripts/seedPostgres.js",
