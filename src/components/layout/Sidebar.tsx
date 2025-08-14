@@ -105,13 +105,15 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
   return (
     <>
-      {/* Mobile Toggle Button */}
+      {/* Mobile Toggle Button - Arrow Style */}
       <button
         onClick={onToggle}
-        className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-all"
+        className={`lg:hidden fixed top-1/2 -translate-y-1/2 z-50 p-2 bg-white rounded-r-lg shadow-md hover:bg-gray-50 transition-all duration-300 ${
+          isOpen ? 'left-64' : 'left-0'
+        }`}
         title={isOpen ? 'Tutup Sidebar' : 'Buka Sidebar'}
       >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {isOpen ? <ChevronLeft className="w-4 h-4 text-gray-600" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
       </button>
 
       {/* Sidebar */}
