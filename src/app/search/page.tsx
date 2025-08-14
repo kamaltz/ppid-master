@@ -47,8 +47,8 @@ export default function SearchPage() {
     try {
       const response = await fetch('/api/informasi');
       const data = await response.json();
-      if (data.success) {
-        const uniqueCategories = [...new Set(data.data.map((item: any) => item.kategori).filter(Boolean))];
+      if (data.data) {
+        const uniqueCategories = [...new Set(data.data.map((item: any) => item.klasifikasi).filter(Boolean))];
         setCategories(uniqueCategories);
       }
     } catch (error) {
@@ -64,37 +64,67 @@ export default function SearchPage() {
       const response = await fetch('/api/informasi');
       const data = await response.json();
       
-      let informasiData = data.success ? data.data : [];
+      let informasiData = data.data || [];
       
       // Apply filters
       if (filters.kategori) {
-        informasiData = informasiData.filter((item: any) => item.kategori === filters.kategori);
+        informasiData = informasiData.filter((item: any) => item.klasifikasi === filters.kategori);
       }
       
       if (filters.startDate) {
         informasiData = informasiData.filter((item: any) => {
-          const itemDate = new Date(item.tanggal || item.created_at);
+          const itemDate = new Date(item.tanggal_posting || item.created_at);
           return itemDate >= new Date(filters.startDate);
         });
       }
       
       if (filters.endDate) {
         informasiData = informasiData.filter((item: any) => {
-          const itemDate = new Date(item.tanggal || item.created_at);
+          const itemDate = new Date(item.tanggal_posting || item.created_at);
           return itemDate <= new Date(filters.endDate);
         });
       }
       
       const searchResults: SearchResult[] = [
-        ...informasiData.map((item: any) => ({
-          id: item.id.toString(),
-          title: item.judul,
-          content: item.konten ? item.konten.replace(/<[^>]*>/g, '') : item.deskripsi || '',
-          type: "informasi" as const,
-          kategori: item.kategori,
-          tanggal: item.tanggal || new Date(item.created_at).toLocaleDateString('id-ID'),
-          url: `/informasi/${item.id}`
-        })),
+        ...informasiData.map((item: any) => {
+          // Combine multiple content fields for better search coverage
+          const combinedContent = [
+            item.ringkasan_isi_informasi || '',
+            item.pejabat_penguasa_informasi || '',
+            // Include file names in searchable content
+            (() => {
+              try {
+                const files = typeof item.file_attachments === 'string' 
+                  ? JSON.parse(item.file_attachments) 
+                  : item.file_attachments;
+                return Array.isArray(files) ? files.map(f => f.name || f).join(' ') : '';
+              } catch {
+                return '';
+              }
+            })(),
+            // Include links in searchable content
+            (() => {
+              try {
+                const links = typeof item.links === 'string' 
+                  ? JSON.parse(item.links) 
+                  : item.links;
+                return Array.isArray(links) ? links.map(l => `${l.title} ${l.url}`).join(' ') : '';
+              } catch {
+                return '';
+              }
+            })()
+          ].filter(Boolean).join(' ');
+          
+          return {
+            id: item.id.toString(),
+            title: item.judul,
+            content: combinedContent,
+            type: "informasi" as const,
+            kategori: item.klasifikasi,
+            tanggal: item.tanggal_posting ? new Date(item.tanggal_posting).toLocaleDateString('id-ID') : new Date(item.created_at).toLocaleDateString('id-ID'),
+            url: `/informasi/${item.id}`
+          };
+        }),
         {
           id: "profil",
           title: "Profil PPID",
@@ -111,11 +141,50 @@ export default function SearchPage() {
         }
       ];
 
-      // Filter results based on search query
-      const filtered = searchResults.filter(result =>
-        result.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        result.content.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      // Enhanced search - include more fields and better matching
+      const filtered = searchResults.filter(result => {
+        const searchLower = searchQuery.toLowerCase();
+        const titleMatch = result.title.toLowerCase().includes(searchLower);
+        const contentMatch = result.content.toLowerCase().includes(searchLower);
+        const categoryMatch = result.kategori?.toLowerCase().includes(searchLower) || false;
+        
+        // For informasi items, also search in additional fields
+        if (result.type === 'informasi') {
+          const originalItem = informasiData.find((item: any) => item.id.toString() === result.id);
+          if (originalItem) {
+            const ringkasanMatch = originalItem.ringkasan_isi_informasi?.toLowerCase().includes(searchLower) || false;
+            const pejabatMatch = originalItem.pejabat_penguasa_informasi?.toLowerCase().includes(searchLower) || false;
+            const fileMatch = (() => {
+              try {
+                const files = typeof originalItem.file_attachments === 'string' 
+                  ? JSON.parse(originalItem.file_attachments) 
+                  : originalItem.file_attachments;
+                return Array.isArray(files) && files.some(file => 
+                  (file.name || file).toLowerCase().includes(searchLower)
+                );
+              } catch {
+                return false;
+              }
+            })();
+            const linkMatch = (() => {
+              try {
+                const links = typeof originalItem.links === 'string' 
+                  ? JSON.parse(originalItem.links) 
+                  : originalItem.links;
+                return Array.isArray(links) && links.some(link => 
+                  link.title?.toLowerCase().includes(searchLower) || link.url?.toLowerCase().includes(searchLower)
+                );
+              } catch {
+                return false;
+              }
+            })();
+            
+            return titleMatch || contentMatch || categoryMatch || ringkasanMatch || pejabatMatch || fileMatch || linkMatch;
+          }
+        }
+        
+        return titleMatch || contentMatch || categoryMatch;
+      });
 
       setResults(filtered);
     } catch (error) {
