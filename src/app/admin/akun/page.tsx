@@ -1,56 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { User, Mail, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Plus, Edit, Trash2, Eye, X } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface Account {
-  id: number;
+  id: string;
   nama: string;
   email: string;
   role: string;
   status: string;
   tanggal_dibuat: string;
+  nik?: string;
+  table?: string;
 }
 
 export default function AdminAkunPage() {
   const { userRole } = useRoleAccess();
-  const [accounts, setAccounts] = useState<Account[]>([
-    {
-      id: 1,
-      nama: "PPID Utama",
-      email: "ppid.utama@ppid-garut.go.id",
-      role: "PPID",
-      status: "Aktif",
-      tanggal_dibuat: "2024-01-01"
-    },
-    {
-      id: 2,
-      nama: "PPID Pelaksana",
-      email: "ppid.pelaksana@ppid-garut.go.id",
-      role: "PPID_Pelaksana",
-      status: "Aktif",
-      tanggal_dibuat: "2024-01-02"
-    },
-    {
-      id: 4,
-      nama: "Atasan PPID",
-      email: "atasan.ppid@ppid-garut.go.id",
-      role: "Atasan_PPID",
-      status: "Aktif",
-      tanggal_dibuat: "2024-01-03"
-    },
-    {
-      id: 3,
-      nama: "Ahmad Rizki",
-      email: "ahmad.rizki@email.com",
-      role: "Pemohon",
-      status: "Aktif",
-      tanggal_dibuat: "2024-01-15"
-    }
-  ]);
+  const { token } = useAuth();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -59,7 +31,31 @@ export default function AdminAkunPage() {
     email: '',
     role: 'Pemohon'
   });
-  const [showPassword, setShowPassword] = useState<Record<number, boolean>>({});
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/accounts', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAccounts(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch accounts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +91,7 @@ export default function AdminAkunPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     const account = accounts.find(a => a.id === id);
     if (confirm(`Yakin ingin menghapus akun "${account?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
       setAccounts(prev => prev.filter(item => item.id !== id));
@@ -103,11 +99,8 @@ export default function AdminAkunPage() {
     }
   };
 
-  const resetPassword = (id: number) => {
-    const account = accounts.find(a => a.id === id);
-    if (confirm(`Yakin ingin reset password akun "${account?.nama}" ke default (ppid321)?`)) {
-      alert('Password berhasil direset ke: ppid321');
-    }
+  const handleViewDetail = (account: Account) => {
+    setSelectedAccount(account);
   };
 
   const getRoleColor = (role: string) => {
@@ -169,9 +162,9 @@ export default function AdminAkunPage() {
                   className="w-full border rounded px-3 py-2"
                 >
                   <option value="Pemohon">Pemohon</option>
-                  <option value="PPID">PPID Utama</option>
-                  <option value="PPID_Pelaksana">PPID Pelaksana</option>
-                  <option value="Atasan_PPID">Atasan PPID (Monitoring)</option>
+                  <option value="Admin">Admin</option>
+                  <option value="PPID_UTAMA">PPID Utama</option>
+                  <option value="PPID_PELAKSANA">PPID Pelaksana</option>
                 </select>
               </div>
               
@@ -216,7 +209,19 @@ export default function AdminAkunPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {accounts.map((account) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              ) : accounts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    Belum ada akun terdaftar
+                  </td>
+                </tr>
+              ) : accounts.map((account) => (
                 <tr key={account.id}>
                   <td className="px-6 py-4 text-sm text-gray-900">{account.nama}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">{account.email}</td>
@@ -233,18 +238,18 @@ export default function AdminAkunPage() {
                   <td className="px-6 py-4 text-sm text-gray-900">{account.tanggal_dibuat}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                     <button 
+                      onClick={() => handleViewDetail(account)}
+                      className="text-green-600 hover:text-green-900"
+                      title="Lihat Detail"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button 
                       onClick={() => handleEdit(account)}
                       className="text-blue-600 hover:text-blue-900"
                       title="Edit"
                     >
                       <Edit className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => resetPassword(account.id)}
-                      className="text-yellow-600 hover:text-yellow-900"
-                      title="Reset Password"
-                    >
-                      {showPassword[account.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                     <button 
                       onClick={() => handleDelete(account.id)}
@@ -259,6 +264,69 @@ export default function AdminAkunPage() {
             </tbody>
           </table>
         </div>
+        
+        {/* Detail Modal */}
+        {selectedAccount && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Detail Akun</h3>
+                <button 
+                  onClick={() => setSelectedAccount(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">ID</label>
+                  <p className="text-gray-900">{selectedAccount.id}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Nama Lengkap</label>
+                  <p className="text-gray-900">{selectedAccount.nama}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Email</label>
+                  <p className="text-gray-900">{selectedAccount.email}</p>
+                </div>
+                {selectedAccount.role === 'Pemohon' && selectedAccount.nik && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">NIK</label>
+                    <p className="text-gray-900">{selectedAccount.nik}</p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Role</label>
+                  <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(selectedAccount.role)}`}>
+                    {getRoleDisplayName(selectedAccount.role)}
+                  </span>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Status</label>
+                  <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                    {selectedAccount.status}
+                  </span>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Tanggal Dibuat</label>
+                  <p className="text-gray-900">{selectedAccount.tanggal_dibuat}</p>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button 
+                  onClick={() => setSelectedAccount(null)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </RoleGuard>
   );
