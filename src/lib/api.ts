@@ -10,7 +10,7 @@ const apiClient = axios.create({
 export const loginUser = async (email: string, password: string) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+      `/api/auth/login`,
       {
         method: "POST",
         headers: {
@@ -86,7 +86,7 @@ export const createRequest = async (requestData: any, token: string) => {
   
   console.log('createRequest called with:', { requestData, hasToken: !!token });
   
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan`, {
+  const response = await fetch(`/api/permintaan`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -122,7 +122,7 @@ export const getPermintaan = async (token: string, params?: { page?: number; lim
   if (params?.limit) searchParams.append('limit', params.limit.toString());
   if (params?.status) searchParams.append('status', params.status);
 
-  const url = `${process.env.NEXT_PUBLIC_API_URL}/permintaan${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  const url = `/api/permintaan${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   
   const response = await fetch(url, {
     headers: {
@@ -144,7 +144,7 @@ export const updatePermintaanStatus = async (id: string, statusData: any, token:
     throw new Error("Authentication required");
   }
   
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permintaan/${id}`, {
+  const response = await fetch(`/api/permintaan/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -167,7 +167,7 @@ export const registerUser = async (userData: unknown) => {
     role: "Pemohon",
   };
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+  const response = await fetch(`/api/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

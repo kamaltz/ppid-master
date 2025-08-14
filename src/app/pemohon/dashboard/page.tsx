@@ -34,7 +34,18 @@ export default function PemohonDashboardPage() {
       if (!user?.id) return;
       
       try {
-        const response = await fetch(`/api/keberatan?pemohon_id=${user.id}`);
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          setLoadingKeberatan(false);
+          return;
+        }
+        
+        const response = await fetch(`/api/keberatan?pemohon_id=${user.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         const data = await response.json();
         if (data.success) {
           setKeberatan(data.data || []);

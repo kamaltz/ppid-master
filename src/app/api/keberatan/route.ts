@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     jwt.verify(token, process.env.JWT_SECRET!);
 
     // Return empty array for now since keberatan table doesn't exist in schema
-    return NextResponse.json({ data: [] });
+    return NextResponse.json({ success: true, data: [] });
   } catch (error) {
     console.error('Get keberatan error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
