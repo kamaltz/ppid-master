@@ -22,10 +22,17 @@ export async function GET(request: NextRequest) {
     // Filter based on user role
     let where: any = {};
     
+    // Pemohon only sees their own requests
+    if (decoded.role === 'Pemohon') {
+      where.pemohon_id = decoded.userId;
+    }
     // PPID Pelaksana only sees requests that are being processed
-    if (decoded.role === 'PPID_PELAKSANA') {
+    else if (decoded.role === 'PPID_PELAKSANA') {
       where.status = 'Diproses';
-    } else if (status) {
+    }
+    
+    // Apply status filter if provided
+    if (status) {
       where.status = status;
     }
     

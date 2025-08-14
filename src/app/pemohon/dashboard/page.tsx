@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PlusCircle, FileText, Clock, CheckCircle, AlertTriangle, X, User, Download, Paperclip } from "lucide-react";
 import AccessibilityHelper from "@/components/accessibility/AccessibilityHelper";
 import { usePemohonData } from "@/hooks/usePemohonData";
+import { useAuth } from "@/context/AuthContext";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
@@ -23,6 +24,30 @@ interface PermintaanData {
 export default function PemohonDashboardPage() {
   const [selectedRequest, setSelectedRequest] = useState<PermintaanData | null>(null);
   const { permintaan, stats, isLoading } = usePemohonData();
+  const { user } = useAuth();
+  const [keberatan, setKeberatan] = useState([]);
+  const [loadingKeberatan, setLoadingKeberatan] = useState(true);
+
+  // Fetch keberatan data
+  useEffect(() => {
+    const fetchKeberatan = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const response = await fetch(`/api/keberatan?pemohon_id=${user.id}`);
+        const data = await response.json();
+        if (data.success) {
+          setKeberatan(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch keberatan:', error);
+      } finally {
+        setLoadingKeberatan(false);
+      }
+    };
+
+    fetchKeberatan();
+  }, [user?.id]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -161,7 +186,8 @@ export default function PemohonDashboardPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md">
+      {/* Riwayat Permohonan */}
+      <div className="bg-white rounded-lg shadow-md mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Riwayat Permohonan</h2>
         </div>
@@ -235,13 +261,77 @@ export default function PemohonDashboardPage() {
         </div>
       </div>
       
-      {/* Keberatan Section - TODO: Implement with real data */}
-      <div className="bg-white rounded-lg shadow-md mt-8">
+      {/* Riwayat Keberatan */}
+      <div className="bg-white rounded-lg shadow-md">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Riwayat Keberatan</h2>
         </div>
-        <div className="px-6 py-4 text-center text-gray-500">
-          Fitur keberatan akan segera tersedia
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alasan Keberatan</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {loadingKeberatan ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              ) : keberatan.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    Belum ada keberatan
+                  </td>
+                </tr>
+              ) : (
+                keberatan.map((item: any) => (
+                  <tr key={item.id}>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.id}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {item.alasan_keberatan?.substring(0, 50)}...
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status || 'Diajukan')}`}>
+                        {item.status || 'Diajukan'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {(() => {
+                        try {
+                          const date = new Date(item.created_at);
+                          return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                        } catch (e) {
+                          return 'Tanggal tidak tersedia';
+                        }
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 text-sm space-x-2">
+                      <button 
+                        className="text-blue-600 hover:text-blue-900 text-xs"
+                      >
+                        Detail
+                      </button>
+                      {(item.status === 'Diproses' || item.status === 'Diajukan' || !item.status) && (
+                        <button 
+                          onClick={() => handleWithdrawKeberatan(item.id.toString())}
+                          className="text-red-600 hover:text-red-900 text-xs"
+                        >
+                          Tarik
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
       
