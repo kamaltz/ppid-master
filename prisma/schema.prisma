@@ -89,6 +89,19 @@ model InformasiPublik {
   @@map("informasi_publik")
 }
 
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  action     String
+  details    String?  @db.Text
+  user_id    String?
+  user_role  String?
+  ip_address String?
+  user_agent String?  @db.Text
+  created_at DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
 model Keberatan {
   id             Int      @id @default(autoincrement())
   permintaan_id  Int
