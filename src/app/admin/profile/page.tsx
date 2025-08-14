@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { User, Mail, Phone, MapPin, Camera, Save, Lock, Key } from "lucide-react";
@@ -65,9 +65,10 @@ export default function ProfilePage() {
   };
   
   const [profileData, setProfileData] = useState(getDefaultProfile());
-  
   const [isEditing, setIsEditing] = useState(false);
   const [tempData, setTempData] = useState(getDefaultProfile());
+  const [isLoading, setIsLoading] = useState(true);
+  const { token } = useAuth();
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -75,10 +76,33 @@ export default function ProfilePage() {
     confirmPassword: ''
   });
 
-  const handleSave = () => {
-    setProfileData(tempData);
-    setIsEditing(false);
-    alert("Profile berhasil diperbarui!");
+  const handleSave = async () => {
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nama: tempData.nama,
+          email: tempData.email,
+          no_telepon: tempData.telepon,
+          alamat: tempData.alamat
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setProfileData(tempData);
+        setIsEditing(false);
+        alert("Profile berhasil diperbarui!");
+      } else {
+        alert('Gagal memperbarui profile: ' + data.error);
+      }
+    } catch (error) {
+      alert('Terjadi kesalahan saat memperbarui profile');
+    }
   };
 
   const handleCancel = () => {
@@ -86,7 +110,7 @@ export default function ProfilePage() {
     setIsEditing(false);
   };
   
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('Password baru dan konfirmasi password tidak sama!');
       return;
@@ -95,17 +119,69 @@ export default function ProfilePage() {
       alert('Password minimal 6 karakter!');
       return;
     }
-    if (confirm('Yakin ingin mengubah password?')) {
-      alert('Password berhasil diubah!');
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setShowPasswordForm(false);
+    
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nama: profileData.nama,
+          email: profileData.email,
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('Password berhasil diubah!');
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setShowPasswordForm(false);
+      } else {
+        alert('Gagal mengubah password: ' + data.error);
+      }
+    } catch (error) {
+      alert('Terjadi kesalahan saat mengubah password');
     }
   };
   
-  // Update tempData when component mounts
-  useState(() => {
-    setTempData(profileData);
-  });
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return;
+      
+      try {
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          const userData = {
+            nama: data.data.nama,
+            email: data.data.email,
+            telepon: data.data.no_telepon || '',
+            alamat: data.data.alamat || '',
+            foto: '/default-avatar.png',
+            nip: data.data.nip || '',
+            jabatan: data.data.jabatan || ''
+          };
+          setProfileData(userData);
+          setTempData(userData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProfile();
+  }, [token]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,6 +230,11 @@ export default function ProfilePage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-8">
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p>Loading profile...</p>
+          </div>
+        ) : (
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex flex-col items-center">
             <div className="relative">
@@ -278,6 +359,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        )}
       </div>
       
       {/* Security Section */}
