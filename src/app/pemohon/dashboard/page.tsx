@@ -64,20 +64,28 @@ export default function PemohonDashboardPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Diajukan": return "text-yellow-600 bg-yellow-100";
-      case "Diproses": return "text-blue-600 bg-blue-100";
+      case "Diajukan": return "text-purple-600 bg-purple-100";
+      case "Diproses": return "text-indigo-600 bg-indigo-100";
       case "Selesai": return "text-green-600 bg-green-100";
       case "Ditolak": return "text-red-600 bg-red-100";
-      case "Diverifikasi PPID Utama": return "text-purple-600 bg-purple-100";
-      case "Diproses PPID Pelaksana": return "text-indigo-600 bg-indigo-100";
       default: return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  const getDisplayStatus = (status: string) => {
+    switch (status) {
+      case "Diajukan": return "Verifikasi PPID Utama";
+      case "Diproses": return "Diproses PPID Pelaksana";
+      case "Selesai": return "Selesai";
+      case "Ditolak": return "Ditolak";
+      default: return status;
     }
   };
 
   const getDetailedStatus = (status: string) => {
     switch (status) {
-      case "Diajukan": return "Menunggu verifikasi PPID Utama";
-      case "Diproses": return "Sedang diproses PPID Pelaksana";
+      case "Diajukan": return "Sedang diverifikasi oleh PPID Utama";
+      case "Diproses": return "Sedang diproses oleh PPID Pelaksana";
       case "Selesai": return "Permohonan telah selesai";
       case "Ditolak": return "Permohonan ditolak";
       default: return status;
@@ -270,7 +278,7 @@ export default function PemohonDashboardPage() {
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                          {request.status}
+                          {getDisplayStatus(request.status)}
                         </span>
                         <p className="text-xs text-gray-500">
                           {getDetailedStatus(request.status)}
