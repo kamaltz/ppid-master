@@ -49,6 +49,15 @@ export default function PPIDDashboardPage() {
       stats: "Informasi",
       pending: "Publik",
     },
+    {
+      title: "Kategori Informasi",
+      description: "Kelola kategori informasi",
+      icon: FileText,
+      href: "/admin/kategori",
+      color: "bg-purple-500",
+      stats: "Kategori",
+      pending: "Aktif",
+    },
   ] : [
     {
       title: "Pengelolaan Permohonan",
@@ -124,7 +133,7 @@ export default function PPIDDashboardPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {managementSections.map((section, index) => (
             <Link key={index} href={section.href}>
               <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer group">

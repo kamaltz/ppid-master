@@ -158,7 +158,7 @@ export default function AdminKeberatanPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.tanggal}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.ATASAN_PPID, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
+                    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                       {item.status === 'Diajukan' && (
                         <button 
                           onClick={() => updateStatus(item.id, 'Diproses')}

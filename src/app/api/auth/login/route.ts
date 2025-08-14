@@ -50,8 +50,15 @@ export async function POST(request: NextRequest) {
       user = { ...adminUser, role: "Admin" };
       console.log('✅ Admin user found');
     } else if (ppidUser) {
-      user = { ...ppidUser, role: ppidUser.role || "PPID" };
-      console.log('✅ PPID user found');
+      // Special role assignments based on email
+      let role = ppidUser.role || "PPID";
+      if (ppidUser.email === 'ppid.pelaksana@garut.go.id') {
+        role = 'PPID_PELAKSANA';
+      } else if (ppidUser.email === 'atasan.ppid@garut.go.id') {
+        role = 'ATASAN_PPID';
+      }
+      user = { ...ppidUser, role };
+      console.log('✅ PPID user found with role:', role);
     } else if (pemohonUser) {
       user = { ...pemohonUser, role: "Pemohon" };
       console.log('✅ Pemohon user found');

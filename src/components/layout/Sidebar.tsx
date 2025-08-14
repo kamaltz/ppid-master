@@ -27,7 +27,7 @@ const menuItems = [
     href: "/admin/ppid-dashboard",
     icon: LayoutDashboard,
     label: "Dashboard PPID",
-    roles: [ROLES.PPID_UTAMA],
+    roles: [ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
   },
   {
     href: "/admin/permohonan",
@@ -39,13 +39,13 @@ const menuItems = [
     href: "/admin/informasi",
     icon: Users,
     label: "Informasi",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
   },
   {
     href: "/admin/kategori",
     icon: Users,
     label: "Kategori Informasi",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
   },
   {
     href: "/admin/keberatan",
@@ -63,7 +63,7 @@ const menuItems = [
     href: "/admin/laporan",
     icon: BarChart3,
     label: "Laporan",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.ATASAN_PPID],
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
   },
   {
     href: "/admin/akun",
