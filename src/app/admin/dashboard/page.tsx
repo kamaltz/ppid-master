@@ -5,12 +5,17 @@ import { getRoleDisplayName } from "@/lib/roleUtils";
 import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import Chart from "@/components/ui/Chart";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useState } from "react";
 
 
 export default function DashboardPage() {
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
   const { permintaan, stats, chartData, isLoading, lastUpdate, refreshData } = useDashboardData();
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
+  // Generate year options (current year and 4 years back)
+  const yearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   // Redirect PPID to specialized dashboard
   if (userRole === 'PPID_UTAMA') {
@@ -153,12 +158,59 @@ export default function DashboardPage() {
             />
           </div>
           
-          <div className="bg-gradient-to-br from-orange-50 to-amber-100 p-1 rounded-xl">
+          <div className="bg-gradient-to-br from-red-50 to-pink-100 p-1 rounded-xl">
             <Chart
-              type="donut"
-              title="🏷️ Kategori"
-              data={chartData.category}
+              type="line"
+              title="⚖️ Permohonan Ditolak (7 Hari)"
+              data={chartData.keberatan}
               height={280}
+            />
+          </div>
+        </div>
+        
+        {/* Yearly Progress Chart - Full Width */}
+        <div className="mb-6 md:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-2 sm:mb-0">
+              📈 Progress Tahunan
+            </h3>
+            <select 
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              {yearOptions.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="bg-gradient-to-br from-indigo-50 to-blue-100 p-1 rounded-xl">
+            <Chart
+              type="line"
+              title={`📊 Permohonan & Keberatan ${selectedYear}`}
+              data={{
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                datasets: [
+                  {
+                    label: 'Permohonan',
+                    data: chartData.yearlyPermohonan?.[selectedYear] || Array(12).fill(0),
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                  },
+                  {
+                    label: 'Keberatan (Ditolak)',
+                    data: chartData.yearlyKeberatan?.[selectedYear] || Array(12).fill(0),
+                    borderColor: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                  }
+                ]
+              }}
+              height={400}
             />
           </div>
         </div>

@@ -12,8 +12,20 @@ interface ChartData {
   month?: string;
 }
 
+interface ChartJSData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+    borderColor?: string;
+    backgroundColor?: string;
+    tension?: number;
+    fill?: boolean;
+  }[];
+}
+
 interface ChartProps {
-  data: ChartData[];
+  data: ChartData[] | ChartJSData;
   type: "bar" | "line" | "pie" | "donut";
   title: string;
   height?: number;
@@ -21,42 +33,146 @@ interface ChartProps {
 
 const Chart = ({ data, type, title, height = 300 }: ChartProps) => {
   const [animatedData, setAnimatedData] = useState<ChartData[]>([]);
+  const [chartJSData, setChartJSData] = useState<ChartJSData | null>(null);
 
   useEffect(() => {
-    const dataString = JSON.stringify(data);
-    const currentDataString = JSON.stringify(animatedData);
-    
-    if (dataString !== currentDataString) {
-      setTimeout(() => setAnimatedData(data), 100);
+    // Check if data is Chart.js format (has labels and datasets)
+    if (data && typeof data === 'object' && 'labels' in data && 'datasets' in data) {
+      setChartJSData(data as ChartJSData);
+      setAnimatedData([]);
+    } else {
+      const arrayData = Array.isArray(data) ? data : [];
+      setAnimatedData(arrayData);
+      setChartJSData(null);
     }
-  }, [data, animatedData]);
+  }, [data]);
 
-  const values = data.map(d => d.value || d.count || 0).filter(v => !isNaN(v) && isFinite(v));
+  const values = Array.isArray(data) 
+    ? data.map(d => d.value || d.count || 0).filter(v => !isNaN(v) && isFinite(v))
+    : chartJSData?.datasets.flatMap(d => d.data).filter(v => !isNaN(v) && isFinite(v)) || [];
   const maxValue = values.length > 0 ? Math.max(...values, 1) : 1;
 
   const BarChart = () => (
-    <div className="flex items-end justify-between h-full space-x-2">
-      {animatedData.map((item, index) => (
-        <div key={index} className="flex flex-col items-center flex-1">
-          <div className="w-full flex justify-center mb-2">
-            <div
-              className="w-8 rounded-t transition-all duration-1000 ease-out"
-              style={{
-                height: `${Math.max((item.value / maxValue) * (height - 60), 2)}px`,
-                backgroundColor: item.color
-              }}
-            />
+    <div className="flex items-end justify-between h-full space-x-1 px-4">
+      {animatedData.map((item, index) => {
+        const value = item.value || item.count || 0;
+        const label = item.label || item.month || item.name || '';
+        return (
+          <div key={index} className="flex flex-col items-center flex-1">
+            <div className="w-full flex justify-center mb-2">
+              <div
+                className="w-6 md:w-8 rounded-t transition-all duration-1000 ease-out"
+                style={{
+                  height: `${Math.max((value / maxValue) * (height - 80), 2)}px`,
+                  backgroundColor: item.color || '#8B5CF6'
+                }}
+              />
+            </div>
+            <div className="text-xs text-center text-gray-600 font-medium truncate w-full">
+              {label}
+            </div>
+            <div className="text-xs text-gray-500">{value}</div>
           </div>
-          <div className="text-xs text-center text-gray-600 font-medium">
-            {item.label}
-          </div>
-          <div className="text-xs text-gray-500">{item.value}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
   const LineChart = () => {
+    // Handle Chart.js format data
+    if (chartJSData) {
+      const datasets = chartJSData.datasets;
+      const labels = chartJSData.labels;
+      
+      if (!datasets.length || !labels.length) {
+        return (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Tidak ada data
+          </div>
+        );
+      }
+      
+      return (
+        <div className="relative h-full p-4">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              {datasets.map((dataset, idx) => (
+                <linearGradient key={idx} id={`gradient-${idx}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor={dataset.borderColor || '#3B82F6'} stopOpacity="0.3" />
+                  <stop offset="100%" stopColor={dataset.borderColor || '#3B82F6'} stopOpacity="0.05" />
+                </linearGradient>
+              ))}
+            </defs>
+            
+            {/* Grid lines */}
+            {[0, 25, 50, 75].map(y => (
+              <line key={y} x1="15" y1={15 + y * 0.6} x2="85" y2={15 + y * 0.6} 
+                    stroke="#e5e7eb" strokeWidth="0.2" opacity="0.5" />
+            ))}
+            
+            {datasets.map((dataset, datasetIdx) => {
+              const points = dataset.data.map((value, index) => {
+                const x = 15 + (labels.length > 1 ? (index / (labels.length - 1)) * 70 : 35);
+                const y = 15 + (1 - (value / Math.max(maxValue, 1))) * 60;
+                return { x: isFinite(x) ? x : 15, y: isFinite(y) ? y : 75 };
+              });
+              
+              const pathData = points.length > 0 ? points.reduce((path, point, index) => {
+                return path + (index === 0 ? `M ${point.x} ${point.y}` : ` L ${point.x} ${point.y}`);
+              }, "") : "M 15 75";
+              
+              return (
+                <g key={datasetIdx}>
+                  <path
+                    d={pathData}
+                    fill="none"
+                    stroke={dataset.borderColor || '#3B82F6'}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-all duration-1000"
+                  />
+                  {points.map((point, index) => (
+                    <circle
+                      key={index}
+                      cx={point.x}
+                      cy={point.y}
+                      r="2"
+                      fill={dataset.borderColor || '#3B82F6'}
+                      className="transition-all duration-1000"
+                    />
+                  ))}
+                </g>
+              );
+            })}
+          </svg>
+          
+          {/* Labels */}
+          <div className="absolute bottom-2 left-0 right-0 flex justify-between text-xs text-gray-600 px-6">
+            {labels.map((label, index) => (
+              <div key={index} className="text-center">
+                <div className="font-medium">{label}</div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Legend */}
+          <div className="absolute top-2 right-2 space-y-1">
+            {datasets.map((dataset, idx) => (
+              <div key={idx} className="flex items-center space-x-2 text-xs">
+                <div 
+                  className="w-3 h-0.5" 
+                  style={{ backgroundColor: dataset.borderColor || '#3B82F6' }}
+                />
+                <span>{dataset.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    
+    // Handle legacy format
     const chartData = animatedData.map(item => ({
       ...item,
       value: Number(item.value || item.count || 0) || 0,

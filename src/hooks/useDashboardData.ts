@@ -155,7 +155,11 @@ export const useDashboardData = () => {
       const month = itemDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
       monthlyStats[month] = (monthlyStats[month] || 0) + 1;
     });
-    return Object.entries(monthlyStats).map(([month, count]) => ({ month, count: count || 0 }));
+    return Object.entries(monthlyStats).map(([month, count]) => ({ 
+      label: month, 
+      value: count || 0,
+      color: '#8B5CF6'
+    }));
   };
 
   const generateDailyData = (data: any[]) => {
@@ -182,16 +186,63 @@ export const useDashboardData = () => {
     });
   };
 
-  const generateCategoryData = (data: any[]) => {
-    const categories: { [key: string]: number } = {};
-    data.forEach((item: any) => {
-      if (!item.rincian_informasi) return;
-      const category = item.rincian_informasi.length > 50 ? 'Informasi Kompleks' : 'Informasi Sederhana';
-      categories[category] = (categories[category] || 0) + 1;
+  const generateKeberatanData = (data: any[]) => {
+    // Filter data keberatan dari permohonan yang ditolak
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
+    
+    return last7Days.map(date => {
+      const keberatanCount = data.filter((item: any) => {
+        if (!item.created_at || item.status !== 'Ditolak') return false;
+        const itemDate = new Date(item.created_at);
+        if (isNaN(itemDate.getTime())) return false;
+        return itemDate.toISOString().split('T')[0] === date;
+      }).length;
+      
+      return { 
+        date: new Date(date).toLocaleDateString('id-ID', { weekday: 'short' }), 
+        count: keberatanCount
+      };
     });
-    return Object.entries(categories).map(([name, value]) => ({ name, value: value || 0 }));
+  };
+  
+  const generateYearlyData = (data: any[]) => {
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+    
+    const yearlyPermohonan: { [year: number]: number[] } = {};
+    const yearlyKeberatan: { [year: number]: number[] } = {};
+    
+    years.forEach(year => {
+      yearlyPermohonan[year] = Array(12).fill(0);
+      yearlyKeberatan[year] = Array(12).fill(0);
+      
+      // Count actual data
+      data.forEach((item: any) => {
+        if (!item.created_at) return;
+        const itemDate = new Date(item.created_at);
+        if (isNaN(itemDate.getTime()) || itemDate.getFullYear() !== year) return;
+        
+        const month = itemDate.getMonth();
+        
+        // Count all permohonan
+        yearlyPermohonan[year][month]++;
+        
+        // Count keberatan (permohonan yang ditolak)
+        if (item.status === 'Ditolak') {
+          yearlyKeberatan[year][month]++;
+        }
+      });
+    });
+    
+    return { yearlyPermohonan, yearlyKeberatan };
   };
 
+  const yearlyData = generateYearlyData(permintaan);
+  
   const chartData = {
     status: [
       { name: 'Diajukan', value: stats.diajukan, color: '#3B82F6' },
@@ -201,7 +252,9 @@ export const useDashboardData = () => {
     ],
     monthly: generateMonthlyData(permintaan),
     daily: generateDailyData(permintaan),
-    category: generateCategoryData(permintaan)
+    keberatan: generateKeberatanData(permintaan),
+    yearlyPermohonan: yearlyData.yearlyPermohonan,
+    yearlyKeberatan: yearlyData.yearlyKeberatan
   };
 
   return {
