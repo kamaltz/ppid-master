@@ -30,7 +30,14 @@ export default function AdminKeberatanPage() {
     permintaan_id: item.permintaan_id,
     alasan_keberatan: item.alasan_keberatan,
     status: item.status,
-    tanggal: new Date(item.tanggal_keberatan).toLocaleDateString('id-ID')
+    tanggal: (() => {
+      try {
+        const date = new Date(item.created_at || item.tanggal_keberatan);
+        return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak valid';
+      } catch (e) {
+        return 'Tanggal tidak valid';
+      }
+    })()
   }));
 
   const updateStatus = async (id: number, newStatus: string) => {

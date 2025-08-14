@@ -26,10 +26,7 @@ export default function SuccessModal({
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
-          <div className="flex items-center justify-center mb-4">
-            <FileText className="w-5 h-5 text-blue-500 mr-2" />
-            <span className="text-sm text-blue-600 font-medium">Permohonan Informasi</span>
-          </div>
+          <div className="flex items-center justify-center mb-4"></div>
           <p className="text-gray-600 mb-6 leading-relaxed">{message}</p>
           <button
             onClick={onClose}

@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
     console.log('API Response sample:', requestsWithPemohon[0]);
 
     return NextResponse.json({ 
+      success: true,
       data: requestsWithPemohon,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ message: 'Permintaan berhasil dibuat', data: newRequest });
+    return NextResponse.json({ success: true, message: 'Permintaan berhasil dibuat', data: newRequest });
   } catch (error) {
     console.error('Create permintaan error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

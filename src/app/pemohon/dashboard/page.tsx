@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PlusCircle, FileText, Clock, CheckCircle, AlertTriangle, X, User, Download, Paperclip } from "lucide-react";
+import { useRouter } from "next/navigation";
 import AccessibilityHelper from "@/components/accessibility/AccessibilityHelper";
 import { usePemohonData } from "@/hooks/usePemohonData";
 import { useAuth } from "@/context/AuthContext";
@@ -26,22 +27,22 @@ export default function PemohonDashboardPage() {
   const [selectedRequest, setSelectedRequest] = useState<PermintaanData | null>(null);
   const { permintaan, stats, isLoading } = usePemohonData();
   const { user } = useAuth();
+  const router = useRouter();
   const [keberatan, setKeberatan] = useState([]);
   const [loadingKeberatan, setLoadingKeberatan] = useState(true);
 
   // Fetch keberatan data
   useEffect(() => {
     const fetchKeberatan = async () => {
-      if (!user?.id) return;
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setLoadingKeberatan(false);
+        return;
+      }
       
       try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          setLoadingKeberatan(false);
-          return;
-        }
         
-        const response = await fetch(`/api/keberatan?pemohon_id=${user.id}`, {
+        const response = await fetch('/api/keberatan', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -59,7 +60,7 @@ export default function PemohonDashboardPage() {
     };
 
     fetchKeberatan();
-  }, [user?.id]);
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,7 +68,19 @@ export default function PemohonDashboardPage() {
       case "Diproses": return "text-blue-600 bg-blue-100";
       case "Selesai": return "text-green-600 bg-green-100";
       case "Ditolak": return "text-red-600 bg-red-100";
+      case "Diverifikasi PPID Utama": return "text-purple-600 bg-purple-100";
+      case "Diproses PPID Pelaksana": return "text-indigo-600 bg-indigo-100";
       default: return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  const getDetailedStatus = (status: string) => {
+    switch (status) {
+      case "Diajukan": return "Menunggu verifikasi PPID Utama";
+      case "Diproses": return "Sedang diproses PPID Pelaksana";
+      case "Selesai": return "Permohonan telah selesai";
+      case "Ditolak": return "Permohonan ditolak";
+      default: return status;
     }
   };
   
@@ -255,9 +268,14 @@ export default function PemohonDashboardPage() {
                       {request.rincian_informasi.substring(0, 50)}...
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                        {request.status}
-                      </span>
+                      <div className="space-y-1">
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </span>
+                        <p className="text-xs text-gray-500">
+                          {getDetailedStatus(request.status)}
+                        </p>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {(() => {
@@ -277,12 +295,20 @@ export default function PemohonDashboardPage() {
                         Detail
                       </button>
                       {(request.status === 'Diproses' || request.status === 'Diajukan') && (
-                        <button 
-                          onClick={() => handleWithdrawRequest(request.id.toString())}
-                          className="text-red-600 hover:text-red-900 text-xs"
-                        >
-                          Tarik
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => handleWithdrawRequest(request.id.toString())}
+                            className="text-red-600 hover:text-red-900 text-xs"
+                          >
+                            Tarik
+                          </button>
+                          <button 
+                            onClick={() => router.push(`/pemohon/keberatan?permintaan_id=${request.id}`)}
+                            className="text-orange-600 hover:text-orange-900 text-xs"
+                          >
+                            Ajukan Keberatan
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
