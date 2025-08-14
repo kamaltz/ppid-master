@@ -21,7 +21,35 @@ export default function PPIDDashboardPage() {
   const userRole = getUserRole();
   const { stats, chartData, isLoading } = useDashboardData();
 
-  const managementSections = [
+  const managementSections = userRole === 'PPID_PELAKSANA' ? [
+    {
+      title: "Permohonan Diproses",
+      description: "Kelola permohonan yang sedang diproses",
+      icon: FileText,
+      href: "/admin/permohonan",
+      color: "bg-blue-500",
+      stats: `${stats.diproses} Diproses`,
+      pending: `${stats.diproses} Aktif`,
+    },
+    {
+      title: "Keberatan Diproses",
+      description: "Kelola keberatan yang sedang diproses",
+      icon: AlertTriangle,
+      href: "/admin/keberatan",
+      color: "bg-orange-500",
+      stats: "Diproses",
+      pending: "Aktif",
+    },
+    {
+      title: "Pengelolaan Informasi",
+      description: "Kelola informasi publik",
+      icon: Info,
+      href: "/admin/informasi",
+      color: "bg-green-500",
+      stats: "Informasi",
+      pending: "Publik",
+    },
+  ] : [
     {
       title: "Pengelolaan Permohonan",
       description: "Kelola permohonan informasi publik",
@@ -68,10 +96,13 @@ export default function PPIDDashboardPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🏛️ Dashboard PPID Utama
+            {userRole === 'PPID_PELAKSANA' ? '🏛️ Dashboard PPID Pelaksana' : '🏛️ Dashboard PPID Utama'}
           </h1>
           <p className="text-gray-600 mt-2">
-            Kelola semua aspek layanan informasi publik Kabupaten Garut
+            {userRole === 'PPID_PELAKSANA' 
+              ? 'Kelola permohonan dan keberatan yang sedang diproses'
+              : 'Kelola semua aspek layanan informasi publik Kabupaten Garut'
+            }
           </p>
         </div>
 

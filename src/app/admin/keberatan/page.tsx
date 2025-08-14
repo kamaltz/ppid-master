@@ -6,6 +6,7 @@ import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useKeberatanData } from "@/hooks/useKeberatanData";
 import { X } from "lucide-react";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface KeberatanDisplay {
   id: number;
@@ -21,6 +22,13 @@ export default function AdminKeberatanPage() {
   const { userRole } = useRoleAccess();
   const { keberatan, isLoading, updateKeberatanStatus, deleteKeberatan } = useKeberatanData();
   const [selectedKeberatan, setSelectedKeberatan] = useState<KeberatanDisplay | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Convert database data to display format
   const keberatanDisplay = keberatan.map(item => ({
@@ -40,44 +48,60 @@ export default function AdminKeberatanPage() {
     })()
   }));
 
-  const updateStatus = async (id: number, newStatus: string) => {
+  const updateStatus = (id: number, newStatus: string) => {
     const currentKeberatan = keberatanDisplay.find(k => k.id === id);
     if (!currentKeberatan) return;
     
-    let confirmMessage = '';
-    let successMessage = '';
+    let title = '';
+    let message = '';
     
     if (currentKeberatan.status === 'Diajukan' && newStatus === 'Diproses') {
-      confirmMessage = `Yakin ingin memproses keberatan ${id}?`;
-      successMessage = `Keberatan ${id} sedang diproses`;
+      title = 'Proses Keberatan';
+      message = `Yakin ingin memproses keberatan #${id}?`;
     } else if (currentKeberatan.status === 'Diproses' && newStatus === 'Selesai') {
-      confirmMessage = `Yakin ingin menyelesaikan keberatan ${id}?`;
-      successMessage = `Keberatan ${id} berhasil diselesaikan`;
+      title = 'Selesaikan Keberatan';
+      message = `Yakin ingin menyelesaikan keberatan #${id}?`;
     } else if (currentKeberatan.status === 'Diproses' && newStatus === 'Ditolak') {
-      confirmMessage = `Yakin ingin menolak keberatan ${id}? Tindakan ini tidak dapat dibatalkan.`;
-      successMessage = `Keberatan ${id} ditolak`;
+      title = 'Tolak Keberatan';
+      message = `Yakin ingin menolak keberatan #${id}? Tindakan ini tidak dapat dibatalkan.`;
     }
     
-    if (confirmMessage && confirm(confirmMessage)) {
-      try {
-        await updateKeberatanStatus(id, { status: newStatus });
-        alert(successMessage);
-      } catch (error) {
-        alert('Gagal mengupdate status keberatan');
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          await updateKeberatanStatus(id, { status: newStatus });
+          setConfirmModal({ ...confirmModal, isOpen: false });
+        } catch (error) {
+          alert('Gagal mengupdate status keberatan');
+        } finally {
+          setIsProcessing(false);
+        }
       }
-    }
+    });
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     const item = keberatanDisplay.find(k => k.id === id);
-    if (confirm(`Yakin ingin menghapus keberatan ${id} dari "${item?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      try {
-        await deleteKeberatan(id);
-        alert(`Keberatan ${id} berhasil dihapus`);
-      } catch (error) {
-        alert('Gagal menghapus keberatan');
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Keberatan',
+      message: `Yakin ingin menghapus keberatan #${id} dari "${item?.nama}"? Tindakan ini tidak dapat dibatalkan.`,
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          await deleteKeberatan(id);
+          setConfirmModal({ ...confirmModal, isOpen: false });
+        } catch (error) {
+          alert('Gagal menghapus keberatan');
+        } finally {
+          setIsProcessing(false);
+        }
       }
-    }
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -134,7 +158,7 @@ export default function AdminKeberatanPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.tanggal}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.ATASAN_PPID]} showAccessDenied={false}>
+                    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.ATASAN_PPID, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                       {item.status === 'Diajukan' && (
                         <button 
                           onClick={() => updateStatus(item.id, 'Diproses')}
@@ -166,7 +190,7 @@ export default function AdminKeberatanPage() {
                     >
                       Detail
                     </button>
-                    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
+                    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                       <button 
                         onClick={() => handleDelete(item.id)}
                         className="text-red-600 hover:text-red-900 text-xs"
@@ -240,6 +264,16 @@ export default function AdminKeberatanPage() {
           </div>
         </div>
       )}
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        isLoading={isProcessing}
+      />
     </div>
   );
 }

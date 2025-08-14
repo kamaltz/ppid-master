@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (decoded.role === 'Pemohon') {
       where.pemohon_id = decoded.userId;
+    } else if (decoded.role === 'PPID_PELAKSANA') {
+      // PPID Pelaksana only sees keberatan that are being processed (status = 'Diproses')
+      where.status = 'Diproses';
     } else if (pemohonId) {
       where.pemohon_id = parseInt(pemohonId);
     }

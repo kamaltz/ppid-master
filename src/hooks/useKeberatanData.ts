@@ -46,7 +46,7 @@ export const useKeberatanData = () => {
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/keberatan/${id}`, {
+    const response = await fetch(`/api/keberatan/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ export const useKeberatanData = () => {
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/keberatan/${id}`, {
+    const response = await fetch(`/api/keberatan/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
