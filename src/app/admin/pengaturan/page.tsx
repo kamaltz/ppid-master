@@ -61,7 +61,13 @@ export default function AdminPengaturanPage() {
     description: 'Kami berkomitmen untuk memberikan akses informasi publik yang transparan, akuntabel, dan mudah diakses oleh seluruh masyarakat.',
     backgroundImage: '',
     ctaText: 'Ajukan Permohonan',
-    ctaUrl: '/permohonan'
+    ctaUrl: '/permohonan',
+    isCarousel: false,
+    autoSlide: true,
+    slideInterval: 4000,
+    showCarouselCTA: false,
+    cleanTemplate: false,
+    slides: []
   });
   const [isSaving, setIsSaving] = useState(false);
   
@@ -114,11 +120,17 @@ export default function AdminPengaturanPage() {
         if (typeof window !== 'undefined') {
           // Clear any cached data
           sessionStorage.clear();
+          localStorage.clear();
           
           // Broadcast settings change to all components
           window.dispatchEvent(new CustomEvent('settingsChanged'));
           
-          // Reload page to ensure all components get new data
+          // Force refresh homepage if hero settings changed
+          if (window.opener) {
+            window.opener.location.reload();
+          }
+          
+          // Reload current page
           setTimeout(() => {
             window.location.reload();
           }, 500);
@@ -145,7 +157,20 @@ export default function AdminPengaturanPage() {
         if (result.data.general) setSettings(result.data.general);
         if (result.data.header) setHeaderSettings(result.data.header);
         if (result.data.footer) setFooterSettings(result.data.footer);
-        if (result.data.hero) setHeroSettings(result.data.hero);
+        if (result.data.hero) {
+          const heroData = result.data.hero;
+          const slidesWithDefaults = (heroData.slides || []).map(slide => ({
+            ...slide,
+            ctaText: slide.ctaText ?? '',
+            ctaUrl: slide.ctaUrl ?? '',
+            backgroundPosition: slide.backgroundPosition ?? 'cover'
+          }));
+          
+          setHeroSettings({
+            ...heroData,
+            slides: slidesWithDefaults
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -184,6 +209,101 @@ export default function AdminPengaturanPage() {
       if (result.success) {
         setHeroSettings(prev => ({ ...prev, backgroundImage: result.url }));
         alert('✅ Gambar berhasil diupload!');
+      } else {
+        alert('❌ Gagal upload gambar: ' + result.error);
+      }
+    } catch (error) {
+      alert('❌ Gagal upload gambar');
+    }
+  };
+
+  const addSlide = () => {
+    const newSlide = {
+      id: Date.now(),
+      image: '',
+      title: '',
+      subtitle: '',
+      description: '',
+      ctaText: '',
+      ctaUrl: '',
+      backgroundPosition: 'cover'
+    };
+    setHeroSettings(prev => ({
+      ...prev,
+      slides: [...prev.slides, newSlide]
+    }));
+  };
+
+  const updateSlide = (index: number, field: string, value: string) => {
+    setHeroSettings(prev => ({
+      ...prev,
+      slides: prev.slides.map((slide, i) => 
+        i === index ? { ...slide, [field]: value } : slide
+      )
+    }));
+  };
+
+  const removeSlide = (index: number) => {
+    setHeroSettings(prev => ({
+      ...prev,
+      slides: prev.slides.filter((_, i) => i !== index)
+    }));
+  };
+
+  const cropAndResizeImage = (file: File, targetWidth = 1920, targetHeight = 1080): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        
+        // Calculate crop dimensions to maintain aspect ratio
+        const imgRatio = img.width / img.height;
+        const targetRatio = targetWidth / targetHeight;
+        
+        let drawWidth = img.width;
+        let drawHeight = img.height;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        if (imgRatio > targetRatio) {
+          drawWidth = img.height * targetRatio;
+          offsetX = (img.width - drawWidth) / 2;
+        } else {
+          drawHeight = img.width / targetRatio;
+          offsetY = (img.height - drawHeight) / 2;
+        }
+        
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight, 0, 0, targetWidth, targetHeight);
+        
+        canvas.toBlob((blob) => {
+          const croppedFile = new File([blob!], file.name, { type: file.type });
+          resolve(croppedFile);
+        }, file.type, 0.9);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const uploadSlideImage = async (file: File, slideIndex: number) => {
+    try {
+      const croppedFile = await cropAndResizeImage(file);
+      const formData = new FormData();
+      formData.append('file', croppedFile);
+
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        updateSlide(slideIndex, 'image', result.url);
+        alert('✅ Gambar slide berhasil diupload dan disesuaikan!');
       } else {
         alert('❌ Gagal upload gambar: ' + result.error);
       }
@@ -280,7 +400,11 @@ export default function AdminPengaturanPage() {
         description: 'Kami berkomitmen untuk memberikan akses informasi publik yang transparan, akuntabel, dan mudah diakses oleh seluruh masyarakat.',
         backgroundImage: '',
         ctaText: 'Ajukan Permohonan',
-        ctaUrl: '/permohonan'
+        ctaUrl: '/permohonan',
+        isCarousel: false,
+        autoSlide: true,
+        slideInterval: 4000,
+        slides: []
       }
     };
     
@@ -806,6 +930,246 @@ export default function AdminPengaturanPage() {
                 </div>
               </div>
               
+              {/* Carousel Settings */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium mb-4">🎠 Pengaturan Carousel</h3>
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      checked={heroSettings.isCarousel}
+                      onChange={(e) => setHeroSettings(prev => ({ ...prev, isCarousel: e.target.checked }))}
+                      className="mr-3"
+                    />
+                    <span className="font-medium">Aktifkan Mode Carousel</span>
+                  </label>
+                  
+                  {heroSettings.isCarousel && (
+                    <div className="ml-6 space-y-4">
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <label className="flex items-center">
+                            <input 
+                              type="checkbox" 
+                              checked={heroSettings.autoSlide}
+                              onChange={(e) => setHeroSettings(prev => ({ ...prev, autoSlide: e.target.checked }))}
+                              className="mr-2"
+                            />
+                            Auto Slide
+                          </label>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Interval (ms)</label>
+                            <input 
+                              type="number" 
+                              value={heroSettings.slideInterval}
+                              onChange={(e) => setHeroSettings(prev => ({ ...prev, slideInterval: parseInt(e.target.value) }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min="2000"
+                              step="1000"
+                              placeholder="4000 (4 detik - optimal)"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <label className="flex items-center">
+                            <input 
+                              type="checkbox" 
+                              checked={heroSettings.showCarouselCTA}
+                              onChange={(e) => setHeroSettings(prev => ({ ...prev, showCarouselCTA: e.target.checked }))}
+                              className="mr-2"
+                            />
+                            Tampilkan Tombol CTA
+                          </label>
+                          <label className="flex items-center">
+                            <input 
+                              type="checkbox" 
+                              checked={heroSettings.cleanTemplate}
+                              onChange={(e) => setHeroSettings(prev => ({ ...prev, cleanTemplate: e.target.checked }))}
+                              className="mr-2"
+                            />
+                            Template Bersih (Tanpa Overlay)
+                          </label>
+                        </div>
+                        
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-blue-800 mb-2">📷 Rekomendasi Gambar Carousel</h4>
+                          <ul className="text-sm text-blue-700 space-y-1">
+                            <li>• <strong>Ukuran:</strong> 1920x1080 pixels (Full HD 16:9)</li>
+                            <li>• <strong>Format:</strong> JPG, PNG, WebP</li>
+                            <li>• <strong>Ukuran File:</strong> Maksimal 2MB per gambar</li>
+                            <li>• <strong>Kualitas:</strong> Resolusi tinggi, kontras baik</li>
+                            <li>• <strong>Auto Crop:</strong> Gambar akan otomatis disesuaikan ke 16:9</li>
+                          </ul>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium">Slides Carousel</h4>
+                          <button 
+                            onClick={addSlide}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+                          >
+                            + Tambah Slide
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {heroSettings.slides.map((slide, index) => (
+                            <div key={slide.id} className="border rounded-lg p-4 bg-gray-50">
+                              <div className="flex justify-between items-center mb-3">
+                                <h5 className="font-medium">Slide {index + 1}</h5>
+                                <button 
+                                  onClick={() => removeSlide(index)}
+                                  className="text-red-600 hover:text-red-800 text-sm"
+                                >
+                                  🗑️ Hapus
+                                </button>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Gambar Slide</label>
+                                  <div className="flex items-center gap-3">
+                                    <input 
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) uploadSlideImage(file, index);
+                                      }}
+                                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700"
+                                    />
+                                  </div>
+                                  <input 
+                                    type="url" 
+                                    value={slide.image}
+                                    onChange={(e) => updateSlide(index, 'image', e.target.value)}
+                                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="atau masukkan URL gambar"
+                                  />
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Judul Slide</label>
+                                    <input 
+                                      type="text" 
+                                      value={slide.title}
+                                      onChange={(e) => updateSlide(index, 'title', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle Slide</label>
+                                    <input 
+                                      type="text" 
+                                      value={slide.subtitle}
+                                      onChange={(e) => updateSlide(index, 'subtitle', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Slide</label>
+                                  <textarea 
+                                    rows={2}
+                                    value={slide.description}
+                                    onChange={(e) => updateSlide(index, 'description', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  ></textarea>
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">Posisi Gambar</label>
+                                  <select 
+                                    value={slide.backgroundPosition || 'cover'}
+                                    onChange={(e) => updateSlide(index, 'backgroundPosition', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="cover">Cover (Default) - Gambar menutupi area</option>
+                                    <option value="contain">Contain - Gambar utuh terlihat</option>
+                                    <option value="center">Center - Posisi tengah</option>
+                                    <option value="top">Top - Posisi atas</option>
+                                    <option value="bottom">Bottom - Posisi bawah</option>
+                                    <option value="left">Left - Posisi kiri</option>
+                                    <option value="right">Right - Posisi kanan</option>
+                                    <option value="fill">Fill - Regangkan penuh</option>
+                                  </select>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Teks Tombol CTA (Opsional)</label>
+                                    <input 
+                                      type="text" 
+                                      value={slide.ctaText ?? ''}
+                                      onChange={(e) => updateSlide(index, 'ctaText', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Contoh: Selengkapnya, Daftar Sekarang"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">URL Tujuan CTA</label>
+                                    <input 
+                                      type="text" 
+                                      value={slide.ctaUrl ?? ''}
+                                      onChange={(e) => updateSlide(index, 'ctaUrl', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="/halaman-tujuan atau https://..."
+                                    />
+                                  </div>
+                                </div>
+                                <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded">
+                                  💡 <strong>Tips:</strong> Kosongkan kedua field untuk tidak menampilkan tombol CTA pada slide ini
+                                </div>
+                                
+                                {slide.image && (
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-700 mb-2">Live Preview:</p>
+                                    <div 
+                                      className="w-full h-40 rounded border relative overflow-hidden bg-gray-100"
+                                      style={{
+                                        backgroundImage: `url(${slide.image})`,
+                                        backgroundSize: slide.backgroundPosition === 'fill' ? '100% 100%' : 
+                                                       slide.backgroundPosition === 'contain' ? 'contain' : 'cover',
+                                        backgroundPosition: ['top', 'bottom', 'left', 'right', 'center'].includes(slide.backgroundPosition || 'cover') 
+                                                          ? slide.backgroundPosition : 'center',
+                                        backgroundRepeat: 'no-repeat'
+                                      }}
+                                    >
+                                      {(slide.title || slide.subtitle) && (
+                                        <div className="absolute bottom-2 left-2 right-2">
+                                          <div className="bg-black bg-opacity-50 text-white p-2 rounded text-center">
+                                            {slide.title && <h4 className="font-bold text-xs">{slide.title}</h4>}
+                                            {slide.subtitle && <p className="text-xs mt-1">{slide.subtitle}</p>}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Mode: <strong>{slide.backgroundPosition || 'cover'}</strong>
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {heroSettings.slides.length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            <p>Belum ada slide. Klik "Tambah Slide" untuk menambah slide pertama.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
               {heroSettings.backgroundImage && (
                 <div className="mt-4">
                   <h3 className="font-medium mb-2">Preview Background</h3>
@@ -832,6 +1196,12 @@ export default function AdminPengaturanPage() {
                 className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2"
               >
                 {isResetting ? '⏳ Mereset...' : '🔄 Reset ke Default'}
+              </button>
+              <button 
+                onClick={() => window.open('/', '_blank')}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2"
+              >
+                👁️ Lihat Homepage
               </button>
             </div>
           </RoleGuard>
