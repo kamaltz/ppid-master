@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
@@ -37,26 +37,8 @@ interface FileItem {
 }
 
 export default function AdminHalamanPage() {
-  const [pages, setPages] = useState<PageContent[]>([
-    {
-      id: "profil-ppid",
-      title: "Profil PPID",
-      slug: "profil",
-      content: "<h2>Profil PPID Diskominfo Garut</h2><p>Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut adalah unit kerja yang bertanggung jawab dalam pengelolaan dan pelayanan informasi publik di lingkungan Pemerintah Kabupaten Garut.</p><h3>Visi</h3><p>Mewujudkan pelayanan informasi publik yang transparan, akuntabel, dan berkualitas untuk mendukung tata kelola pemerintahan yang baik.</p><h3>Misi</h3><ul><li>Menyelenggarakan pelayanan informasi publik yang cepat, tepat, dan mudah diakses</li><li>Meningkatkan kualitas pengelolaan informasi dan dokumentasi</li><li>Membangun sistem informasi yang terintegrasi dan terpercaya</li><li>Mendorong partisipasi masyarakat dalam pengawasan penyelenggaraan pemerintahan</li></ul><h3>Tugas dan Fungsi</h3><p>PPID memiliki tugas pokok melaksanakan pengumpulan, pengolahan, penyimpanan, pendokumentasian, penyediaan, dan pelayanan informasi publik sesuai dengan ketentuan peraturan perundang-undangan.</p>",
-      files: [],
-      sections: [],
-      lastUpdated: "2024-01-15"
-    },
-    {
-      id: "dip",
-      title: "Daftar Informasi Publik (DIP)",
-      slug: "dip", 
-      content: "<h2>Daftar Informasi Publik</h2><p>Daftar Informasi Publik (DIP) adalah katalog yang berisi informasi yang wajib disediakan dan diumumkan secara berkala, informasi yang wajib diumumkan serta merta, dan informasi yang wajib tersedia setiap saat.</p><h3>Informasi Berkala</h3><ul><li>Laporan Keuangan Daerah</li><li>Laporan Kinerja Instansi Pemerintah (LAKIP)</li><li>Rencana Strategis (Renstra)</li><li>Rencana Kerja Tahunan</li><li>Laporan Penyelenggaraan Pemerintahan Daerah (LPPD)</li></ul><h3>Informasi Serta Merta</h3><ul><li>Informasi yang dapat mengancam hajat hidup orang banyak</li><li>Informasi keadaan darurat</li><li>Informasi keselamatan dan keamanan publik</li><li>Informasi yang berkaitan dengan bencana alam</li></ul><h3>Informasi Setiap Saat</h3><ul><li>Struktur Organisasi</li><li>Profil Pejabat</li><li>Peraturan Daerah dan Peraturan Bupati</li><li>Data Statistik Daerah</li><li>Prosedur Pelayanan Publik</li><li>Tarif Pelayanan</li></ul><h3>Informasi Dikecualikan</h3><p>Informasi yang dikecualikan sesuai dengan ketentuan peraturan perundang-undangan meliputi informasi yang dapat menghambat proses penegakan hukum, mengganggu kepentingan perlindungan hak atas kekayaan intelektual, dan membahayakan pertahanan dan keamanan negara.</p>",
-      files: [],
-      sections: [],
-      lastUpdated: "2024-01-10"
-    }
-  ]);
+  const [pages, setPages] = useState<PageContent[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -68,6 +50,32 @@ export default function AdminHalamanPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+
+  useEffect(() => {
+    fetchPages();
+  }, []);
+
+  const fetchPages = async () => {
+    try {
+      const response = await fetch('/api/pages');
+      const result = await response.json();
+      if (result.success) {
+        setPages(result.data.map((page: any) => ({
+          id: page.id,
+          title: page.title,
+          slug: page.slug,
+          content: page.content || '',
+          files: [],
+          sections: [],
+          lastUpdated: new Date(page.updated_at || page.created_at).toISOString().split('T')[0]
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching pages:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePageSelect = (pageId: string) => {
     const page = pages.find(p => p.id === pageId);
@@ -119,52 +127,76 @@ export default function AdminHalamanPage() {
       return;
     }
     
-    // Check slug uniqueness
-    const existingPage = pages.find(p => p.slug === formData.slug && p.id !== selectedPage);
-    if (existingPage) {
-      alert('Slug sudah digunakan, gunakan slug lain!');
-      return;
-    }
-    
     setIsSaving(true);
-    setTimeout(() => {
+    try {
       if (selectedPage) {
         // Update existing page
-        setPages(prev => prev.map(page => 
-          page.id === selectedPage 
-            ? { ...page, ...formData, lastUpdated: new Date().toISOString().split('T')[0] }
-            : page
-        ));
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/pages/${selectedPage}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: formData.title,
+            slug: formData.slug,
+            content: formData.content,
+            status: 'published'
+          })
+        });
         
-        // Save to localStorage for public pages
-        localStorage.setItem(`page_${selectedPage}`, JSON.stringify({
-          title: formData.title,
-          content: formData.content,
-          files: formData.files,
-          sections: formData.sections
-        }));
+        const result = await response.json();
+        if (result.success) {
+          setPages(prev => prev.map(page => 
+            page.id === selectedPage 
+              ? { ...page, ...formData, lastUpdated: new Date().toISOString().split('T')[0] }
+              : page
+          ));
+          alert('Halaman berhasil diperbarui!');
+        } else {
+          alert(result.error || 'Gagal memperbarui halaman');
+        }
       } else {
         // Add new page
-        const newPage: PageContent = {
-          id: Date.now().toString(),
-          ...formData,
-          lastUpdated: new Date().toISOString().split('T')[0]
-        };
-        setPages(prev => [...prev, newPage]);
-        setSelectedPage(newPage.id);
+        const response = await fetch('/api/pages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: formData.title,
+            slug: formData.slug,
+            content: formData.content,
+            status: 'published'
+          })
+        });
         
-        // Save to localStorage
-        localStorage.setItem(`page_${newPage.id}`, JSON.stringify({
-          title: formData.title,
-          content: formData.content,
-          files: formData.files,
-          sections: formData.sections
-        }));
+        const result = await response.json();
+        if (result.success) {
+          const newPage: PageContent = {
+            id: result.data.id,
+            title: result.data.title,
+            slug: result.data.slug,
+            content: result.data.content,
+            files: [],
+            sections: [],
+            lastUpdated: new Date().toISOString().split('T')[0]
+          };
+          setPages(prev => [...prev, newPage]);
+          setSelectedPage(newPage.id);
+          alert('Halaman baru berhasil ditambahkan!');
+        } else {
+          alert(result.error || 'Gagal membuat halaman');
+        }
       }
       setShowAddForm(false);
+    } catch (error) {
+      console.error('Error saving page:', error);
+      alert('Terjadi kesalahan saat menyimpan halaman');
+    } finally {
       setIsSaving(false);
-      alert(selectedPage ? 'Halaman berhasil diperbarui!' : 'Halaman baru berhasil ditambahkan!');
-    }, 1000);
+    }
   };
 
   const handleFileUpload = (files: FileList) => {
@@ -178,6 +210,19 @@ export default function AdminHalamanPage() {
     
     setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
   };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat halaman...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">

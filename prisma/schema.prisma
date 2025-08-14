@@ -117,3 +117,15 @@ model Keberatan {
 
   @@map("keberatan")
 }
+
+model Page {
+  id         Int      @id @default(autoincrement())
+  title      String
+  slug       String   @unique
+  content    String?  @db.Text
+  status     String   @default("draft")
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  @@map("pages")
+}

@@ -29,7 +29,8 @@
     "test-pg": "node lib/scripts/testPostgres.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev"
+    "db:migrate": "prisma migrate dev",
+    "setup:pages": "node lib/scripts/setup-pages-prisma.js"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
