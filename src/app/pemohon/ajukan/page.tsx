@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { createRequest } from "@/lib/api";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import SuccessModal from "@/components/SuccessModal";
 
 export default function AjukanPermohonanPage() {
   const [formData, setFormData] = useState({
@@ -13,9 +14,9 @@ export default function AjukanPermohonanPage() {
     tujuan: "",
   });
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
 
@@ -37,18 +38,11 @@ export default function AjukanPermohonanPage() {
   const handleConfirmSubmit = async () => {
     setIsLoading(true);
     setError(null);
-    setSuccess(null);
     setShowConfirmModal(false);
 
     try {
-      const data = await createRequest(formData, token!);
-      setSuccess(
-        data.message ||
-          "Permohonan berhasil dikirim! Anda akan dialihkan ke dasbor."
-      );
-      setTimeout(() => {
-        router.push("/pemohon/dashboard");
-      }, 2000);
+      await createRequest(formData, token!);
+      setShowSuccessModal(true);
     } catch (err: any) {
       setError(err.error || "Terjadi kesalahan saat mengirim permohonan.");
     } finally {
@@ -63,9 +57,6 @@ export default function AjukanPermohonanPage() {
       </h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="text-sm text-center text-red-500">{error}</p>}
-        {success && (
-          <p className="text-sm text-center text-green-500">{success}</p>
-        )}
 
         <div>
           <label
@@ -117,6 +108,16 @@ export default function AjukanPermohonanPage() {
         message="Apakah Anda yakin ingin mengajukan permohonan informasi ini?"
         confirmText="Ya, Kirim"
         isLoading={isLoading}
+      />
+      
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          router.push("/pemohon/dashboard");
+        }}
+        title="🎉 Berhasil Dikirim!"
+        message="Permohonan berhasil dikirim dan akan diproses oleh PPID!"
       />
     </div>
   );
