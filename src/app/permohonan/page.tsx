@@ -9,6 +9,7 @@ import { LogIn, UserPlus, AlertCircle } from "lucide-react";
 export default function PermohonanPage() {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
+    judul: '',
     rincian_informasi: '',
     tujuan_penggunaan: '',
     cara_memperoleh_informasi: 'Email',
@@ -20,6 +21,10 @@ export default function PermohonanPage() {
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+    
+    if (!formData.judul.trim()) {
+      newErrors.judul = 'Judul permohonan wajib diisi';
+    }
     
     if (!formData.rincian_informasi.trim()) {
       newErrors.rincian_informasi = 'Rincian informasi wajib diisi';
@@ -50,13 +55,14 @@ export default function PermohonanPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/submit-prisma', {
+      const response = await fetch('/api/permintaan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          judul: formData.judul,
           rincian_informasi: formData.rincian_informasi,
           tujuan_penggunaan: formData.tujuan_penggunaan,
           cara_memperoleh_informasi: formData.cara_memperoleh_informasi || 'Email',
@@ -71,6 +77,7 @@ export default function PermohonanPage() {
 
       alert('Permohonan berhasil dikirim dan akan diproses oleh PPID!');
       setFormData({
+        judul: '',
         rincian_informasi: '',
         tujuan_penggunaan: '',
         cara_memperoleh_informasi: 'Email',
@@ -159,6 +166,25 @@ export default function PermohonanPage() {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Judul Permohonan *</label>
+            <input
+              type="text"
+              value={formData.judul}
+              onChange={(e) => handleChange('judul', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                errors.judul ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-800'
+              }`}
+              placeholder="Masukkan judul permohonan..."
+            />
+            {errors.judul && (
+              <div className="flex items-center mt-1 text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.judul}
+              </div>
+            )}
+          </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Rincian Informasi yang Diminta *</label>
             <textarea 

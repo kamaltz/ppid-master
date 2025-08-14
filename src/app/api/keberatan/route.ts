@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only pemohon can create keberatan' }, { status: 403 });
     }
 
-    const { permintaan_id, alasan_keberatan } = await request.json();
+    const { permintaan_id, judul, alasan_keberatan } = await request.json();
 
     if (!permintaan_id || !alasan_keberatan) {
       return NextResponse.json({ error: 'Permintaan ID dan alasan keberatan wajib diisi' }, { status: 400 });
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       data: {
         permintaan_id: parseInt(permintaan_id),
         pemohon_id: decoded.userId,
+        judul: judul || null,
         alasan_keberatan,
         status: 'Diajukan'
       }
@@ -99,6 +100,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Create keberatan error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Server error', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
   }
 }

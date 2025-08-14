@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 export default function KeberatanPage() {
   const [formData, setFormData] = useState({
     permintaan_id: "",
+    judul: "",
     alasan_keberatan: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,6 +67,10 @@ export default function KeberatanPage() {
         "Pilih permohonan yang ingin diajukan keberatan";
     }
 
+    if (!formData.judul.trim()) {
+      newErrors.judul = "Judul keberatan wajib diisi";
+    }
+    
     if (!formData.alasan_keberatan.trim()) {
       newErrors.alasan_keberatan = "Alasan keberatan wajib diisi";
     } else if (formData.alasan_keberatan.trim().length < 20) {
@@ -94,8 +99,9 @@ export default function KeberatanPage() {
       const data = await response.json();
       if (data.success) {
         setShowSuccessModal(true);
-        setFormData({ permintaan_id: "", alasan_keberatan: "" });
+        setFormData({ permintaan_id: "", judul: "", alasan_keberatan: "" });
       } else {
+        console.error('API Error:', data);
         setErrors({ general: data.error || "Gagal mengajukan keberatan" });
       }
     } catch (error) {
@@ -169,7 +175,7 @@ export default function KeberatanPage() {
 
                     return (
                       <option key={item.id} value={item.id}>
-                        #{item.id} - {item.rincian_informasi.substring(0, 30)}
+                        #{item.id} - {item.judul || item.rincian_informasi.substring(0, 30)}
                         ... - ({displayStatus})
                       </option>
                     );
@@ -184,6 +190,29 @@ export default function KeberatanPage() {
               <div className="flex items-center mt-1 text-red-600 text-sm">
                 <AlertCircle className="w-4 h-4 mr-1" />
                 {errors.permintaan_id}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Judul Keberatan *
+            </label>
+            <input
+              type="text"
+              value={formData.judul}
+              onChange={(e) => handleChange("judul", e.target.value)}
+              placeholder="Masukkan judul keberatan..."
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                errors.judul
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-800"
+              }`}
+            />
+            {errors.judul && (
+              <div className="flex items-center mt-1 text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.judul}
               </div>
             )}
           </div>

@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
 
-    const { rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan } = await request.json();
+    const { judul, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan } = await request.json();
 
     if (!rincian_informasi || !tujuan_penggunaan) {
       return NextResponse.json({ error: 'Rincian informasi dan tujuan penggunaan wajib diisi' }, { status: 400 });
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
     const newRequest = await prisma.request.create({
       data: {
         pemohon_id: decoded.userId,
+        judul: judul || null,
         rincian_informasi,
         tujuan_penggunaan,
         cara_memperoleh_informasi: cara_memperoleh_informasi || 'Email',

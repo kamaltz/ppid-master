@@ -2,36 +2,23 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { usePemohonData } from "@/hooks/usePemohonData";
 
 interface Request {
-  id: string;
-  informasi: string;
+  id: number;
+  judul?: string;
+  rincian_informasi: string;
   status: string;
-  tanggal: string;
+  created_at: string;
+  tujuan_penggunaan?: string;
+  cara_memperoleh_informasi?: string;
+  cara_mendapat_salinan?: string;
+  catatan_ppid?: string;
 }
 
 export default function RiwayatPermohonanPage() {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [requests] = useState<Request[]>([
-    {
-      id: "REQ001",
-      informasi: "Laporan Keuangan 2023",
-      status: "Diproses",
-      tanggal: "2024-01-15"
-    },
-    {
-      id: "REQ002", 
-      informasi: "Struktur Organisasi",
-      status: "Selesai",
-      tanggal: "2024-01-10"
-    },
-    {
-      id: "REQ003",
-      informasi: "Data Statistik Daerah",
-      status: "Menunggu",
-      tanggal: "2024-01-12"
-    }
-  ]);
+  const { permintaan, isLoading } = usePemohonData();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -58,41 +45,66 @@ export default function RiwayatPermohonanPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Informasi</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {requests.map((request) => (
-              <tr key={request.id}>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{request.id}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">{request.informasi}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                    {request.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">{request.tanggal}</td>
-                <td className="px-6 py-4 text-sm space-x-2">
-                  <button 
-                    onClick={() => setSelectedRequest(request)}
-                    className="text-blue-600 hover:text-blue-900 text-xs"
-                  >
-                    Detail
-                  </button>
-                  {(request.status === 'Diproses' || request.status === 'Menunggu') && (
-                    <button 
-                      onClick={() => handleWithdrawRequest(request.id)}
-                      className="text-red-600 hover:text-red-900 text-xs"
-                    >
-                      Tarik
-                    </button>
-                  )}
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  Loading...
                 </td>
               </tr>
-            ))}
+            ) : permintaan.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  Belum ada permohonan
+                </td>
+              </tr>
+            ) : (
+              permintaan.map((request) => (
+                <tr key={request.id}>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{request.id}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {request.judul || request.rincian_informasi.substring(0, 50) + '...'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
+                      {request.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {(() => {
+                      try {
+                        const date = new Date(request.created_at);
+                        return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                      } catch (e) {
+                        return 'Tanggal tidak tersedia';
+                      }
+                    })()}
+                  </td>
+                  <td className="px-6 py-4 text-sm space-x-2">
+                    <button 
+                      onClick={() => setSelectedRequest(request)}
+                      className="text-blue-600 hover:text-blue-900 text-xs"
+                    >
+                      Detail
+                    </button>
+                    {(request.status === 'Diproses' || request.status === 'Diajukan') && (
+                      <button 
+                        onClick={() => handleWithdrawRequest(request.id.toString())}
+                        className="text-red-600 hover:text-red-900 text-xs"
+                      >
+                        Tarik
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -117,9 +129,37 @@ export default function RiwayatPermohonanPage() {
                 <p className="text-gray-900">{selectedRequest.id}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600">Informasi Diminta</label>
-                <p className="text-gray-900">{selectedRequest.informasi}</p>
+                <label className="text-sm font-medium text-gray-600">Judul</label>
+                <p className="text-gray-900">{selectedRequest.judul || 'Tidak ada judul'}</p>
               </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Rincian Informasi</label>
+                <p className="text-gray-900">{selectedRequest.rincian_informasi}</p>
+              </div>
+              {selectedRequest.tujuan_penggunaan && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Tujuan Penggunaan</label>
+                  <p className="text-gray-900">{selectedRequest.tujuan_penggunaan}</p>
+                </div>
+              )}
+              {selectedRequest.cara_memperoleh_informasi && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Cara Memperoleh Informasi</label>
+                  <p className="text-gray-900">{selectedRequest.cara_memperoleh_informasi}</p>
+                </div>
+              )}
+              {selectedRequest.cara_mendapat_salinan && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Cara Mendapat Salinan</label>
+                  <p className="text-gray-900">{selectedRequest.cara_mendapat_salinan}</p>
+                </div>
+              )}
+              {selectedRequest.catatan_ppid && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Catatan PPID</label>
+                  <p className="text-gray-900">{selectedRequest.catatan_ppid}</p>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium text-gray-600">Status</label>
                 <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedRequest.status)}`}>
@@ -128,7 +168,16 @@ export default function RiwayatPermohonanPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Tanggal Pengajuan</label>
-                <p className="text-gray-900">{selectedRequest.tanggal}</p>
+                <p className="text-gray-900">
+                  {(() => {
+                    try {
+                      const date = new Date(selectedRequest.created_at);
+                      return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                    } catch (e) {
+                      return 'Tanggal tidak tersedia';
+                    }
+                  })()}
+                </p>
               </div>
             </div>
             

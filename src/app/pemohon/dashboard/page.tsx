@@ -241,7 +241,7 @@ export default function PemohonDashboardPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Informasi</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -265,7 +265,7 @@ export default function PemohonDashboardPage() {
                   <tr key={request.id}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{request.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {request.rincian_informasi.substring(0, 50)}...
+                      {request.judul || request.rincian_informasi.substring(0, 50) + '...'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
@@ -329,7 +329,7 @@ export default function PemohonDashboardPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alasan Keberatan</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul Keberatan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -353,7 +353,7 @@ export default function PemohonDashboardPage() {
                   <tr key={item.id}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {item.alasan_keberatan?.substring(0, 50)}...
+                      {item.judul || item.alasan_keberatan?.substring(0, 50) + '...'}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status || 'Diajukan')}`}>

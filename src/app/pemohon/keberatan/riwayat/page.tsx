@@ -1,37 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface Keberatan {
-  id: string;
-  permohonan_asal: string;
+  id: number;
+  permintaan_id: number;
+  judul?: string;
   alasan_keberatan: string;
   status: string;
-  tahap: string;
-  tanggal: string;
+  created_at: string;
+  catatan_ppid?: string;
+  permintaan?: {
+    id: number;
+    rincian_informasi: string;
+  };
 }
 
 export default function RiwayatKeberatanPage() {
   const [selectedKeberatan, setSelectedKeberatan] = useState<Keberatan | null>(null);
-  const [keberatan] = useState<Keberatan[]>([
-    {
-      id: "KBR001",
-      permohonan_asal: "REQ001",
-      alasan_keberatan: "Informasi yang diberikan tidak lengkap",
-      status: "Diproses",
-      tahap: "PPID Utama",
-      tanggal: "2024-01-15"
-    },
-    {
-      id: "KBR002",
-      permohonan_asal: "REQ002",
-      alasan_keberatan: "Permintaan informasi ditolak tanpa alasan jelas",
-      status: "Selesai",
-      tahap: "Selesai",
-      tanggal: "2024-01-14"
-    }
-  ]);
+  const [keberatan, setKeberatan] = useState<Keberatan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchKeberatan = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/keberatan', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setKeberatan(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch keberatan:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchKeberatan();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,7 +80,7 @@ export default function RiwayatKeberatanPage() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permohonan Asal</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alasan</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tahap</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
@@ -70,32 +88,57 @@ export default function RiwayatKeberatanPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {keberatan.map((item) => (
-              <tr key={item.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.permohonan_asal}</td>
-                <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{item.alasan_keberatan}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status)}`}>
-                    {item.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getTahapColor(item.tahap)}`}>
-                    {item.tahap}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.tanggal}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <button 
-                    onClick={() => setSelectedKeberatan(item)}
-                    className="text-blue-600 hover:text-blue-900 text-xs"
-                  >
-                    Detail
-                  </button>
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  Loading...
                 </td>
               </tr>
-            ))}
+            ) : keberatan.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  Belum ada keberatan
+                </td>
+              </tr>
+            ) : (
+              keberatan.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.permintaan_id}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                    {item.judul || item.alasan_keberatan.substring(0, 50) + '...'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status)}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getTahapColor('PPID Utama')}`}>
+                      PPID Utama
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {(() => {
+                      try {
+                        const date = new Date(item.created_at);
+                        return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                      } catch (e) {
+                        return 'Tanggal tidak tersedia';
+                      }
+                    })()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <button 
+                      onClick={() => setSelectedKeberatan(item)}
+                      className="text-blue-600 hover:text-blue-900 text-xs"
+                    >
+                      Detail
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -121,12 +164,22 @@ export default function RiwayatKeberatanPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Permohonan Asal</label>
-                <p className="text-gray-900">{selectedKeberatan.permohonan_asal}</p>
+                <p className="text-gray-900">#{selectedKeberatan.permintaan_id}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Judul Keberatan</label>
+                <p className="text-gray-900">{selectedKeberatan.judul || 'Tidak ada judul'}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Alasan Keberatan</label>
                 <p className="text-gray-900">{selectedKeberatan.alasan_keberatan}</p>
               </div>
+              {selectedKeberatan.catatan_ppid && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Catatan PPID</label>
+                  <p className="text-gray-900">{selectedKeberatan.catatan_ppid}</p>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium text-gray-600">Status</label>
                 <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedKeberatan.status)}`}>
@@ -135,13 +188,22 @@ export default function RiwayatKeberatanPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Tahap</label>
-                <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getTahapColor(selectedKeberatan.tahap)}`}>
-                  {selectedKeberatan.tahap}
+                <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getTahapColor('PPID Utama')}`}>
+                  PPID Utama
                 </span>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Tanggal Pengajuan</label>
-                <p className="text-gray-900">{selectedKeberatan.tanggal}</p>
+                <p className="text-gray-900">
+                  {(() => {
+                    try {
+                      const date = new Date(selectedKeberatan.created_at);
+                      return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                    } catch (e) {
+                      return 'Tanggal tidak tersedia';
+                    }
+                  })()}
+                </p>
               </div>
             </div>
             

@@ -58,7 +58,7 @@ export default function AdminPermohonanPage() {
       id: req.id,
       nama: req.pemohon?.nama || 'N/A',
       email: req.pemohon?.email || 'N/A',
-      informasi: req.rincian_informasi,
+      informasi: req.judul || req.rincian_informasi,
       tujuan_penggunaan: req.tujuan_penggunaan,
       cara_memperoleh_informasi: req.cara_memperoleh_informasi,
       cara_mendapat_salinan: req.cara_mendapat_salinan,
