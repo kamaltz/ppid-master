@@ -12,10 +12,11 @@ export default function AdminPengaturanPage() {
     logo: '',
     email: 'ppid@garutkab.go.id',
     telepon: '(0262) 123456',
-    alamat: 'Jl. Pembangunan No. 1, Garut, Jawa Barat'
+    alamat: 'Jl. Pembangunan No. 1, Garut, Jawa Barat',
+    websiteTitle: 'PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik',
+    websiteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut. Layanan informasi publik yang transparan, akuntabel, dan mudah diakses sesuai UU No. 14 Tahun 2008.'
   });
   const [headerSettings, setHeaderSettings] = useState({
-    logo: '',
     menuItems: [
       { label: 'Beranda', url: '/', hasDropdown: false, dropdownItems: [] },
       { label: 'Profil', url: '/profil', hasDropdown: true, dropdownItems: [
@@ -53,13 +54,7 @@ export default function AdminPengaturanPage() {
     showContact: true,
     showSocialMedia: true
   });
-  const [styleSettings, setStyleSettings] = useState({
-    primaryColor: '#1e40af',
-    secondaryColor: '#3b82f6',
-    accentColor: '#10b981',
-    backgroundColor: '#f8fafc',
-    textColor: '#1f2937'
-  });
+
   const [heroSettings, setHeroSettings] = useState({
     title: 'Selamat Datang di PPID Kabupaten Garut',
     subtitle: 'Pejabat Pengelola Informasi dan Dokumentasi',
@@ -85,7 +80,6 @@ export default function AdminPengaturanPage() {
         { key: 'general', value: settings },
         { key: 'header', value: headerSettings },
         { key: 'footer', value: footerSettings },
-        { key: 'style', value: styleSettings },
         { key: 'hero', value: heroSettings }
       ];
       
@@ -151,7 +145,6 @@ export default function AdminPengaturanPage() {
         if (result.data.general) setSettings(result.data.general);
         if (result.data.header) setHeaderSettings(result.data.header);
         if (result.data.footer) setFooterSettings(result.data.footer);
-        if (result.data.style) setStyleSettings(result.data.style);
         if (result.data.hero) setHeroSettings(result.data.hero);
       }
     } catch (error) {
@@ -171,9 +164,7 @@ export default function AdminPengaturanPage() {
     setFooterSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleStyleChange = (field: string, value: string) => {
-    setStyleSettings(prev => ({ ...prev, [field]: value }));
-  };
+
 
   const handleHeroChange = (field: string, value: string) => {
     setHeroSettings(prev => ({ ...prev, [field]: value }));
@@ -230,11 +221,96 @@ export default function AdminPengaturanPage() {
       )
     }));
   };
+
+  const [isResetting, setIsResetting] = useState(false);
+  
+  const resetToDefault = async () => {
+    if (!confirm('⚠️ Yakin ingin reset semua pengaturan ke default? Semua kustomisasi akan hilang.')) {
+      return;
+    }
+    
+    setIsResetting(true);
+    
+    const defaultSettings = {
+      general: {
+        namaInstansi: 'PPID Diskominfo Kabupaten Garut',
+        logo: '/logo-garut.svg',
+        email: 'ppid@garutkab.go.id',
+        telepon: '(0262) 123456',
+        alamat: 'Jl. Pembangunan No. 1, Garut, Jawa Barat',
+        websiteTitle: 'PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik',
+        websiteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut. Layanan informasi publik yang transparan, akuntabel, dan mudah diakses sesuai UU No. 14 Tahun 2008.'
+      },
+      header: {
+        menuItems: [
+          { label: 'Beranda', url: '/', hasDropdown: false, dropdownItems: [] },
+          { label: 'Profil', url: '/profil', hasDropdown: true, dropdownItems: [
+            { label: 'Tentang PPID', url: '/profil' },
+            { label: 'Visi Misi', url: '/visi-misi' },
+            { label: 'Struktur Organisasi', url: '/struktur' }
+          ]},
+          { label: 'Informasi Publik', url: '/informasi', hasDropdown: false, dropdownItems: [] },
+          { label: 'Layanan', url: '/layanan', hasDropdown: true, dropdownItems: [
+            { label: 'Permohonan Informasi', url: '/permohonan' },
+            { label: 'Keberatan', url: '/keberatan' }
+          ]}
+        ]
+      },
+      footer: {
+        companyName: 'PPID Kabupaten Garut',
+        description: 'PPID Diskominfo Kabupaten Garut berkomitmen untuk memberikan pelayanan informasi publik yang transparan dan akuntabel.',
+        address: 'Jl. Pembangunan No. 1, Garut, Jawa Barat',
+        phone: '(0262) 123456',
+        email: 'ppid@garutkab.go.id',
+        socialMedia: { facebook: '', twitter: '', instagram: '', youtube: '' },
+        quickLinks: [
+          { label: 'Beranda', url: '/' },
+          { label: 'Profil PPID', url: '/profil' },
+          { label: 'DIP', url: '/dip' },
+          { label: 'Kontak', url: '/kontak' }
+        ],
+        copyrightText: 'PPID Kabupaten Garut. Semua hak dilindungi.',
+        showAddress: true,
+        showContact: true,
+        showSocialMedia: true
+      },
+      hero: {
+        title: 'Selamat Datang di PPID Kabupaten Garut',
+        subtitle: 'Pejabat Pengelola Informasi dan Dokumentasi',
+        description: 'Kami berkomitmen untuk memberikan akses informasi publik yang transparan, akuntabel, dan mudah diakses oleh seluruh masyarakat.',
+        backgroundImage: '',
+        ctaText: 'Ajukan Permohonan',
+        ctaUrl: '/permohonan'
+      }
+    };
+    
+    try {
+      for (const [key, value] of Object.entries(defaultSettings)) {
+        const response = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to reset ${key}`);
+        }
+      }
+      
+      alert('✅ Pengaturan berhasil direset ke default!');
+      loadSettings();
+      setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      console.error('Reset error:', error);
+      alert('❌ Gagal reset pengaturan');
+    } finally {
+      setIsResetting(false);
+    }
+  };
   const tabs = [
     { id: 'general', label: '🏢 Umum', icon: '🏢' },
     { id: 'header', label: '📋 Header & Menu', icon: '📋' },
     { id: 'footer', label: '📄 Footer', icon: '📄' },
-    { id: 'style', label: '🎨 Warna & Style', icon: '🎨' },
     { id: 'hero', label: '🖼️ Hero Section', icon: '🖼️' }
   ];
 
@@ -282,29 +358,84 @@ export default function AdminPengaturanPage() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Logo Website</label>
-                <input 
-                  type="url" 
-                  value={settings.logo}
-                  onChange={(e) => handleChange('logo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://example.com/logo.png"
-                />
-                {settings.logo && (
-                  <div className="mt-2">
-                    <img src={settings.logo} alt="Logo Preview" className="h-12 w-auto" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          try {
+                            const response = await fetch('/api/upload/image', {
+                              method: 'POST',
+                              body: formData
+                            });
+                            const result = await response.json();
+                            if (result.success) {
+                              handleChange('logo', result.url);
+                              alert('✅ Logo berhasil diupload!');
+                            } else {
+                              alert('❌ Gagal upload logo: ' + result.error);
+                            }
+                          } catch (error) {
+                            alert('❌ Gagal upload logo');
+                          }
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <span className="text-xs text-gray-500">atau</span>
                   </div>
-                )}
+                  <input 
+                    type="url" 
+                    value={settings.logo}
+                    onChange={(e) => handleChange('logo', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/logo.png"
+                  />
+                  <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
+                    <p className="font-semibold mb-1">📝 Rekomendasi Logo:</p>
+                    <ul className="space-y-1">
+                      <li>• Ukuran: 200x200 pixels (1:1 rasio)</li>
+                      <li>• Format: PNG dengan background transparan</li>
+                      <li>• Ukuran file: Maksimal 2MB</li>
+                      <li>• Resolusi tinggi untuk tampilan yang tajam</li>
+                    </ul>
+                  </div>
+                  {settings.logo && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Preview Logo:</p>
+                      <img src={settings.logo} alt="Logo Preview" className="h-16 w-auto border rounded-lg" />
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Kontak</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Judul Website (Title Tag)</label>
                 <input 
-                  type="email" 
-                  value={settings.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                  type="text" 
+                  value={settings.websiteTitle}
+                  onChange={(e) => handleChange('websiteTitle', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Judul yang akan muncul di tab browser"
                   required
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi Website (Meta Description)</label>
+                <textarea 
+                  rows={3}
+                  value={settings.websiteDescription}
+                  onChange={(e) => handleChange('websiteDescription', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Deskripsi website untuk SEO dan media sosial"
+                  required
+                ></textarea>
               </div>
               
               <div>
@@ -348,17 +479,6 @@ export default function AdminPengaturanPage() {
           <div>
             <h2 className="text-2xl font-semibold mb-6">📋 Header & Menu Navigation</h2>
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
-                <input 
-                  type="url" 
-                  value={headerSettings.logo}
-                  onChange={(e) => handleHeaderChange('logo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://example.com/logo.png"
-                />
-              </div>
-              
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">Menu Items</h3>
@@ -597,95 +717,6 @@ export default function AdminPengaturanPage() {
           </div>
         )}
 
-        {activeTab === 'style' && (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6">🎨 Kustomisasi Warna & Style</h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Warna Utama</label>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="color" 
-                    value={styleSettings.primaryColor}
-                    onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input 
-                    type="text" 
-                    value={styleSettings.primaryColor}
-                    onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Warna Sekunder</label>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="color" 
-                    value={styleSettings.secondaryColor}
-                    onChange={(e) => handleStyleChange('secondaryColor', e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input 
-                    type="text" 
-                    value={styleSettings.secondaryColor}
-                    onChange={(e) => handleStyleChange('secondaryColor', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Warna Aksen</label>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="color" 
-                    value={styleSettings.accentColor}
-                    onChange={(e) => handleStyleChange('accentColor', e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input 
-                    type="text" 
-                    value={styleSettings.accentColor}
-                    onChange={(e) => handleStyleChange('accentColor', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Warna Background</label>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="color" 
-                    value={styleSettings.backgroundColor}
-                    onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input 
-                    type="text" 
-                    value={styleSettings.backgroundColor}
-                    onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium mb-3">Preview Warna</h3>
-              <div className="flex gap-4">
-                <div className="w-16 h-16 rounded-lg shadow" style={{backgroundColor: styleSettings.primaryColor}}></div>
-                <div className="w-16 h-16 rounded-lg shadow" style={{backgroundColor: styleSettings.secondaryColor}}></div>
-                <div className="w-16 h-16 rounded-lg shadow" style={{backgroundColor: styleSettings.accentColor}}></div>
-                <div className="w-16 h-16 rounded-lg shadow border" style={{backgroundColor: styleSettings.backgroundColor}}></div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'hero' && (
           <div>
             <h2 className="text-2xl font-semibold mb-6">🖼️ Hero Section Homepage</h2>
@@ -787,13 +818,22 @@ export default function AdminPengaturanPage() {
         
         <div className="mt-8 pt-6 border-t">
           <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
-            <button 
-              onClick={handleSubmit}
-              disabled={isSaving}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 px-8 rounded-lg flex items-center gap-2"
-            >
-              {isSaving ? '⏳ Menyimpan...' : '💾 Simpan Semua Pengaturan'}
-            </button>
+            <div className="flex gap-4">
+              <button 
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 px-8 rounded-lg flex items-center gap-2"
+              >
+                {isSaving ? '⏳ Menyimpan...' : '💾 Simpan Semua Pengaturan'}
+              </button>
+              <button 
+                onClick={resetToDefault}
+                disabled={isResetting}
+                className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2"
+              >
+                {isResetting ? '⏳ Mereset...' : '🔄 Reset ke Default'}
+              </button>
+            </div>
           </RoleGuard>
         </div>
       </div>

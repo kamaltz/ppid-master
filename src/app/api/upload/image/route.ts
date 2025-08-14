@@ -16,9 +16,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'File must be an image' });
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: 'File size must be less than 5MB' });
+    // Validate file size (max 2MB for logos)
+    if (file.size > 2 * 1024 * 1024) {
+      return NextResponse.json({ success: false, error: 'File size must be less than 2MB' });
+    }
+
+    // Validate image dimensions for logos (optional but recommended)
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ success: false, error: 'File must be PNG, JPG, JPEG, WebP, or SVG' });
     }
 
     const bytes = await file.arrayBuffer();

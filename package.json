@@ -30,7 +30,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "setup:pages": "node lib/scripts/setup-pages-prisma.js"
+    "setup:pages": "node lib/scripts/setup-pages-prisma.js",
+    "seed:settings": "npx ts-node lib/scripts/seedSettings.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
