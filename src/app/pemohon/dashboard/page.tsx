@@ -8,6 +8,7 @@ import { usePemohonData } from "@/hooks/usePemohonData";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface PermintaanData {
   id: number;
@@ -91,6 +92,8 @@ export default function PemohonDashboardPage() {
     message: string;
   }>({ isOpen: false, title: '', message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showKeberatanModal, setShowKeberatanModal] = useState(false);
+  const [selectedKeberatanId, setSelectedKeberatanId] = useState<string>('');
   
   const handleWithdrawRequest = (id: string) => {
     setConfirmModal({
@@ -119,8 +122,26 @@ export default function PemohonDashboardPage() {
   };
   
   const handleWithdrawKeberatan = (id: string) => {
-    if (confirm(`Yakin ingin menarik kembali keberatan ${id}? Tindakan ini tidak dapat dibatalkan.`)) {
-      alert(`Keberatan ${id} berhasil ditarik kembali`);
+    setSelectedKeberatanId(id);
+    setShowKeberatanModal(true);
+  };
+
+  const handleConfirmKeberatanWithdraw = async () => {
+    setIsProcessing(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setShowKeberatanModal(false);
+      setSuccessModal({
+        isOpen: true,
+        title: 'Berhasil Ditarik',
+        message: `Keberatan #${selectedKeberatanId} berhasil ditarik kembali dari sistem.`
+      });
+    } catch (error) {
+      alert('Gagal menarik keberatan');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -478,6 +499,17 @@ export default function PemohonDashboardPage() {
         onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
         title={successModal.title}
         message={successModal.message}
+      />
+      
+      {/* Keberatan Withdrawal Modal */}
+      <ConfirmationModal
+        isOpen={showKeberatanModal}
+        onClose={() => setShowKeberatanModal(false)}
+        onConfirm={handleConfirmKeberatanWithdraw}
+        title="Tarik Keberatan"
+        message={`Apakah Anda yakin ingin menarik kembali keberatan #${selectedKeberatanId}? Tindakan ini tidak dapat dibatalkan dan keberatan akan dihapus dari sistem.`}
+        confirmText="Ya, Tarik"
+        isLoading={isProcessing}
       />
       
       <AccessibilityHelper />

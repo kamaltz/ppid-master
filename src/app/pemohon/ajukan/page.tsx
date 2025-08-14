@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { createRequest } from "@/lib/api";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function AjukanPermohonanPage() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ export default function AjukanPermohonanPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
 
@@ -23,18 +25,23 @@ export default function AjukanPermohonanPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) {
       setError("Anda harus login untuk mengajukan permohonan.");
       return;
     }
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+    setShowConfirmModal(false);
 
     try {
-      const data = await createRequest(formData, token);
+      const data = await createRequest(formData, token!);
       setSuccess(
         data.message ||
           "Permohonan berhasil dikirim! Anda akan dialihkan ke dasbor."
@@ -101,6 +108,16 @@ export default function AjukanPermohonanPage() {
           {isLoading ? "Mengirim..." : "Kirim Permohonan"}
         </button>
       </form>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmSubmit}
+        title="Konfirmasi Pengajuan"
+        message="Apakah Anda yakin ingin mengajukan permohonan informasi ini?"
+        confirmText="Ya, Kirim"
+        isLoading={isLoading}
+      />
     </div>
   );
 }
