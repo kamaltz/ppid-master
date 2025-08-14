@@ -2,7 +2,7 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { isAdminRole } from "@/lib/roleUtils";
 import Sidebar from "@/components/layout/Sidebar";
 
@@ -13,6 +13,7 @@ export default function AdminLayout({
 }) {
   const { token, loading, getUserRole } = useAuth();
   const router = useRouter();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!loading) {
@@ -48,9 +49,23 @@ export default function AdminLayout({
 
   // Jika token ada, tampilkan layout admin
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+    <div className="min-h-screen bg-slate-50">
+      <div className="flex">
+        <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <main className={`flex-1 transition-all duration-300 ${
+          isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'
+        }`}>
+          {children}
+        </main>
+      </div>
+      
+      {/* Mobile overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 }

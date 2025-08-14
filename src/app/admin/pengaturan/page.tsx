@@ -439,18 +439,18 @@ export default function AdminPengaturanPage() {
   ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">⚙️ Pengaturan Website</h1>
+    <div className="p-4 md:p-8">
+      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">⚙️ Pengaturan Website</h1>
       
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-md mb-6">
         <div className="border-b">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex overflow-x-auto space-x-4 md:space-x-8 px-4 md:px-6">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-4 px-2 border-b-2 font-medium text-xs md:text-sm transition-colors whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -464,7 +464,7 @@ export default function AdminPengaturanPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="bg-white rounded-lg shadow-md p-4 md:p-8">
         {activeTab === 'general' && (
           <div>
             <h2 className="text-2xl font-semibold mb-6">🏢 Pengaturan Umum</h2>

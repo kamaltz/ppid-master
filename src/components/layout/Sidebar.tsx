@@ -9,11 +9,14 @@ import {
   FileText,
   Users,
   Settings,
-  LogOut,
   BarChart3,
   Globe,
   AlertTriangle,
   User,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 const menuItems = [
@@ -85,7 +88,12 @@ const menuItems = [
   },
 ];
 
-const Sidebar = () => {
+interface SidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const pathname = usePathname();
   const { logout, getUserRole } = useAuth();
   const userRole = getUserRole();
@@ -93,50 +101,113 @@ const Sidebar = () => {
     canAccessMenu(userRole, item.roles)
   );
 
-  const handleLogout = () => {
-    logout();
-  };
+
 
   return (
-    <div className="w-64 bg-white shadow-lg">
-      <div className="p-6">
-        <h2 className="text-xl font-bold text-gray-800">
-          {getRoleDisplayName(userRole)}
-        </h2>
-        <p className="text-sm text-gray-600">
-          {userRole === "PPID"
-            ? "PPID Utama"
-            : userRole === "PPID_Pelaksana"
-            ? "PPID Pelaksana"
-            : userRole === "Atasan_PPID"
-            ? "Atasan PPID"
-            : "Administrator"}{" "}
-          - Diskominfo Garut
-        </p>
-      </div>
+    <>
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={onToggle}
+        className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-all"
+        title={isOpen ? 'Tutup Sidebar' : 'Buka Sidebar'}
+      >
+        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
 
-      <nav className="mt-6">
-        {visibleMenuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
-                isActive
-                  ? "text-blue-800 bg-blue-50 border-r-2 border-blue-800"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
+      {/* Sidebar */}
+      <div className={`
+        fixed top-0 left-0 h-full bg-white shadow-lg transform transition-all duration-300 ease-in-out pt-16
+        ${isOpen 
+          ? 'w-64 translate-x-0 z-50' 
+          : 'w-16 -translate-x-full lg:translate-x-0 lg:z-40'
+        }
+      `}>
+        {/* Header Info with Toggle */}
+        <div className={`p-4 border-b transition-all duration-300 ${
+          isOpen ? 'opacity-100 block' : 'opacity-0 lg:opacity-100 hidden lg:block'
+        }`}>
+          <div className="flex items-center justify-between">
+            {isOpen ? (
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-gray-800 text-truncate">
+                  {getRoleDisplayName(userRole)}
+                </h2>
+                <p className="text-xs text-gray-600 text-truncate">
+                  {userRole === "PPID"
+                    ? "PPID Utama"
+                    : userRole === "PPID_Pelaksana"
+                    ? "PPID Pelaksana"
+                    : userRole === "Atasan_PPID"
+                    ? "Atasan PPID"
+                    : "Administrator"}{" "}
+                  - Diskominfo Garut
+                </p>
+              </div>
+            ) : (
+              <div className="hidden lg:flex justify-center w-full">
+                <User className="w-6 h-6 text-gray-600" />
+              </div>
+            )}
+            
+            {/* Desktop Toggle Button - Integrated */}
+            <button
+              onClick={onToggle}
+              className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
+              title={isOpen ? 'Tutup Sidebar' : 'Buka Sidebar'}
             >
-              <Icon className="mr-3 w-5 h-5" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+              {isOpen ? <ChevronLeft className="w-4 h-4 text-gray-600" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="mt-2 flex-1 overflow-y-auto">
+          {visibleMenuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => {
+                  // Close sidebar on mobile after navigation
+                  if (window.innerWidth < 1024) {
+                    onToggle();
+                  }
+                }}
+                className={`flex items-center py-3 text-sm font-medium transition-colors group ${
+                  isActive
+                    ? "text-blue-800 bg-blue-50 border-r-2 border-blue-800"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                } ${
+                  isOpen ? 'px-4' : 'px-4 lg:justify-center'
+                }`}
+                title={!isOpen ? item.label : ''}
+              >
+                <Icon className={`w-5 h-5 flex-shrink-0 ${
+                  isOpen ? 'mr-3' : 'lg:mr-0'
+                }`} />
+                <span className={`text-truncate transition-all duration-300 ${
+                  isOpen ? 'opacity-100' : 'opacity-0 lg:opacity-0 w-0 lg:w-0'
+                }`}>
+                  {item.label}
+                </span>
+                
+                {/* Tooltip for collapsed state */}
+                {!isOpen && (
+                  <div className="hidden lg:block absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                    {item.label}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+
+      </div>
+    </>
   );
 };
 
