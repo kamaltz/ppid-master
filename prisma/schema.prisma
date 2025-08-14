@@ -129,3 +129,13 @@ model Page {
 
   @@map("pages")
 }
+
+model Setting {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique
+  value      String   @db.Text
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  @@map("settings")
+}
