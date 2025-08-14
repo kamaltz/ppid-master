@@ -1,16 +1,16 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { 
-  FileText, 
-  AlertTriangle, 
-  Info, 
-  Users, 
+import {
+  FileText,
+  AlertTriangle,
+  Info,
+  Users,
   BarChart3,
   ArrowRight,
   TrendingUp,
   Clock,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -29,7 +29,7 @@ export default function PPIDDashboardPage() {
       href: "/admin/permohonan",
       color: "bg-blue-500",
       stats: `${stats.total} Total`,
-      pending: `${stats.diajukan} Menunggu`
+      pending: `${stats.diajukan} Menunggu`,
     },
     {
       title: "Pengelolaan Keberatan",
@@ -38,35 +38,8 @@ export default function PPIDDashboardPage() {
       href: "/admin/keberatan",
       color: "bg-orange-500",
       stats: "0 Total",
-      pending: "0 Menunggu"
+      pending: "0 Menunggu",
     },
-    {
-      title: "Pengelolaan Informasi",
-      description: "Kelola informasi publik yang tersedia",
-      icon: Info,
-      href: "/admin/informasi",
-      color: "bg-green-500",
-      stats: "0 Total",
-      pending: "0 Draft"
-    },
-    {
-      title: "Kategori Informasi",
-      description: "Kelola kategori dan klasifikasi informasi",
-      icon: Users,
-      href: "/admin/kategori",
-      color: "bg-indigo-500",
-      stats: "3 Total",
-      pending: "0 Draft"
-    },
-    {
-      title: "Pengelolaan Akun",
-      description: "Kelola akun pengguna sistem",
-      icon: Users,
-      href: "/admin/akun",
-      color: "bg-purple-500",
-      stats: "0 Total",
-      pending: "0 Pending"
-    }
   ];
 
   const quickStats = [
@@ -74,20 +47,20 @@ export default function PPIDDashboardPage() {
       label: "Permohonan Hari Ini",
       value: stats.diajukan,
       icon: Clock,
-      color: "text-blue-600"
+      color: "text-blue-600",
     },
     {
       label: "Selesai Bulan Ini",
       value: stats.selesai,
       icon: CheckCircle,
-      color: "text-green-600"
+      color: "text-green-600",
     },
     {
       label: "Sedang Diproses",
       value: stats.diproses,
       icon: TrendingUp,
-      color: "text-orange-600"
-    }
+      color: "text-orange-600",
+    },
   ];
 
   return (
@@ -107,8 +80,12 @@ export default function PPIDDashboardPage() {
             <div key={index} className="bg-white p-6 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {stat.value}
+                  </p>
                 </div>
                 <stat.icon className={`h-8 w-8 ${stat.color}`} />
               </div>
@@ -126,17 +103,19 @@ export default function PPIDDashboardPage() {
                   </div>
                   <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
                 </div>
-                
+
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   {section.title}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">
                   {section.description}
                 </p>
-                
+
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">{section.stats}</span>
-                  <span className="text-orange-600 font-medium">{section.pending}</span>
+                  <span className="text-orange-600 font-medium">
+                    {section.pending}
+                  </span>
                 </div>
               </div>
             </Link>
@@ -153,7 +132,7 @@ export default function PPIDDashboardPage() {
               height={300}
             />
           </div>
-          
+
           <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-1 rounded-xl">
             <Chart
               type="line"
@@ -163,7 +142,7 @@ export default function PPIDDashboardPage() {
             />
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-1 rounded-xl">
             <Chart
@@ -173,7 +152,7 @@ export default function PPIDDashboardPage() {
               height={280}
             />
           </div>
-          
+
           <div className="bg-gradient-to-br from-orange-50 to-amber-100 p-1 rounded-xl">
             <Chart
               type="donut"
@@ -187,7 +166,9 @@ export default function PPIDDashboardPage() {
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-md text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-semibold mb-2">📊 Laporan & Analitik</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                📊 Laporan & Analitik
+              </h3>
               <p className="text-blue-100">
                 Buat laporan komprehensif untuk evaluasi kinerja PPID
               </p>
