@@ -26,7 +26,7 @@ export async function GET(
     }
 
     const accountId = params.id;
-    let numericId = parseInt(accountId);
+    const numericId = parseInt(accountId);
     
     if (isNaN(numericId)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });

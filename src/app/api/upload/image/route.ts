@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       if (!file || file.size === 0 || file.name === 'undefined') {
         return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 });
       }
-    } catch (error) {
+    } catch {
       return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 });
     }
 

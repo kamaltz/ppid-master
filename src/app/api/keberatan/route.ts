@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only pemohon can create keberatan' }, { status: 403 });
     }
 
-    const { permintaan_id, judul, alasan_keberatan, kasus_posisi } = await request.json();
+    const { permintaan_id, judul, alasan_keberatan } = await request.json();
 
     if (!alasan_keberatan) {
       return NextResponse.json({ error: 'Alasan keberatan wajib diisi' }, { status: 400 });
