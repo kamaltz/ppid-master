@@ -1,7 +1,27 @@
-import { Request, Response } from "express";
 import { pool } from "../lib/postgresClient";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  body: Record<string, unknown>;
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface User {
+  id: number;
+  email: string;
+  hashed_password: string;
+  role?: string;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -10,14 +30,14 @@ export const login = async (req: Request, res: Response) => {
   }
 
   try {
-    let user: any = null;
+    let user: User | null = null;
     let role: string = "";
     let userId: string | number = "";
 
     // Check admin
     const adminResult = await pool.query('SELECT * FROM admin WHERE email = $1', [email]);
     if (adminResult.rows.length > 0) {
-      user = adminResult.rows[0];
+      user = adminResult.rows[0] as User;
       role = "Admin";
       userId = user.id;
     }
@@ -26,7 +46,7 @@ export const login = async (req: Request, res: Response) => {
     if (!user) {
       const ppidResult = await pool.query('SELECT * FROM ppid WHERE email = $1', [email]);
       if (ppidResult.rows.length > 0) {
-        user = ppidResult.rows[0];
+        user = ppidResult.rows[0] as User;
         role = user.role || "PPID";
         userId = user.id;
       }
@@ -36,7 +56,7 @@ export const login = async (req: Request, res: Response) => {
     if (!user) {
       const pemohonResult = await pool.query('SELECT * FROM pemohon WHERE email = $1', [email]);
       if (pemohonResult.rows.length > 0) {
-        user = pemohonResult.rows[0];
+        user = pemohonResult.rows[0] as User;
         role = "Pemohon";
         userId = user.id;
       }
@@ -46,7 +66,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Pengguna tidak ditemukan." });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.hashed_password);
+    const isPasswordValid = await bcrypt.compare(password as string, user.hashed_password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Password salah." });
     }
@@ -58,7 +78,8 @@ export const login = async (req: Request, res: Response) => {
     );
 
     res.status(200).json({ message: "Login berhasil", token });
-  } catch (err: any) {
-    res.status(500).json({ error: "Terjadi kesalahan pada server: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Terjadi kesalahan pada server: " + error.message });
   }
 };

@@ -1,5 +1,19 @@
-import { Request, Response } from "express";
 import { supabase } from "../lib/supabaseClient";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  body: Record<string, unknown>;
+  params: Record<string, string>;
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 /**
  * Menambahkan tanggapan atas keberatan.
@@ -31,7 +45,8 @@ export const createTanggapan = async (req: Request, res: Response) => {
     res
       .status(200)
       .json({ message: "Tanggapan atas keberatan berhasil disimpan", data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: error.message });
   }
 };

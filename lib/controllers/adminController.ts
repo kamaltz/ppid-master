@@ -1,6 +1,30 @@
-import { Request, Response } from "express";
 import { supabase } from "../lib/supabaseClient";
 import bcrypt from "bcryptjs";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  query: Record<string, string | string[] | undefined>;
+  body: Record<string, unknown>;
+  params: Record<string, string>;
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface User {
+  id: string | number;
+  email: string;
+  nama: string;
+  role: string;
+  table: string;
+  created_at: string;
+}
+
+interface ErrorWithCode extends Error {
+  code?: string;
+}
 
 // GET - Ambil semua users (Admin only)
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -12,8 +36,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
   };
 
   try {
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    let allUsers: any[] = [];
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+    let allUsers: User[] = [];
 
     // Ambil dari tabel admin
     const { data: adminUsers } = await supabase
@@ -22,27 +48,41 @@ export const getAllUsers = async (req: Request, res: Response) => {
       .order('created_at', { ascending: false });
 
     if (adminUsers) {
-      allUsers.push(...adminUsers.map(user => ({ ...user, role: 'Admin', table: 'admin' })));
+      allUsers.push(...adminUsers.map(user => ({ ...user, role: 'Admin', table: 'admin' } as User)));
     }
 
     // Ambil dari tabel ppid
     const { data: ppidUsers } = await supabase
       .from("ppid")
-      .select("no_pegawai as id, email, nama, role, created_at")
+      .select("no_pegawai, email, nama, role, created_at")
       .order('created_at', { ascending: false });
 
     if (ppidUsers) {
-      allUsers.push(...ppidUsers.map(user => ({ ...user, table: 'ppid' })));
+      allUsers.push(...ppidUsers.map(user => ({
+        id: user.no_pegawai,
+        email: user.email,
+        nama: user.nama,
+        role: user.role,
+        table: 'ppid',
+        created_at: user.created_at
+      } as User)));
     }
 
     // Ambil dari tabel atasan_ppid
     const { data: atasanUsers } = await supabase
       .from("atasan_ppid")
-      .select("no_pengawas as id, email, nama, created_at")
+      .select("no_pengawas, email, nama, created_at")
       .order('created_at', { ascending: false });
 
     if (atasanUsers) {
-      allUsers.push(...atasanUsers.map(user => ({ ...user, role: 'Atasan_PPID', table: 'atasan_ppid' })));
+      allUsers.push(...atasanUsers.map(user => ({
+        id: user.no_pengawas,
+        email: user.email,
+        nama: user.nama,
+        role: 'Atasan_PPID',
+        table: 'atasan_ppid',
+        created_at: user.created_at
+      } as User)));
     }
 
     // Ambil dari tabel pemohon
@@ -52,7 +92,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
       .order('created_at', { ascending: false });
 
     if (pemohonUsers) {
-      allUsers.push(...pemohonUsers.map(user => ({ ...user, role: 'Pemohon', table: 'pemohon' })));
+      allUsers.push(...pemohonUsers.map(user => ({ ...user, role: 'Pemohon', table: 'pemohon' } as User)));
     }
 
     // Filter berdasarkan role jika ada
@@ -73,19 +113,20 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
     // Pagination
     const total = allUsers.length;
-    const paginatedUsers = allUsers.slice(offset, offset + parseInt(limit));
+    const paginatedUsers = allUsers.slice(offset, offset + limitNum);
 
     res.status(200).json({
       data: paginatedUsers,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total,
-        totalPages: Math.ceil(total / parseInt(limit))
+        totalPages: Math.ceil(total / limitNum)
       }
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil data users: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithCode;
+    res.status(500).json({ error: "Gagal mengambil data users: " + error.message });
   }
 };
 
@@ -100,7 +141,7 @@ export const createUser = async (req: Request, res: Response) => {
   }
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password as string, 10);
     let data, error;
 
     switch (role) {
@@ -170,11 +211,12 @@ export const createUser = async (req: Request, res: Response) => {
       message: "User berhasil dibuat", 
       data: { ...data, role } 
     });
-  } catch (err: any) {
-    if (err.code === '23505') {
+  } catch (err: unknown) {
+    const error = err as ErrorWithCode;
+    if (error.code === '23505') {
       res.status(400).json({ error: "Email atau ID sudah terdaftar." });
     } else {
-      res.status(500).json({ error: "Gagal membuat user: " + err.message });
+      res.status(500).json({ error: "Gagal membuat user: " + error.message });
     }
   }
 };
@@ -186,7 +228,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
   try {
     let data, error;
-    const updateData: any = { email, nama, updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = { email, nama, updated_at: new Date().toISOString() };
 
     if (no_telepon) updateData.no_telepon = no_telepon;
     if (alamat) updateData.alamat = alamat;
@@ -241,8 +283,9 @@ export const updateUser = async (req: Request, res: Response) => {
       message: "User berhasil diperbarui", 
       data 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal memperbarui user: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithCode;
+    res.status(500).json({ error: "Gagal memperbarui user: " + error.message });
   }
 };
 
@@ -252,7 +295,7 @@ export const resetUserPassword = async (req: Request, res: Response) => {
   const { table, newPassword = 'ppid321' } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword as string, 10);
     let data, error;
 
     switch (table) {
@@ -305,8 +348,9 @@ export const resetUserPassword = async (req: Request, res: Response) => {
       message: "Password berhasil direset", 
       newPassword 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal reset password: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithCode;
+    res.status(500).json({ error: "Gagal reset password: " + error.message });
   }
 };
 
@@ -340,8 +384,9 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(200).json({ 
       message: "User berhasil dihapus" 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal menghapus user: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithCode;
+    res.status(500).json({ error: "Gagal menghapus user: " + error.message });
   }
 };
 
@@ -379,7 +424,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     };
 
     res.status(200).json(stats);
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil statistik: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithCode;
+    res.status(500).json({ error: "Gagal mengambil statistik: " + error.message });
   }
 };

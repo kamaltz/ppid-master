@@ -1,5 +1,20 @@
-import { Request, Response } from "express";
 import { supabase } from "../lib/supabaseClient";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  query: Record<string, string | string[] | undefined>;
+  body: Record<string, unknown>;
+  params: Record<string, string>;
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 // GET - Ambil semua informasi publik
 export const getAllInformasi = async (req: Request, res: Response) => {
@@ -24,8 +39,10 @@ export const getAllInformasi = async (req: Request, res: Response) => {
       query = query.or(`judul.ilike.%${search}%,ringkasan_isi_informasi.ilike.%${search}%`);
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+    query = query.range(offset, offset + limitNum - 1);
 
     const { data, error, count } = await query;
     if (error) throw error;
@@ -33,14 +50,15 @@ export const getAllInformasi = async (req: Request, res: Response) => {
     res.status(200).json({
       data,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / parseInt(limit))
+        totalPages: Math.ceil((count || 0) / limitNum)
       }
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil data informasi: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil data informasi: " + error.message });
   }
 };
 
@@ -61,8 +79,9 @@ export const getInformasiById = async (req: Request, res: Response) => {
     }
 
     res.status(200).json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil informasi: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil informasi: " + error.message });
   }
 };
 
@@ -96,8 +115,9 @@ export const createInformasi = async (req: Request, res: Response) => {
       message: "Informasi berhasil ditambahkan", 
       data 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal menambahkan informasi: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal menambahkan informasi: " + error.message });
   }
 };
 
@@ -130,8 +150,9 @@ export const updateInformasi = async (req: Request, res: Response) => {
       message: "Informasi berhasil diperbarui", 
       data 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal memperbarui informasi: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal memperbarui informasi: " + error.message });
   }
 };
 
@@ -155,7 +176,8 @@ export const deleteInformasi = async (req: Request, res: Response) => {
     res.status(200).json({ 
       message: "Informasi berhasil dihapus" 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal menghapus informasi: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal menghapus informasi: " + error.message });
   }
 };

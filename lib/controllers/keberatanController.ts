@@ -1,5 +1,24 @@
-import { Request, Response } from "express";
 import { supabase } from "../lib/supabaseClient";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  query: Record<string, string | string[] | undefined>;
+  body: Record<string, unknown>;
+  params: Record<string, string>;
+  user?: {
+    userId: string | number;
+    role: string;
+  };
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 // GET - Ambil semua keberatan
 export const getAllKeberatan = async (req: Request, res: Response) => {
@@ -8,7 +27,7 @@ export const getAllKeberatan = async (req: Request, res: Response) => {
     page?: string; 
     limit?: string; 
   };
-  const { userId, role } = (req as any).user;
+  const { userId, role } = req.user || { userId: '', role: '' };
 
   try {
     let query = supabase
@@ -29,8 +48,10 @@ export const getAllKeberatan = async (req: Request, res: Response) => {
       query = query.eq('status', status);
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+    query = query.range(offset, offset + limitNum - 1);
 
     const { data, error, count } = await query;
     if (error) throw error;
@@ -38,21 +59,22 @@ export const getAllKeberatan = async (req: Request, res: Response) => {
     res.status(200).json({
       data,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / parseInt(limit))
+        totalPages: Math.ceil((count || 0) / limitNum)
       }
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil data keberatan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil data keberatan: " + error.message });
   }
 };
 
 // GET - Ambil keberatan berdasarkan ID
 export const getKeberatanById = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { userId, role } = (req as any).user;
+  const { userId, role } = req.user || { userId: '', role: '' };
 
   try {
     let query = supabase
@@ -76,8 +98,9 @@ export const getKeberatanById = async (req: Request, res: Response) => {
     }
 
     res.status(200).json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil keberatan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil keberatan: " + error.message });
   }
 };
 
@@ -88,7 +111,7 @@ export const createKeberatan = async (req: Request, res: Response) => {
     alasan_keberatan, 
     kasus_posisi 
   } = req.body;
-  const { userId } = (req as any).user;
+  const { userId } = req.user || { userId: '' };
 
   if (!permintaan_id || !alasan_keberatan) {
     return res.status(400).json({ 
@@ -139,8 +162,9 @@ export const createKeberatan = async (req: Request, res: Response) => {
       message: "Keberatan berhasil diajukan", 
       data 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengajukan keberatan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengajukan keberatan: " + error.message });
   }
 };
 
@@ -154,7 +178,7 @@ export const updateStatusKeberatan = async (req: Request, res: Response) => {
   }
 
   try {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status,
       updated_at: new Date().toISOString()
     };
@@ -186,15 +210,16 @@ export const updateStatusKeberatan = async (req: Request, res: Response) => {
       message: "Status keberatan berhasil diperbarui", 
       data 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal memperbarui status: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal memperbarui status: " + error.message });
   }
 };
 
 // DELETE - Hapus keberatan (Admin only atau Pemohon untuk keberatan miliknya yang masih 'Diajukan')
 export const deleteKeberatan = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { userId, role } = (req as any).user;
+  const { userId, role } = req.user || { userId: '', role: '' };
 
   try {
     let query = supabase.from("keberatan").select("*").eq("id", id);
@@ -219,8 +244,9 @@ export const deleteKeberatan = async (req: Request, res: Response) => {
     res.status(200).json({ 
       message: "Keberatan berhasil dihapus" 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal menghapus keberatan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal menghapus keberatan: " + error.message });
   }
 };
 
@@ -242,7 +268,8 @@ export const getKeberatanStats = async (req: Request, res: Response) => {
     };
 
     res.status(200).json(stats);
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil statistik: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil statistik: " + error.message });
   }
 };

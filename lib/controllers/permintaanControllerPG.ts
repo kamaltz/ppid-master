@@ -1,5 +1,22 @@
-import { Request, Response } from "express";
 import { pool } from "../lib/postgresClient";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  body: Record<string, unknown>;
+  user?: {
+    userId: string | number;
+    role: string;
+  };
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 export const createPermintaan = async (req: Request, res: Response) => {
   const { 
@@ -8,7 +25,7 @@ export const createPermintaan = async (req: Request, res: Response) => {
     cara_memperoleh_informasi, 
     cara_mendapat_salinan 
   } = req.body;
-  const { userId } = (req as any).user;
+  const { userId } = req.user || { userId: '' };
 
   if (!rincian_informasi || !tujuan_penggunaan) {
     return res.status(400).json({ 
@@ -24,7 +41,7 @@ export const createPermintaan = async (req: Request, res: Response) => {
     `;
     
     const values = [
-      parseInt(userId),
+      parseInt(String(userId), 10),
       rincian_informasi,
       tujuan_penggunaan,
       cara_memperoleh_informasi || 'Email',
@@ -38,9 +55,10 @@ export const createPermintaan = async (req: Request, res: Response) => {
       message: "Permintaan berhasil diajukan", 
       data: result.rows[0]
     });
-  } catch (err: any) {
-    console.error('PostgreSQL error:', err);
-    res.status(500).json({ error: "Gagal mengajukan permintaan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    console.error('PostgreSQL error:', error);
+    res.status(500).json({ error: "Gagal mengajukan permintaan: " + error.message });
   }
 };
 
@@ -57,8 +75,9 @@ export const getAllPermintaan = async (req: Request, res: Response) => {
       data: result.rows,
       count: result.rowCount
     });
-  } catch (err: any) {
-    console.error('PostgreSQL error:', err);
-    res.status(500).json({ error: "Gagal mengambil data permintaan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    console.error('PostgreSQL error:', error);
+    res.status(500).json({ error: "Gagal mengambil data permintaan: " + error.message });
   }
 };

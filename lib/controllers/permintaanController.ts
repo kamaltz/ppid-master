@@ -1,5 +1,24 @@
-import { Request, Response } from "express";
 import { supabase } from "../lib/supabaseClient";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  query: Record<string, string | string[] | undefined>;
+  body: Record<string, unknown>;
+  params: Record<string, string>;
+  user?: {
+    userId: string | number;
+    role: string;
+  };
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 // GET - Ambil semua permintaan (Admin/PPID dapat melihat semua, Pemohon hanya miliknya)
 export const getAllPermintaan = async (req: Request, res: Response) => {
@@ -8,7 +27,7 @@ export const getAllPermintaan = async (req: Request, res: Response) => {
     page?: string; 
     limit?: string; 
   };
-  const { userId, role } = (req as any).user;
+  const { userId, role } = req.user || { userId: '', role: '' };
 
   try {
     let query = supabase
@@ -27,8 +46,10 @@ export const getAllPermintaan = async (req: Request, res: Response) => {
       query = query.eq('status', status);
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+    query = query.range(offset, offset + limitNum - 1);
 
     const { data, error, count } = await query;
     if (error) throw error;
@@ -36,21 +57,22 @@ export const getAllPermintaan = async (req: Request, res: Response) => {
     res.status(200).json({
       data,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / parseInt(limit))
+        totalPages: Math.ceil((count || 0) / limitNum)
       }
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil data permintaan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil data permintaan: " + error.message });
   }
 };
 
 // GET - Ambil permintaan berdasarkan ID
 export const getPermintaanById = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { userId, role } = (req as any).user;
+  const { userId, role } = req.user || { userId: '', role: '' };
 
   try {
     let query = supabase
@@ -73,8 +95,9 @@ export const getPermintaanById = async (req: Request, res: Response) => {
     }
 
     res.status(200).json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil permintaan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil permintaan: " + error.message });
   }
 };
 
@@ -86,7 +109,7 @@ export const createPermintaan = async (req: Request, res: Response) => {
     cara_memperoleh_informasi, 
     cara_mendapat_salinan 
   } = req.body;
-  const { userId } = (req as any).user;
+  const { userId } = req.user || { userId: '' };
 
   console.log('Creating permintaan:', { userId, body: req.body });
 
@@ -101,7 +124,7 @@ export const createPermintaan = async (req: Request, res: Response) => {
     const { data, error } = await supabase
       .from('requests')
       .insert({
-        pemohon_id: parseInt(userId),
+        pemohon_id: parseInt(String(userId), 10),
         rincian_informasi,
         tujuan_penggunaan,
         cara_memperoleh_informasi: cara_memperoleh_informasi || 'Email',
@@ -121,9 +144,10 @@ export const createPermintaan = async (req: Request, res: Response) => {
       message: "Permintaan berhasil diajukan", 
       data 
     });
-  } catch (err: any) {
-    console.error('createPermintaan controller error:', err);
-    res.status(500).json({ error: "Gagal mengajukan permintaan: " + (err?.message || 'Unknown error') });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    console.error('createPermintaan controller error:', error);
+    res.status(500).json({ error: "Gagal mengajukan permintaan: " + (error?.message || 'Unknown error') });
   }
 };
 
@@ -137,7 +161,7 @@ export const updateStatusPermintaan = async (req: Request, res: Response) => {
   }
 
   try {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status,
       updated_at: new Date().toISOString()
     };
@@ -171,15 +195,16 @@ export const updateStatusPermintaan = async (req: Request, res: Response) => {
       message: "Status permintaan berhasil diperbarui", 
       data 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal memperbarui status: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal memperbarui status: " + error.message });
   }
 };
 
 // DELETE - Hapus permintaan (Admin only atau Pemohon untuk permintaan miliknya yang masih 'Diajukan')
 export const deletePermintaan = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { userId, role } = (req as any).user;
+  const { userId, role } = req.user || { userId: '', role: '' };
 
   try {
     let query = supabase.from("permintaan_informasi").select("*").eq("id", id);
@@ -204,8 +229,9 @@ export const deletePermintaan = async (req: Request, res: Response) => {
     res.status(200).json({ 
       message: "Permintaan berhasil dihapus" 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal menghapus permintaan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal menghapus permintaan: " + error.message });
   }
 };
 
@@ -227,7 +253,8 @@ export const getPermintaanStats = async (req: Request, res: Response) => {
     };
 
     res.status(200).json(stats);
-  } catch (err: any) {
-    res.status(500).json({ error: "Gagal mengambil statistik: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Gagal mengambil statistik: " + error.message });
   }
 };

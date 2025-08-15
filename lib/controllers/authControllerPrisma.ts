@@ -1,7 +1,20 @@
-import { Request, Response } from "express";
 import { prisma } from "../lib/prismaClient";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  body: Record<string, unknown>;
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 interface UserResult {
   id: number;
@@ -25,9 +38,9 @@ export const login = async (req: Request, res: Response) => {
   try {
     // Find user across all tables
     const [adminUser, ppidUser, pemohonUser] = await Promise.all([
-      prisma.admin.findUnique({ where: { email } }),
-      prisma.ppid.findUnique({ where: { email } }),
-      prisma.pemohon.findUnique({ where: { email } })
+      prisma.admin.findUnique({ where: { email: email as string } }),
+      prisma.ppid.findUnique({ where: { email: email as string } }),
+      prisma.pemohon.findUnique({ where: { email: email as string } })
     ]);
 
     let user: UserResult | null = null;
@@ -44,7 +57,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Pengguna tidak ditemukan." });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.hashed_password);
+    const isPasswordValid = await bcrypt.compare(password as string, user.hashed_password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Password salah." });
     }
@@ -70,8 +83,9 @@ export const login = async (req: Request, res: Response) => {
         role: user.role
       }
     });
-  } catch (err: any) {
-    console.error('Login error:', err);
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    console.error('Login error:', error);
     res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 };

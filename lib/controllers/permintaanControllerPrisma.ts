@@ -1,5 +1,22 @@
-import { Request, Response } from "express";
 import { prisma } from "../lib/prismaClient";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  body: Record<string, unknown>;
+  user?: {
+    userId: string | number;
+    role: string;
+  };
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 export const createPermintaan = async (req: Request, res: Response) => {
   const { 
@@ -8,7 +25,7 @@ export const createPermintaan = async (req: Request, res: Response) => {
     cara_memperoleh_informasi, 
     cara_mendapat_salinan 
   } = req.body;
-  const { userId } = (req as any).user;
+  const { userId } = req.user || { userId: '' };
 
   if (!rincian_informasi || !tujuan_penggunaan) {
     return res.status(400).json({ 
@@ -19,11 +36,11 @@ export const createPermintaan = async (req: Request, res: Response) => {
   try {
     const request = await prisma.request.create({
       data: {
-        pemohon_id: parseInt(userId),
-        rincian_informasi,
-        tujuan_penggunaan,
-        cara_memperoleh_informasi: cara_memperoleh_informasi || 'Email',
-        cara_mendapat_salinan: cara_mendapat_salinan || 'Email',
+        pemohon_id: parseInt(String(userId), 10),
+        rincian_informasi: rincian_informasi as string,
+        tujuan_penggunaan: tujuan_penggunaan as string,
+        cara_memperoleh_informasi: (cara_memperoleh_informasi as string) || 'Email',
+        cara_mendapat_salinan: (cara_mendapat_salinan as string) || 'Email',
         status: 'Diajukan'
       }
     });
@@ -32,9 +49,10 @@ export const createPermintaan = async (req: Request, res: Response) => {
       message: "Permintaan berhasil diajukan", 
       data: request
     });
-  } catch (err: any) {
-    console.error('Prisma error:', err);
-    res.status(500).json({ error: "Gagal mengajukan permintaan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    console.error('Prisma error:', error);
+    res.status(500).json({ error: "Gagal mengajukan permintaan: " + error.message });
   }
 };
 
@@ -48,8 +66,9 @@ export const getAllPermintaan = async (req: Request, res: Response) => {
       data: requests,
       count: requests.length
     });
-  } catch (err: any) {
-    console.error('Prisma error:', err);
-    res.status(500).json({ error: "Gagal mengambil data permintaan: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    console.error('Prisma error:', error);
+    res.status(500).json({ error: "Gagal mengambil data permintaan: " + error.message });
   }
 };

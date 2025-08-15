@@ -1,8 +1,31 @@
 // src/controllers/authController.ts
-import { Request, Response } from "express";
 import { supabase } from "../lib/supabaseClient";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
+// Define Request and Response types for Next.js API routes
+interface Request {
+  body: Record<string, unknown>;
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
+}
+
+interface User {
+  id?: number;
+  no_pegawai?: string;
+  no_pengawas?: string;
+  email: string;
+  hashed_password: string;
+  nama: string;
+  role?: string;
+}
+
+interface ErrorWithMessage extends Error {
+  message: string;
+}
 
 export const register = async (req: Request, res: Response) => {
   const { email, password, nama, no_telepon, alamat } = req.body;
@@ -13,7 +36,7 @@ export const register = async (req: Request, res: Response) => {
 
   try {
     // Cek apakah email sudah terdaftar
-    const { data: existingUser, error: checkError } = await supabase
+    const { data: existingUser } = await supabase
       .from("pemohon")
       .select("email")
       .eq("email", email)
@@ -24,7 +47,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password as string, 10);
 
     // Insert pemohon baru
     const { data, error } = await supabase
@@ -47,8 +70,9 @@ export const register = async (req: Request, res: Response) => {
       message: "Registrasi berhasil", 
       data: { id: data.id, email: data.email, nama: data.nama } 
     });
-  } catch (err: any) {
-    res.status(500).json({ error: "Terjadi kesalahan pada server: " + err.message });
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
+    res.status(500).json({ error: "Terjadi kesalahan pada server: " + error.message });
   }
 };
 
@@ -59,7 +83,7 @@ export const login = async (req: Request, res: Response) => {
   }
 
   try {
-    let user: any = null;
+    let user: User | null = null;
     let role: string = "";
     let userId: string | number = "";
 
@@ -124,7 +148,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const isPasswordValid = await bcrypt.compare(
-      password,
+      password as string,
       user.hashed_password
     );
     if (!isPasswordValid) {
@@ -138,9 +162,10 @@ export const login = async (req: Request, res: Response) => {
     );
 
     res.status(200).json({ message: "Login berhasil", token });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as ErrorWithMessage;
     res
       .status(500)
-      .json({ error: "Terjadi kesalahan pada server: " + err.message });
+      .json({ error: "Terjadi kesalahan pada server: " + error.message });
   }
 };
