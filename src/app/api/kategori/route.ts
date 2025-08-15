@@ -6,6 +6,18 @@ interface JWTPayload {
   id: string;
 }
 
+interface Category {
+  id: number;
+  nama: string;
+  slug: string;
+  deskripsi: string;
+  created_at: string;
+}
+
+declare global {
+  var categories: Category[];
+}
+
 // Global in-memory storage for categories (shared across requests)
 global.categories = global.categories || [
   { id: 1, nama: "Informasi Berkala", slug: "informasi-berkala", deskripsi: "Informasi yang wajib disediakan secara berkala", created_at: "2024-01-01" },
@@ -40,7 +52,7 @@ export async function POST(request: NextRequest) {
     const { nama, slug, deskripsi } = await request.json();
 
     // Check for duplicate names
-    const existingCategory = global.categories.find(cat => cat.nama === nama);
+    const existingCategory = global.categories?.find(cat => cat.nama === nama);
     if (existingCategory) {
       return NextResponse.json({ success: false, error: 'Nama kategori sudah digunakan' }, { status: 400 });
     }
@@ -54,7 +66,7 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString()
     };
     
-    global.categories.push(newKategori);
+    global.categories?.push(newKategori);
     return NextResponse.json({ success: true, data: newKategori }, { status: 201 });
   } catch (error: unknown) {
     console.error('POST /api/kategori error:', error);

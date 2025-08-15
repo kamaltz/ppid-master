@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/lib/supabaseClient';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Supabase is configured
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Supabase not configured' 
+      }, { status: 503 });
+    }
+    
+    const { supabase } = await import('../../../../lib/lib/supabaseClient');
     const body = await request.json();
     
     const insertData = {

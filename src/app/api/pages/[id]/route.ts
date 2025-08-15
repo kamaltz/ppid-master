@@ -9,10 +9,11 @@ interface JWTPayload {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const pageId = parseInt(params.id);
+    const { id } = await params;
+    const pageId = parseInt(id);
     
     const page = await prisma.page.findUnique({
       where: { id: pageId }
@@ -40,7 +41,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -62,7 +63,7 @@ export async function PUT(
     }
 
     const { title, slug, content, status } = await request.json();
-    const pageId = params.id;
+    const pageId = (await params).id;
 
     if (!title) {
       return NextResponse.json({
@@ -127,7 +128,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -148,7 +149,7 @@ export async function DELETE(
       }, { status: 403 });
     }
 
-    const pageId = params.id;
+    const pageId = (await params).id;
 
     await prisma.page.delete({
       where: {

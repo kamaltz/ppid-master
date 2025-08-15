@@ -101,12 +101,12 @@ const Footer = () => {
               {description}
             </p>
             
-            {(footer?.showSocialMedia !== false) && footer?.socialMedia && (
+            {(footer?.showSocialMedia !== false) && footer?.socialMedia ? (
               <div className="mt-4">
                 <div className="flex space-x-3">
                   {(() => {
                     const socialMedia = footer.socialMedia as Record<string, unknown>;
-                    const socialLinks = [];
+                    const socialLinks: React.ReactNode[] = [];
                     
                     if (socialMedia?.facebook) {
                       socialLinks.push(
@@ -144,7 +144,7 @@ const Footer = () => {
                   })()}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 

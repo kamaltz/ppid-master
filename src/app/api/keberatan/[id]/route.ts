@@ -7,7 +7,7 @@ interface JWTPayload {
   userId: number;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -16,7 +16,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     const keberatan = await prisma.keberatan.findUnique({
       where: { id },
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -66,7 +67,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     const { status } = await request.json();
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     // Role-based access control
     if (decoded.role === 'PPID_PELAKSANA') {
@@ -93,7 +95,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -103,7 +105,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const token = authHeader.split(' ')[1];
     jwt.verify(token, process.env.JWT_SECRET!);
 
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     await prisma.keberatan.delete({
       where: { id }

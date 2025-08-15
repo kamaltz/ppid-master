@@ -10,7 +10,7 @@ interface JWTPayload {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -25,7 +25,7 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const accountId = params.id;
+    const { id: accountId } = await params;
     const numericId = parseInt(accountId);
     
     if (isNaN(numericId)) {
@@ -70,7 +70,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -86,7 +86,8 @@ export async function PUT(
     }
 
     const { nama, email } = await request.json();
-    const numericId = parseInt(params.id);
+    const { id } = await params;
+    const numericId = parseInt(id);
 
     if (isNaN(numericId)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
@@ -133,7 +134,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -148,7 +149,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const numericId = parseInt(params.id);
+    const { id } = await params;
+    const numericId = parseInt(id);
 
     if (isNaN(numericId)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });

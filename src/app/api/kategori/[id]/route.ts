@@ -6,9 +6,22 @@ interface JWTPayload {
   id: string;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+interface Category {
+  id: number;
+  nama: string;
+  slug: string;
+  deskripsi: string;
+  created_at: string;
+}
+
+declare global {
+  var categories: Category[];
+}
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
     const category = global.categories?.find(c => c.id === id);
     
     if (!category) {
@@ -22,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -35,7 +48,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const { nama, slug, deskripsi } = await request.json();
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     if (!global.categories) {
       global.categories = [];
@@ -65,7 +79,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -77,7 +91,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     if (!global.categories) {
       global.categories = [];

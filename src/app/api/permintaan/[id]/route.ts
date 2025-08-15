@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     jwt.verify(token, process.env.JWT_SECRET!);
 
     const requestData = await prisma.request.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt((await params).id) },
       include: {
         pemohon: {
           select: { id: true, nama: true, email: true, nik: true, no_telepon: true, alamat: true }
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -45,7 +45,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { status, catatan_ppid } = await request.json();
 
     const updatedRequest = await prisma.request.update({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt((await params).id) },
       data: {
         status,
         catatan_ppid,
@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -76,7 +76,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     jwt.verify(token, process.env.JWT_SECRET!);
 
     await prisma.request.delete({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt((await params).id) }
     });
 
     return NextResponse.json({ message: 'Request deleted successfully' });
