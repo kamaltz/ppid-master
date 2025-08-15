@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" data-scroll-behavior="smooth" className="scroll-smooth">
+    <html lang="id" data-scroll-behavior="smooth" className="scroll-smooth" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
           <DynamicLayout />
