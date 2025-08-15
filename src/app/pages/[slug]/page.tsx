@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 async function getPage(slug: string) {
@@ -34,7 +34,8 @@ async function getPage(slug: string) {
 }
 
 export default async function PublicPage({ params }: PageProps) {
-  const page = await getPage(params.slug);
+  const { slug } = await params;
+  const page = await getPage(slug);
 
   if (!page) {
     notFound();

@@ -12,17 +12,26 @@ interface PageData {
   updated_at: string;
 }
 
-export default function DynamicPage({ params }: { params: { slug: string } }) {
+export default function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
   const [page, setPage] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [slug, setSlug] = useState<string>('');
+
+  useEffect(() => {
+    params.then((resolvedParams) => {
+      setSlug(resolvedParams.slug);
+    });
+  }, [params]);
 
   const fetchPage = useCallback(async () => {
+    if (!slug) return;
+    
     try {
       const response = await fetch('/api/pages');
       const result = await response.json();
       
       if (result.success) {
-        const foundPage = result.data.find((p: PageData) => p.slug === params.slug);
+        const foundPage = result.data.find((p: PageData) => p.slug === slug);
         if (foundPage) {
           setPage(foundPage);
         } else {
@@ -37,11 +46,11 @@ export default function DynamicPage({ params }: { params: { slug: string } }) {
     } finally {
       setLoading(false);
     }
-  }, [params.slug]);
+  }, [slug]);
 
   useEffect(() => {
     fetchPage();
-  }, [params.slug, fetchPage]);
+  }, [slug, fetchPage]);
 
   if (loading) {
     return (
