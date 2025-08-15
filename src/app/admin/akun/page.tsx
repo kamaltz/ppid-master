@@ -57,23 +57,40 @@ export default function AdminAkunPage() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editId) {
-      setAccounts(prev => prev.map(item => 
-        item.id === editId ? { ...item, ...formData } : item
-      ));
-      alert('Akun berhasil diperbarui!');
-    } else {
-      const newAccount: Account = {
-        id: Date.now().toString(),
-        ...formData,
-        status: 'Aktif',
-        tanggal_dibuat: new Date().toISOString().split('T')[0]
-      };
-      setAccounts(prev => [...prev, newAccount]);
-      alert(`Akun berhasil dibuat dengan password default: ppid321`);
+    if (!token) {
+      alert('Token tidak ditemukan');
+      return;
+    }
+
+    try {
+      if (editId) {
+        // TODO: Implement edit functionality
+        alert('Fitur edit belum tersedia');
+      } else {
+        const response = await fetch('/api/accounts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          alert(`Akun berhasil dibuat dengan password default: ppid321`);
+          fetchAccounts(); // Refresh the accounts list
+        } else {
+          alert(data.error || 'Gagal membuat akun');
+        }
+      }
+    } catch (error) {
+      console.error('Error creating account:', error);
+      alert('Terjadi kesalahan saat membuat akun');
     }
     
     setShowForm(false);
@@ -91,11 +108,36 @@ export default function AdminAkunPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const account = accounts.find(a => a.id === id);
-    if (confirm(`Yakin ingin menghapus akun "${account?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      setAccounts(prev => prev.filter(item => item.id !== id));
-      alert('Akun berhasil dihapus');
+    if (!confirm(`Yakin ingin menghapus akun "${account?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      return;
+    }
+
+    if (!token) {
+      alert('Token tidak ditemukan');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/accounts/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Akun berhasil dihapus');
+        fetchAccounts(); // Refresh the accounts list
+      } else {
+        alert(data.error || 'Gagal menghapus akun');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Terjadi kesalahan saat menghapus akun');
     }
   };
 

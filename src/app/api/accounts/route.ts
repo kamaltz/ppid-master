@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 interface JWTPayload {
   role: string;
@@ -87,6 +88,84 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: accounts });
   } catch (error) {
     console.error('Get accounts error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+
+    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { nama, email, role } = await request.json();
+
+    if (!nama || !email || !role) {
+      return NextResponse.json({ error: 'Nama, email, dan role wajib diisi' }, { status: 400 });
+    }
+
+    // Check if email already exists
+    const [existingAdmin, existingPemohon, existingPpid] = await Promise.all([
+      prisma.admin.findUnique({ where: { email } }),
+      prisma.pemohon.findUnique({ where: { email } }),
+      prisma.ppid.findUnique({ where: { email } })
+    ]);
+
+    if (existingAdmin || existingPemohon || existingPpid) {
+      return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 400 });
+    }
+
+    const hashedPassword = await bcrypt.hash('ppid321', 10);
+
+    let newAccount;
+    if (role === 'Admin') {
+      newAccount = await prisma.admin.create({
+        data: {
+          nama,
+          email,
+          hashed_password: hashedPassword
+        }
+      });
+    } else if (role === 'Pemohon') {
+      newAccount = await prisma.pemohon.create({
+        data: {
+          nama,
+          email,
+          hashed_password: hashedPassword
+        }
+      });
+    } else {
+      newAccount = await prisma.ppid.create({
+        data: {
+          nama,
+          email,
+          hashed_password: hashedPassword,
+          role,
+          no_pegawai: `PEG${Date.now()}`
+        }
+      });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Akun berhasil dibuat',
+      data: {
+        id: newAccount.id,
+        nama: newAccount.nama,
+        email: newAccount.email,
+        role
+      }
+    });
+  } catch (error) {
+    console.error('Create account error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
