@@ -1,6 +1,5 @@
 import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 const baseURL = 'http://localhost:3000';

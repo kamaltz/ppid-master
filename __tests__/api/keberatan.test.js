@@ -23,7 +23,7 @@ beforeAll(async () => {
       await prisma.pemohon.deleteMany({ where: { email: 'test-keberatan-pemohon@test.com' } });
     }
     await prisma.admin.deleteMany({ where: { email: 'test-keberatan-admin@test.com' } });
-  } catch (error) {
+  } catch {
     // Ignore cleanup errors
   }
   

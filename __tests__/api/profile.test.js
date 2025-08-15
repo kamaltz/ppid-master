@@ -8,7 +8,6 @@ const baseURL = 'http://localhost:3000';
 
 let adminToken;
 let pemohonToken;
-let testPemohonId;
 
 beforeAll(async () => {
   const hashedPassword = await bcrypt.hash('testpass', 10);
@@ -37,7 +36,6 @@ beforeAll(async () => {
     }
   });
   
-  testPemohonId = pemohon.id;
   pemohonToken = jwt.sign(
     { userId: pemohon.id, role: 'Pemohon', userType: 'pemohon' },
     process.env.JWT_SECRET
