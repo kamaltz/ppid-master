@@ -10,8 +10,8 @@ import SuccessModal from "@/components/SuccessModal";
 
 export default function AjukanPermohonanPage() {
   const [formData, setFormData] = useState({
-    informasi_diminta: "",
-    tujuan: "",
+    rincian_informasi: "",
+    tujuan_penggunaan: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,13 +62,13 @@ export default function AjukanPermohonanPage() {
 
         <div>
           <label
-            htmlFor="informasi_diminta"
+            htmlFor="rincian_informasi"
             className="block text-sm font-medium text-gray-700"
           >
             Rincian Informasi yang Diminta
           </label>
           <textarea
-            name="informasi_diminta"
+            name="rincian_informasi"
             rows={4}
             onChange={handleChange}
             required
@@ -78,13 +78,13 @@ export default function AjukanPermohonanPage() {
         </div>
         <div>
           <label
-            htmlFor="tujuan"
+            htmlFor="tujuan_penggunaan"
             className="block text-sm font-medium text-gray-700"
           >
             Tujuan Penggunaan Informasi
           </label>
           <textarea
-            name="tujuan"
+            name="tujuan_penggunaan"
             rows={2}
             onChange={handleChange}
             required

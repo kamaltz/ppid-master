@@ -1,15 +1,5 @@
-import { Router } from "express";
-import { createPpidPelaksana } from "../controllers/adminController";
-import { verifyToken, authorizeRole } from "../middleware/authMiddleware";
+// This file is deprecated - Express routes are not used in Next.js
+// Admin functionality is handled through Next.js API routes in src/app/api/
+// See src/app/api/accounts/ for user management endpoints
 
-const router = Router();
-
-// Endpoint ini hanya bisa diakses oleh user dengan role 'Admin'
-router.post(
-  "/create-ppid-pelaksana",
-  verifyToken,
-  authorizeRole(["Admin"]),
-  createPpidPelaksana
-);
-
-export default router;
+export {};

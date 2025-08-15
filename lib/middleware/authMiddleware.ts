@@ -1,54 +1,24 @@
-import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string | number;
-    email: string;
-    role: string;
-  };
+interface JwtPayload {
+  userId: string | number;
+  email: string;
+  role: string;
 }
 
-// Middleware untuk Express (untuk referensi)
-export const verifyToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+interface User {
+  userId: string | number;
+  email: string;
+  role: string;
+}
 
-    if (!token) {
-      return res.status(401).json({ error: "Token akses diperlukan" });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
-    req.user = {
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role
-    };
-
-    next();
-  } catch (error) {
-    return res.status(403).json({ error: "Token tidak valid" });
-  }
-};
-
-export const authorizeRole = (allowedRoles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({ error: "User tidak terautentikasi" });
-    }
-
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Akses ditolak. Role tidak memiliki izin." });
-    }
-
-    next();
-  };
-};
+interface AuthenticatedRequest extends NextRequest {
+  user?: User;
+}
 
 // Helper untuk Next.js API Routes
-export const getAuthUser = (request: NextRequest) => {
+export const getAuthUser = (request: NextRequest): User | null => {
   try {
     const authHeader = request.headers.get('authorization');
     const token = authHeader && authHeader.split(' ')[1];
@@ -57,19 +27,21 @@ export const getAuthUser = (request: NextRequest) => {
       return null;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
     return {
       userId: decoded.userId,
       email: decoded.email,
       role: decoded.role
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 };
 
-export const requireAuth = (handler: Function) => {
-  return async (request: NextRequest, context?: any) => {
+type HandlerFunction = (request: AuthenticatedRequest, context?: unknown) => Promise<NextResponse> | NextResponse;
+
+export const requireAuth = (handler: HandlerFunction) => {
+  return async (request: NextRequest, context?: unknown) => {
     const user = getAuthUser(request);
     
     if (!user) {
@@ -80,15 +52,16 @@ export const requireAuth = (handler: Function) => {
     }
 
     // Add user to request object
-    (request as any).user = user;
+    const authenticatedRequest = request as AuthenticatedRequest;
+    authenticatedRequest.user = user;
     
-    return handler(request, context);
+    return handler(authenticatedRequest, context);
   };
 };
 
 export const requireRole = (allowedRoles: string[]) => {
-  return (handler: Function) => {
-    return async (request: NextRequest, context?: any) => {
+  return (handler: HandlerFunction) => {
+    return async (request: NextRequest, context?: unknown) => {
       const user = getAuthUser(request);
       
       if (!user) {
@@ -106,9 +79,10 @@ export const requireRole = (allowedRoles: string[]) => {
       }
 
       // Add user to request object
-      (request as any).user = user;
+      const authenticatedRequest = request as AuthenticatedRequest;
+      authenticatedRequest.user = user;
       
-      return handler(request, context);
+      return handler(authenticatedRequest, context);
     };
   };
 };

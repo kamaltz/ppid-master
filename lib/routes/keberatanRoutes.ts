@@ -1,12 +1,5 @@
-import { Router } from "express";
-import { createKeberatan } from "../controllers/keberatanController";
+// This file is deprecated - Express routes are not used in Next.js
+// Keberatan (objection) functionality is handled through Next.js API routes in src/app/api/keberatan/
+// See src/app/api/keberatan/ for objection management endpoints
 
-const router = Router();
-
-// Rute ini bersifat publik, karena pemohon mengajukan keberatan tanpa perlu login
-router.post("/", createKeberatan);
-
-// Di masa depan, Anda bisa menambahkan rute GET di sini untuk admin
-// Contoh: router.get('/', verifyToken, authorizeRole(['Atasan_PPID']), getAllKeberatan);
-
-export default router;
+export {};

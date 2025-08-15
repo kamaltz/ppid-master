@@ -31,6 +31,10 @@ interface MenuItem {
   dropdownItems?: DropdownItem[];
 }
 
+interface HeaderWithMenu {
+  menuItems?: MenuItem[];
+}
+
 const Header = () => {
   const { token, logout } = useAuth();
   const router = useRouter();
@@ -79,7 +83,7 @@ const Header = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-6">
-          {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
+          {(settings?.header as HeaderWithMenu)?.menuItems?.map((item: MenuItem, index: number) => (
             <div key={index} className="relative group">
               {item.hasDropdown ? (
                 <>
@@ -208,7 +212,7 @@ const Header = () => {
 
             {/* Mobile Navigation */}
             <nav className="space-y-2">
-              {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
+              {(settings?.header as HeaderWithMenu)?.menuItems?.map((item: MenuItem, index: number) => (
                 <div key={index}>
                   {item.hasDropdown ? (
                     <div className="space-y-1">

@@ -74,8 +74,10 @@ export async function seedSettings() {
     
     for (const [key, value] of Object.entries(defaultSettings)) {
       await prisma.setting.create({
-        key,
-        value: JSON.stringify(value)
+        data: {
+          key,
+          value: JSON.stringify(value)
+        }
       });
       console.log(`✅ Seeded setting: ${key}`);
     }

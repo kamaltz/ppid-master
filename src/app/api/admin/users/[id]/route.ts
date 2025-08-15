@@ -3,13 +3,15 @@ import { updateUser, deleteUser, resetUserPassword } from '../../../../../../lib
 
 interface MockRequest {
   params: { id: string };
-  body: unknown;
+  body: Record<string, unknown>;
   headers: Record<string, string>;
+  query: Record<string, string | string[] | undefined>;
 }
 
 interface MockResponse {
   status: (code: number) => {
     json: (data: unknown) => void;
+    status: (code: number) => MockResponse;
   };
   json: (data: unknown) => void;
 }
@@ -25,8 +27,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     const req: MockRequest = {
       params,
-      body,
+      body: body as Record<string, unknown>,
       headers: Object.fromEntries(request.headers.entries()),
+      query: {}
     };
     
     const res: MockResponse = {
@@ -35,6 +38,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         return {
           json: (data: unknown) => {
             responseData = data;
+          },
+          status: (code: number) => {
+            statusCode = code;
+            return res;
           }
         };
       },
@@ -67,8 +74,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     
     const req: MockRequest = {
       params,
-      body,
+      body: body as Record<string, unknown>,
       headers: Object.fromEntries(request.headers.entries()),
+      query: {}
     };
     
     const res: MockResponse = {
@@ -77,6 +85,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         return {
           json: (data: unknown) => {
             responseData = data;
+          },
+          status: (code: number) => {
+            statusCode = code;
+            return res;
           }
         };
       },

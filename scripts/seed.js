@@ -1,6 +1,8 @@
-require('dotenv').config({ path: '.env.local' });
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+dotenv.config({ path: '.env.local' });
 
 const prisma = new PrismaClient();
 
@@ -12,7 +14,7 @@ async function main() {
 
   try {
     // Create Admin
-    const admin = await prisma.admin.upsert({
+    await prisma.admin.upsert({
       where: { email: 'admin@garut.go.id' },
       update: {},
       create: {
@@ -23,7 +25,7 @@ async function main() {
     });
 
     // Create PPID Utama
-    const ppidUtama = await prisma.ppid.upsert({
+    await prisma.ppid.upsert({
       where: { no_pegawai: 'PPID001' },
       update: {
         email: 'ppid.utama@garut.go.id',
@@ -40,7 +42,7 @@ async function main() {
     });
 
     // Create PPID Pelaksana
-    const ppidPelaksana = await prisma.ppid.upsert({
+    await prisma.ppid.upsert({
       where: { no_pegawai: 'PPID002' },
       update: {
         email: 'ppid.pelaksana@garut.go.id',
@@ -57,7 +59,7 @@ async function main() {
     });
 
     // Create Atasan PPID
-    const atasanPpid = await prisma.ppid.upsert({
+    await prisma.ppid.upsert({
       where: { no_pegawai: 'PPID003' },
       update: {
         email: 'atasan.ppid@garut.go.id',
@@ -74,7 +76,7 @@ async function main() {
     });
 
     // Create Pemohon
-    const pemohon = await prisma.pemohon.upsert({
+    await prisma.pemohon.upsert({
       where: { email: 'pemohon@example.com' },
       update: {},
       create: {

@@ -7,6 +7,7 @@ export const ROLES = {
 } as const;
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
+export type AdminRole = typeof ROLES.ADMIN | typeof ROLES.PPID | typeof ROLES.PPID_PELAKSANA | typeof ROLES.ATASAN_PPID;
 
 export const isAdmin = (role: string | null): boolean => {
   return role === ROLES.ADMIN;
@@ -25,7 +26,8 @@ export const isPemohon = (role: string | null): boolean => {
 };
 
 export const isAdminRole = (role: string | null): boolean => {
-  return [ROLES.ADMIN, ROLES.PPID, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID].includes(role as UserRole);
+  const adminRoles: AdminRole[] = [ROLES.ADMIN, ROLES.PPID, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID];
+  return adminRoles.includes(role as AdminRole);
 };
 
 export const canAccessMenu = (role: string | null, menuRoles: string[]): boolean => {

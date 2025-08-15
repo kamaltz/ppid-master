@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { NextRequest } from 'next/server';
 
 // Interface untuk payload JWT yang akan disimpan di request
 export interface JwtPayload {
@@ -7,7 +7,7 @@ export interface JwtPayload {
   role: string;
 }
 
-// Memperluas tipe Request dari Express untuk menyertakan properti 'user'
-export interface AuthenticatedRequest extends Request {
+// Memperluas tipe NextRequest untuk menyertakan properti 'user'
+export interface AuthenticatedRequest extends NextRequest {
   user?: JwtPayload;
 }

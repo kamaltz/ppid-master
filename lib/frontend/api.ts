@@ -1,11 +1,4 @@
-import axios from "axios";
 
-const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
 
 export const loginUser = async (email: string, password: string) => {
   try {
@@ -79,7 +72,11 @@ export const getAdminData = async (endpoint: string, token: string) => {
   return await response.json();
 };
 
-export const createRequest = async (requestData: any, token: string) => {
+interface RequestData {
+  [key: string]: unknown;
+}
+
+export const createRequest = async (requestData: RequestData, token: string) => {
   if (!token) {
     throw new Error("No auth token provided");
   }
@@ -128,7 +125,11 @@ export const getPermintaan = async (token: string, params?: { page?: number; lim
   return await response.json();
 };
 
-export const updatePermintaanStatus = async (id: string, statusData: any, token: string) => {
+interface StatusData {
+  [key: string]: unknown;
+}
+
+export const updatePermintaanStatus = async (id: string, statusData: StatusData, token: string) => {
   if (!token) {
     throw new Error("No auth token provided");
   }

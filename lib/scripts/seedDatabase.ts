@@ -7,7 +7,7 @@ async function seedDatabase() {
 
     // 1. Seed Admin
     const adminPassword = await bcrypt.hash('admin123', 10);
-    const { data: admin } = await supabase
+    await supabase
       .from('admin')
       .insert([{
         email: 'admin@ppid-garut.go.id',
@@ -20,7 +20,7 @@ async function seedDatabase() {
 
     // 2. Seed PPID
     const ppidPassword = await bcrypt.hash('ppid123', 10);
-    const { data: ppid } = await supabase
+    await supabase
       .from('ppid')
       .insert([
         {
@@ -43,7 +43,7 @@ async function seedDatabase() {
 
     // 3. Seed Atasan PPID
     const atasanPassword = await bcrypt.hash('atasan123', 10);
-    const { data: atasan } = await supabase
+    await supabase
       .from('atasan_ppid')
       .insert([{
         no_pengawas: 'ATN001',
@@ -79,7 +79,7 @@ async function seedDatabase() {
     console.log('✅ Pemohon users created');
 
     // 5. Seed Informasi Publik
-    const { data: informasi } = await supabase
+    await supabase
       .from('informasi_publik')
       .insert([
         {
@@ -105,61 +105,65 @@ async function seedDatabase() {
     console.log('✅ Informasi publik created');
 
     // 6. Seed Permintaan Informasi
-    const { data: permintaan } = await supabase
-      .from('permintaan_informasi')
-      .insert([
-        {
-          pemohon_id: pemohon[0].id,
-          rincian_informasi: 'Data anggaran daerah Kabupaten Garut tahun 2024',
-          tujuan_penggunaan: 'Untuk penelitian akademik tentang transparansi anggaran daerah',
-          cara_memperoleh_informasi: 'Mendapat Salinan',
-          cara_mendapat_salinan: 'Email',
-          status: 'Diajukan',
-          tanggal_permintaan: new Date().toISOString()
-        },
-        {
-          pemohon_id: pemohon[1].id,
-          rincian_informasi: 'Laporan kinerja SKPD tahun 2023',
-          tujuan_penggunaan: 'Untuk monitoring dan evaluasi program pemerintah',
-          cara_memperoleh_informasi: 'Melihat/Membaca',
-          cara_mendapat_salinan: 'Mengambil Langsung',
-          status: 'Diproses',
-          tanggal_permintaan: new Date(Date.now() - 86400000).toISOString(),
-          tanggal_diproses: new Date().toISOString(),
-          catatan_ppid: 'Sedang diproses oleh tim PPID',
-          estimasi_waktu: '7 hari kerja'
-        },
-        {
-          pemohon_id: pemohon[0].id,
-          rincian_informasi: 'Data statistik penduduk Garut 2024',
-          tujuan_penggunaan: 'Untuk penyusunan proposal usaha',
-          cara_memperoleh_informasi: 'Mendapat Salinan',
-          cara_mendapat_salinan: 'Email',
-          status: 'Selesai',
-          tanggal_permintaan: new Date(Date.now() - 172800000).toISOString(),
-          tanggal_diproses: new Date(Date.now() - 86400000).toISOString(),
-          tanggal_selesai: new Date().toISOString(),
-          catatan_ppid: 'Informasi telah dikirim via email'
-        }
-      ])
-      .select();
-    console.log('✅ Permintaan informasi created');
+    if (pemohon && pemohon.length >= 2) {
+      const { data: permintaan } = await supabase
+        .from('permintaan_informasi')
+        .insert([
+          {
+            pemohon_id: pemohon[0].id,
+            rincian_informasi: 'Data anggaran daerah Kabupaten Garut tahun 2024',
+            tujuan_penggunaan: 'Untuk penelitian akademik tentang transparansi anggaran daerah',
+            cara_memperoleh_informasi: 'Mendapat Salinan',
+            cara_mendapat_salinan: 'Email',
+            status: 'Diajukan',
+            tanggal_permintaan: new Date().toISOString()
+          },
+          {
+            pemohon_id: pemohon[1].id,
+            rincian_informasi: 'Laporan kinerja SKPD tahun 2023',
+            tujuan_penggunaan: 'Untuk monitoring dan evaluasi program pemerintah',
+            cara_memperoleh_informasi: 'Melihat/Membaca',
+            cara_mendapat_salinan: 'Mengambil Langsung',
+            status: 'Diproses',
+            tanggal_permintaan: new Date(Date.now() - 86400000).toISOString(),
+            tanggal_diproses: new Date().toISOString(),
+            catatan_ppid: 'Sedang diproses oleh tim PPID',
+            estimasi_waktu: '7 hari kerja'
+          },
+          {
+            pemohon_id: pemohon[0].id,
+            rincian_informasi: 'Data statistik penduduk Garut 2024',
+            tujuan_penggunaan: 'Untuk penyusunan proposal usaha',
+            cara_memperoleh_informasi: 'Mendapat Salinan',
+            cara_mendapat_salinan: 'Email',
+            status: 'Selesai',
+            tanggal_permintaan: new Date(Date.now() - 172800000).toISOString(),
+            tanggal_diproses: new Date(Date.now() - 86400000).toISOString(),
+            tanggal_selesai: new Date().toISOString(),
+            catatan_ppid: 'Informasi telah dikirim via email'
+          }
+        ])
+        .select();
+      console.log('✅ Permintaan informasi created');
 
-    // 7. Seed Keberatan
-    const { data: keberatan } = await supabase
-      .from('keberatan')
-      .insert([
-        {
-          pemohon_id: pemohon[1].id,
-          permintaan_id: permintaan[0].id,
-          alasan_keberatan: 'Permintaan informasi tidak ditanggapi dalam batas waktu yang ditentukan',
-          kasus_posisi: 'Telah mengajukan permohonan informasi sejak 2 minggu lalu namun belum ada tanggapan dari PPID',
-          status: 'Diajukan',
-          tanggal_keberatan: new Date().toISOString()
-        }
-      ])
-      .select();
-    console.log('✅ Keberatan created');
+      // 7. Seed Keberatan
+      if (permintaan && permintaan.length > 0) {
+        await supabase
+          .from('keberatan')
+          .insert([
+            {
+              pemohon_id: pemohon[1].id,
+              permintaan_id: permintaan[0].id,
+              alasan_keberatan: 'Permintaan informasi tidak ditanggapi dalam batas waktu yang ditentukan',
+              kasus_posisi: 'Telah mengajukan permohonan informasi sejak 2 minggu lalu namun belum ada tanggapan dari PPID',
+              status: 'Diajukan',
+              tanggal_keberatan: new Date().toISOString()
+            }
+          ])
+          .select();
+        console.log('✅ Keberatan created');
+      }
+    }
 
     console.log('\n🎉 Database seeded successfully!');
     console.log('\n📋 Test Accounts:');

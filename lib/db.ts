@@ -1,6 +1,6 @@
 import { supabase } from './lib/supabaseClient';
 
-export async function query(sql: string, params: any[] = []) {
+export async function query(sql: string, params: unknown[] = []) {
   try {
     // For simple queries, use Supabase client
     if (sql.includes('SELECT * FROM pages')) {
@@ -15,7 +15,7 @@ export async function query(sql: string, params: any[] = []) {
     
     if (sql.includes('INSERT INTO pages')) {
       const [title, slug, content, status] = params;
-      console.log('Inserting page:', { title, slug, content: content?.substring(0, 50), status });
+      console.log('Inserting page:', { title, slug, content: (content as string)?.substring(0, 50), status });
       
       const { data, error } = await supabase
         .from('pages')

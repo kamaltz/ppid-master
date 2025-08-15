@@ -3,11 +3,15 @@ import { getDashboardStats } from '../../../../../lib/controllers/adminControlle
 
 interface MockRequest {
   headers: Record<string, string>;
+  query: Record<string, string | string[] | undefined>;
+  body: Record<string, unknown>;
+  params: Record<string, string>;
 }
 
 interface MockResponse {
   status: (code: number) => {
     json: (data: unknown) => void;
+    status: (code: number) => MockResponse;
   };
   json: (data: unknown) => void;
 }
@@ -19,6 +23,9 @@ export async function GET(request: NextRequest) {
     
     const req: MockRequest = {
       headers: Object.fromEntries(request.headers.entries()),
+      query: {},
+      body: {},
+      params: {}
     };
     
     const res: MockResponse = {
@@ -27,6 +34,10 @@ export async function GET(request: NextRequest) {
         return {
           json: (data: unknown) => {
             responseData = data;
+          },
+          status: (code: number) => {
+            statusCode = code;
+            return res;
           }
         };
       },

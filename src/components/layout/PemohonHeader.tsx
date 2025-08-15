@@ -29,7 +29,7 @@ const PemohonHeader = () => {
             
             <div className="flex items-center text-sm text-gray-700">
               <User className="h-4 w-4 mr-2" />
-              <span>{user?.name || user?.email || "Pemohon"}</span>
+              <span>{user?.email || "Pemohon"}</span>
             </div>
             
             <button

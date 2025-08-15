@@ -1,17 +1,5 @@
-// src/routes/tanggapanRoutes.ts
+// This file is deprecated - Express routes are not used in Next.js
+// Tanggapan (response) functionality is handled through Next.js API routes in src/app/api/tanggapan/
+// See src/app/api/tanggapan/ for response management endpoints
 
-import { Router } from "express";
-import { createTanggapan } from "../controllers/tanggapanController";
-import { verifyToken, authorizeRole } from "../middleware/authMiddleware";
-
-const router = Router();
-
-// Rute ini dilindungi dan hanya bisa diakses oleh Atasan PPID
-router.post(
-  "/:no_registrasi_keberatan",
-  verifyToken,
-  authorizeRole(["Atasan_PPID"]),
-  createTanggapan
-);
-
-export default router;
+export {};
