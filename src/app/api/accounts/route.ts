@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         email: newAccount.email,
         role
       }
-    });
+    }, { status: 201 });
   } catch (error) {
     console.error('Create account error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

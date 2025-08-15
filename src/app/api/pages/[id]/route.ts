@@ -1,10 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../../../lib/lib/prismaClient';
 
 interface JWTPayload {
   role: string;
-  id: string;
+  userId: number;
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const pageId = parseInt(params.id);
+    
+    const page = await prisma.page.findUnique({
+      where: { id: pageId }
+    });
+
+    if (!page) {
+      return NextResponse.json({
+        success: false,
+        error: 'Halaman tidak ditemukan'
+      }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: page
+    });
+  } catch (error) {
+    console.error('Error fetching page:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Gagal mengambil data halaman'
+    }, { status: 500 });
+  }
 }
 
 export async function PUT(
@@ -23,7 +54,7 @@ export async function PUT(
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
-    if (decoded.role !== 'ppid') {
+    if (decoded.role !== 'Admin') {
       return NextResponse.json({
         success: false,
         error: 'Akses ditolak'
@@ -33,46 +64,60 @@ export async function PUT(
     const { title, slug, content, status } = await request.json();
     const pageId = params.id;
 
-    if (!title || !slug) {
+    if (!title) {
       return NextResponse.json({
         success: false,
-        error: 'Judul dan slug harus diisi'
+        error: 'Judul harus diisi'
       }, { status: 400 });
     }
 
-    const existingPage = await prisma.page.findFirst({
-      where: {
-        slug,
-        NOT: {
-          id: parseInt(pageId)
+    // Get existing page to preserve slug if not provided
+    const existingPage = await prisma.page.findUnique({ where: { id: parseInt(pageId) } });
+    if (!existingPage) {
+      return NextResponse.json({
+        success: false,
+        error: 'Halaman tidak ditemukan'
+      }, { status: 404 });
+    }
+
+    const finalSlug = slug || existingPage.slug;
+
+    if (slug && slug !== existingPage.slug) {
+      const duplicateSlug = await prisma.page.findFirst({
+        where: {
+          slug: finalSlug,
+          NOT: {
+            id: parseInt(pageId)
+          }
         }
-      }
-    });
+      });
 
-    if (existingPage) {
-      return NextResponse.json({
-        success: false,
-        error: 'Slug sudah digunakan'
-      }, { status: 400 });
+      if (duplicateSlug) {
+        return NextResponse.json({
+          success: false,
+          error: 'Slug sudah digunakan'
+        }, { status: 400 });
+      }
     }
 
-    await prisma.page.update({
+    const updatedPage = await prisma.page.update({
       where: {
         id: parseInt(pageId)
       },
       data: {
         title,
-        slug,
-        content,
-        status: status || 'draft'
+        slug: finalSlug,
+        content: content !== undefined ? content : existingPage.content,
+        status: status || existingPage.status
       }
     });
 
     return NextResponse.json({
       success: true,
-      data: { id: pageId, title, slug, content, status }
+      data: updatedPage
     });
-  } catch {
+  } catch (error) {
+    console.error('Error updating page:', error);
     return NextResponse.json({
       success: false,
       error: 'Gagal memperbarui halaman'
@@ -96,7 +141,7 @@ export async function DELETE(
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
-    if (decoded.role !== 'ppid') {
+    if (decoded.role !== 'Admin') {
       return NextResponse.json({
         success: false,
         error: 'Akses ditolak'
@@ -115,7 +160,8 @@ export async function DELETE(
       success: true,
       message: 'Halaman berhasil dihapus'
     });
-  } catch {
+  } catch (error) {
+    console.error('Error deleting page:', error);
     return NextResponse.json({
       success: false,
       error: 'Gagal menghapus halaman'

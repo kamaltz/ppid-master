@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Role tidak valid' }, { status: 400 });
     }
 
-    return NextResponse.json({ message: 'User berhasil dibuat', data: newUser });
+    return NextResponse.json({ message: 'User berhasil dibuat', data: newUser }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

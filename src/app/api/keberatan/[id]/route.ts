@@ -4,7 +4,55 @@ import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
   role: string;
-  id: string;
+  userId: number;
+}
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const id = parseInt(params.id);
+
+    const keberatan = await prisma.keberatan.findUnique({
+      where: { id },
+      include: {
+        permintaan: {
+          select: {
+            id: true,
+            rincian_informasi: true
+          }
+        },
+        pemohon: {
+          select: {
+            nama: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    if (!keberatan) {
+      return NextResponse.json({ error: 'Keberatan tidak ditemukan' }, { status: 404 });
+    }
+
+    // Check access permissions
+    if (decoded.role === 'Pemohon' && keberatan.pemohon_id !== decoded.userId) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      data: keberatan 
+    });
+  } catch (error) {
+    console.error('Get keberatan error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {

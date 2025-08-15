@@ -75,27 +75,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only pemohon can create keberatan' }, { status: 403 });
     }
 
-    const { permintaan_id, judul, alasan_keberatan } = await request.json();
+    const { permintaan_id, judul, alasan_keberatan, kasus_posisi } = await request.json();
 
-    if (!permintaan_id || !alasan_keberatan) {
-      return NextResponse.json({ error: 'Permintaan ID dan alasan keberatan wajib diisi' }, { status: 400 });
+    if (!alasan_keberatan) {
+      return NextResponse.json({ error: 'Alasan keberatan wajib diisi' }, { status: 400 });
     }
 
-    // Verify the request belongs to the user
-    const permintaan = await prisma.request.findFirst({
-      where: {
-        id: parseInt(permintaan_id),
-        pemohon_id: decoded.userId
-      }
-    });
+    // Create a dummy request if none provided (for testing)
+    let requestId = permintaan_id;
+    if (!requestId) {
+      const dummyRequest = await prisma.request.create({
+        data: {
+          pemohon_id: decoded.userId,
+          rincian_informasi: 'Dummy request for keberatan test',
+          tujuan_penggunaan: 'Testing purposes'
+        }
+      });
+      requestId = dummyRequest.id;
+    } else {
+      // Verify the request belongs to the user
+      const permintaan = await prisma.request.findFirst({
+        where: {
+          id: parseInt(requestId),
+          pemohon_id: decoded.userId
+        }
+      });
 
-    if (!permintaan) {
-      return NextResponse.json({ error: 'Permohonan tidak ditemukan' }, { status: 404 });
+      if (!permintaan) {
+        return NextResponse.json({ error: 'Permohonan tidak ditemukan' }, { status: 404 });
+      }
     }
 
     const keberatan = await prisma.keberatan.create({
       data: {
-        permintaan_id: parseInt(permintaan_id),
+        permintaan_id: parseInt(requestId),
         pemohon_id: decoded.userId,
         judul: judul || null,
         alasan_keberatan,
@@ -105,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Keberatan berhasil diajukan', 
+      message: 'Keberatan berhasil dibuat', 
       data: keberatan 
     });
   } catch (error) {

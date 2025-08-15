@@ -6,8 +6,8 @@ interface JWTPayload {
   id: string;
 }
 
-// In-memory storage for categories
-const categories = [
+// Global in-memory storage for categories (shared across requests)
+global.categories = global.categories || [
   { id: 1, nama: "Informasi Berkala", slug: "informasi-berkala", deskripsi: "Informasi yang wajib disediakan secara berkala", created_at: "2024-01-01" },
   { id: 2, nama: "Informasi Setiap Saat", slug: "informasi-setiap-saat", deskripsi: "Informasi yang wajib disediakan setiap saat", created_at: "2024-01-02" },
   { id: 3, nama: "Informasi Serta Merta", slug: "informasi-serta-merta", deskripsi: "Informasi yang wajib diumumkan serta merta", created_at: "2024-01-03" }
@@ -15,7 +15,7 @@ const categories = [
 
 export async function GET() {
   try {
-    return NextResponse.json({ success: true, data: categories });
+    return NextResponse.json({ success: true, data: global.categories });
   } catch (error: unknown) {
     console.error('GET /api/kategori error:', error);
     return NextResponse.json({ 
@@ -39,17 +39,23 @@ export async function POST(request: NextRequest) {
 
     const { nama, slug, deskripsi } = await request.json();
 
-    // Add to in-memory storage
+    // Check for duplicate names
+    const existingCategory = global.categories.find(cat => cat.nama === nama);
+    if (existingCategory) {
+      return NextResponse.json({ success: false, error: 'Nama kategori sudah digunakan' }, { status: 400 });
+    }
+
+    // Add to global storage
     const newKategori = {
       id: Date.now(),
       nama,
-      slug,
+      slug: slug || nama.toLowerCase().replace(/\s+/g, '-'),
       deskripsi,
       created_at: new Date().toISOString()
     };
     
-    categories.push(newKategori);
-    return NextResponse.json({ success: true, data: newKategori });
+    global.categories.push(newKategori);
+    return NextResponse.json({ success: true, data: newKategori }, { status: 201 });
   } catch (error: unknown) {
     console.error('POST /api/kategori error:', error);
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {

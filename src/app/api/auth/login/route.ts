@@ -67,15 +67,15 @@ export async function POST(request: NextRequest) {
     if (!user) {
       console.log('❌ No user found');
       return NextResponse.json(
-        { error: "Pengguna tidak ditemukan." },
-        { status: 404 }
+        { error: "Email atau password salah." },
+        { status: 401 }
       );
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.hashed_password);
     if (!isPasswordValid) {
       return NextResponse.json(
-        { error: "Password salah." },
+        { error: "Email atau password salah." },
         { status: 401 }
       );
     }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../../lib/lib/prismaClient';
+import jwt from 'jsonwebtoken';
 
 export async function GET() {
   try {
@@ -24,6 +25,25 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    } catch {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    if (decoded.role !== 'Admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { title, slug, content, status } = await request.json();
     console.log('Creating page:', { title, slug, status });
 
@@ -60,7 +80,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: newPage
-    });
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating page:', error);
     return NextResponse.json({

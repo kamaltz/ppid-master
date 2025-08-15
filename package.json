@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest __tests__/api/permintaan.test.js",
+    "test": "jest",
     "test:all": "jest",
     "test:informasi": "jest __tests__/api/informasi.test.js __tests__/components/AdminInformasiPage.test.jsx __tests__/integration/informasi-flow.test.js",
     "seed": "node scripts/seed.js",

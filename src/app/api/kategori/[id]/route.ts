@@ -6,12 +6,21 @@ interface JWTPayload {
   id: string;
 }
 
-// Import the in-memory categories from the main route
-const categories = [
-  { id: 1, nama: "Informasi Berkala", slug: "informasi-berkala", deskripsi: "Informasi yang wajib disediakan secara berkala", created_at: "2024-01-01" },
-  { id: 2, nama: "Informasi Setiap Saat", slug: "informasi-setiap-saat", deskripsi: "Informasi yang wajib disediakan setiap saat", created_at: "2024-01-02" },
-  { id: 3, nama: "Informasi Serta Merta", slug: "informasi-serta-merta", deskripsi: "Informasi yang wajib diumumkan serta merta", created_at: "2024-01-03" }
-];
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const id = parseInt(params.id);
+    const category = global.categories?.find(c => c.id === id);
+    
+    if (!category) {
+      return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ success: true, data: category });
+  } catch (error) {
+    console.error('GET /api/kategori/[id] error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to fetch category' }, { status: 500 });
+  }
+}
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -28,21 +37,25 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { nama, slug, deskripsi } = await request.json();
     const id = parseInt(params.id);
 
-    // Update in-memory storage
-    const categoryIndex = categories.findIndex(c => c.id === id);
+    if (!global.categories) {
+      global.categories = [];
+    }
+
+    // Update in global storage
+    const categoryIndex = global.categories.findIndex(c => c.id === id);
     if (categoryIndex === -1) {
       return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     }
     
     const updatedKategori = {
-      ...categories[categoryIndex],
+      ...global.categories[categoryIndex],
       nama,
       slug,
       deskripsi,
       updated_at: new Date().toISOString()
     };
     
-    categories[categoryIndex] = updatedKategori;
+    global.categories[categoryIndex] = updatedKategori;
     return NextResponse.json({ success: true, data: updatedKategori });
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
@@ -66,13 +79,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     const id = parseInt(params.id);
 
-    // Delete from in-memory storage
-    const categoryIndex = categories.findIndex(c => c.id === id);
+    if (!global.categories) {
+      global.categories = [];
+    }
+
+    // Delete from global storage
+    const categoryIndex = global.categories.findIndex(c => c.id === id);
     if (categoryIndex === -1) {
       return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     }
     
-    categories.splice(categoryIndex, 1);
+    global.categories.splice(categoryIndex, 1);
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ success: false, error: 'Failed to delete category' }, { status: 500 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
 export async function GET() {
   try {
@@ -25,13 +26,60 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { key, value } = await request.json();
+    // Check authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    } catch {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    if (decoded.role !== 'Admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const body = await request.json();
     
-    await prisma.setting.upsert({
-      where: { key },
-      update: { value: JSON.stringify(value) },
-      create: { key, value: JSON.stringify(value) }
-    });
+    // Handle both single setting and bulk settings update
+    if (body.key && body.value !== undefined) {
+      // Single setting update
+      await prisma.setting.upsert({
+        where: { key: body.key },
+        update: { value: JSON.stringify(body.value) },
+        create: { key: body.key, value: JSON.stringify(body.value) }
+      });
+    } else {
+      // Bulk settings update
+      const validKeys = ['general', 'header', 'footer', 'hero'];
+      const updates = [];
+      
+      for (const [key, value] of Object.entries(body)) {
+        if (validKeys.includes(key)) {
+          updates.push(
+            prisma.setting.upsert({
+              where: { key },
+              update: { value: JSON.stringify(value) },
+              create: { key, value: JSON.stringify(value) }
+            })
+          );
+        }
+      }
+      
+      if (updates.length === 0) {
+        return NextResponse.json({
+          error: 'No valid settings provided'
+        }, { status: 400 });
+      }
+      
+      await Promise.all(updates);
+    }
     
     return NextResponse.json({
       success: true,

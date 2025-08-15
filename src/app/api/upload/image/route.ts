@@ -1,30 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import jwt from 'jsonwebtoken';
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.formData();
-    const file: File | null = data.get('file') as unknown as File;
+    // Check authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    }
 
-    if (!file) {
-      return NextResponse.json({ success: false, error: 'No file uploaded' });
+    const token = authHeader.split(' ')[1];
+    try {
+      jwt.verify(token, process.env.JWT_SECRET!);
+    } catch {
+      return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+    }
+
+    let data, file;
+    try {
+      data = await request.formData();
+      file = data.get('file') as unknown as File;
+
+      if (!file || file.size === 0 || file.name === 'undefined') {
+        return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 });
+      }
+    } catch (error) {
+      return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 });
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ success: false, error: 'File must be an image' });
+      return NextResponse.json({ success: false, error: 'File must be an image' }, { status: 400 });
     }
 
     // Validate file size (max 2MB for logos)
     if (file.size > 2 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: 'File size must be less than 2MB' });
+      return NextResponse.json({ success: false, error: 'File size must be less than 2MB' }, { status: 400 });
     }
 
     // Validate image dimensions for logos (optional but recommended)
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ success: false, error: 'File must be PNG, JPG, JPEG, WebP, or SVG' });
+      return NextResponse.json({ success: false, error: 'File must be PNG, JPG, JPEG, WebP, or SVG' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();

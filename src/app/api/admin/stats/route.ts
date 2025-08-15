@@ -1,57 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDashboardStats } from '../../../../../lib/controllers/adminController';
+import { prisma } from '../../../../../lib/lib/prismaClient';
+import jwt from 'jsonwebtoken';
 
-interface MockRequest {
-  headers: Record<string, string>;
-  query: Record<string, string | string[] | undefined>;
-  body: Record<string, unknown>;
-  params: Record<string, string>;
-}
-
-interface MockResponse {
-  status: (code: number) => {
-    json: (data: unknown) => void;
-    status: (code: number) => MockResponse;
-  };
-  json: (data: unknown) => void;
+interface JWTPayload {
+  role: string;
+  userId: number;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    let responseData: unknown;
-    let statusCode = 200;
-    
-    const req: MockRequest = {
-      headers: Object.fromEntries(request.headers.entries()),
-      query: {},
-      body: {},
-      params: {}
+    // Check authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    if (decoded.role !== 'Admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    // Get counts from database
+    const [
+      totalPermintaan,
+      totalInformasi,
+      totalKeberatan,
+      totalPemohon,
+      totalAdmin,
+      totalPpid
+    ] = await Promise.all([
+      prisma.request.count().catch(() => 0),
+      prisma.informasiPublik.count().catch(() => 0),
+      prisma.keberatan.count().catch(() => 0),
+      prisma.pemohon.count().catch(() => 0),
+      prisma.admin.count().catch(() => 0),
+      prisma.ppid.count().catch(() => 0)
+    ]);
+
+    const stats = {
+      totalPermintaan,
+      totalInformasi,
+      totalKeberatan,
+      totalPemohon,
+      totalAdmin,
+      totalPpid,
+      totalUsers: totalPemohon + totalAdmin + totalPpid
     };
-    
-    const res: MockResponse = {
-      status: (code: number) => {
-        statusCode = code;
-        return {
-          json: (data: unknown) => {
-            responseData = data;
-          },
-          status: (code: number) => {
-            statusCode = code;
-            return res;
-          }
-        };
-      },
-      json: (data: unknown) => {
-        responseData = data;
-      }
-    };
-    
-    await getDashboardStats(req, res);
-    return NextResponse.json(responseData, { status: statusCode });
-  } catch {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching admin stats:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Gagal mengambil statistik'
+    }, { status: 500 });
   }
 }

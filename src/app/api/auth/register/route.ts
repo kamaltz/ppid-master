@@ -4,11 +4,11 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, nama, role, no_telepon, alamat, no_pegawai } = await request.json();
+    const { email, password, nama, role, no_telepon, alamat, no_pegawai, nik } = await request.json();
     
-    if (!email || !password || !nama || !role) {
+    if (!email || !password || !nama) {
       return NextResponse.json(
-        { error: "Email, password, nama, dan role wajib diisi." },
+        { error: "Email, password, dan nama wajib diisi." },
         { status: 400 }
       );
     }
@@ -23,15 +23,16 @@ export async function POST(request: NextRequest) {
     if (existingAdmin || existingPpid || existingPemohon) {
       return NextResponse.json(
         { error: "Email sudah terdaftar." },
-        { status: 409 }
+        { status: 400 }
       );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let newUser;
+    const userRole = role || 'pemohon'; // Default to pemohon if no role specified
     
-    switch (role.toLowerCase()) {
+    switch (userRole.toLowerCase()) {
       case 'admin':
         newUser = await prisma.admin.create({
           data: {
@@ -61,22 +62,24 @@ export async function POST(request: NextRequest) {
         break;
         
       case 'pemohon':
+      default:
+        if (!nik) {
+          return NextResponse.json(
+            { error: "NIK wajib diisi untuk pemohon." },
+            { status: 400 }
+          );
+        }
         newUser = await prisma.pemohon.create({
           data: {
             email,
             hashed_password: hashedPassword,
             nama,
+            nik,
             no_telepon: no_telepon || null,
             alamat: alamat || null
           }
         });
         break;
-        
-      default:
-        return NextResponse.json(
-          { error: "Role tidak valid. Gunakan: admin, ppid, atau pemohon." },
-          { status: 400 }
-        );
     }
 
     return NextResponse.json({
@@ -85,9 +88,9 @@ export async function POST(request: NextRequest) {
         id: newUser.id,
         email: newUser.email,
         nama: newUser.nama,
-        role: role
+        role: userRole
       }
-    });
+    }, { status: 201 });
   } catch (error) {
     console.error('Register API error:', error);
     return NextResponse.json(
