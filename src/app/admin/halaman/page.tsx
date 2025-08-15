@@ -23,7 +23,7 @@ interface Section {
   content: string;
   type: "text" | "image" | "file" | "hero";
   order: number;
-  files: FileItem[];
+  files: { name: string; url: string; size?: number }[];
 }
 
 interface FileItem {

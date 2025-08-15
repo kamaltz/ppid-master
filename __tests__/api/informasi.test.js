@@ -21,13 +21,7 @@ jest.mock('jsonwebtoken', () => ({
   verify: jest.fn(() => ({ role: 'ADMIN' }))
 }));
 
-// Mock API handlers
-const mockHandlers = {
-  GET: jest.fn(),
-  POST: jest.fn(),
-  PUT: jest.fn(),
-  DELETE: jest.fn()
-};
+
 
 describe('/api/informasi', () => {
   beforeEach(() => {

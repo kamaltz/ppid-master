@@ -81,13 +81,20 @@ export default function AdminInformasiPage() {
           uploadedFiles.push({
             name: uploadResult.originalName,
             url: uploadResult.url,
-            size: uploadResult.size
+            size: uploadResult.size || 0
           });
         }
       }
       
-      // Combine existing files with newly uploaded files
-      const allFiles = [...formData.existingFiles, ...uploadedFiles];
+      // Combine existing files with newly uploaded files, ensuring size is always a number
+      const allFiles = [
+        ...formData.existingFiles.map(file => ({
+          name: file.name,
+          url: file.url,
+          size: file.size || 0
+        })),
+        ...uploadedFiles
+      ];
       
       const submitData = {
         judul: formData.judul,
