@@ -1,5 +1,5 @@
 // src/controllers/authController.ts
-import { supabase } from "../lib/supabaseClient";
+import { prisma } from "../lib/prismaClient";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -14,13 +14,13 @@ interface Response {
 }
 
 interface User {
-  id?: number;
-  no_pegawai?: string;
-  no_pengawas?: string;
+  id: number;
   email: string;
-  hashed_password: string;
+  password: string;
   nama: string;
-  role?: string;
+  role: string;
+  noTelepon?: string;
+  alamat?: string;
 }
 
 interface ErrorWithMessage extends Error {
@@ -36,11 +36,9 @@ export const register = async (req: Request, res: Response) => {
 
   try {
     // Cek apakah email sudah terdaftar
-    const { data: existingUser } = await supabase
-      .from("pemohon")
-      .select("email")
-      .eq("email", email)
-      .single();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email as string }
+    });
 
     if (existingUser) {
       return res.status(400).json({ error: "Email sudah terdaftar." });
@@ -50,25 +48,20 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password as string, 10);
 
     // Insert pemohon baru
-    const { data, error } = await supabase
-      .from("pemohon")
-      .insert({
-        email,
-        hashed_password: hashedPassword,
-        nama,
-        no_telepon,
-        alamat
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return res.status(500).json({ error: "Gagal mendaftarkan pemohon." });
-    }
+    const newUser = await prisma.user.create({
+      data: {
+        email: email as string,
+        password: hashedPassword,
+        nama: nama as string,
+        noTelepon: no_telepon as string,
+        alamat: alamat as string,
+        role: 'PEMOHON'
+      }
+    });
 
     res.status(201).json({ 
       message: "Registrasi berhasil", 
-      data: { id: data.id, email: data.email, nama: data.nama } 
+      data: { id: newUser.id, email: newUser.email, nama: newUser.nama } 
     });
   } catch (err: unknown) {
     const error = err as ErrorWithMessage;
@@ -83,63 +76,10 @@ export const login = async (req: Request, res: Response) => {
   }
 
   try {
-    let user: User | null = null;
-    let role: string = "";
-    let userId: string | number = "";
-
-    // 1. Cek di tabel admin
-    const { data: adminUser } = await supabase
-      .from("admin")
-      .select("*")
-      .eq("email", email)
-      .single();
-    if (adminUser) {
-      user = adminUser;
-      role = "Admin";
-      userId = adminUser.id;
-    }
-
-    // 2. Jika bukan admin, cek di tabel ppid (PPID Utama & Pelaksana)
-    if (!user) {
-      const { data: ppidUser } = await supabase
-        .from("ppid")
-        .select("*")
-        .eq("email", email)
-        .single();
-      if (ppidUser) {
-        user = ppidUser;
-        role = ppidUser.role || "PPID"; // Default ke PPID jika role tidak ada
-        userId = ppidUser.no_pegawai;
-      }
-    }
-
-    // 3. Jika bukan juga, cek di tabel atasan_ppid
-    if (!user) {
-      const { data: atasanUser } = await supabase
-        .from("atasan_ppid")
-        .select("*")
-        .eq("email", email)
-        .single();
-      if (atasanUser) {
-        user = atasanUser;
-        role = "Atasan_PPID";
-        userId = atasanUser.no_pengawas;
-      }
-    }
-
-    // 4. Terakhir, cek di tabel pemohon
-    if (!user) {
-      const { data: pemohonUser, error: pemohonError } = await supabase
-        .from("pemohon")
-        .select("*")
-        .eq("email", email)
-        .single();
-      if (pemohonUser && !pemohonError) {
-        user = pemohonUser;
-        role = "Pemohon";
-        userId = pemohonUser.id;
-      }
-    }
+    // Cari user berdasarkan email
+    const user = await prisma.user.findUnique({
+      where: { email: email as string }
+    });
 
     if (!user) {
       return res
@@ -149,14 +89,14 @@ export const login = async (req: Request, res: Response) => {
 
     const isPasswordValid = await bcrypt.compare(
       password as string,
-      user.hashed_password
+      user.password
     );
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Password salah." });
     }
 
     const token = jwt.sign(
-      { userId, email: user.email, role },
+      { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
       { expiresIn: "8h" }
     );

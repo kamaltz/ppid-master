@@ -15,16 +15,12 @@
     "seed": "node scripts/seed.js",
     "seed:requests": "node scripts/seed-requests.js",
     "seed:pg": "node lib/scripts/seedPostgres.js",
-    "seed:supabase": "node lib/scripts/resetDatabase.js",
+
     "add:informasi": "node lib/scripts/add-sample-informasi.js",
     "migrate:informasi": "node lib/scripts/migrate-informasi.js",
     "reset-db": "node lib/scripts/resetDatabase.js",
     "clear-crud": "node lib/scripts/clearCrudData.js",
-    "create-tables": "node lib/scripts/createTables.js",
-    "create-rpc": "node lib/scripts/createRpcFunction.js",
-    "fix-users": "node lib/scripts/fixUserData.js",
-    "remove-fk": "node lib/scripts/removeForeignKey.js",
-    "simple-table": "node lib/scripts/createSimpleTable.js",
+
     "reset-admin": "npx ts-node lib/scripts/resetAdminPassword.ts",
     "test-pg": "node lib/scripts/testPostgres.js",
     "db:generate": "prisma generate",
@@ -35,7 +31,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
-    "@supabase/supabase-js": "^2.43.4",
+
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

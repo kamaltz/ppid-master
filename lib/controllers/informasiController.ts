@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient";
+import { prisma } from "../lib/prismaClient";
 
 // Define Request and Response types for Next.js API routes
 interface Request {
@@ -26,34 +26,40 @@ export const getAllInformasi = async (req: Request, res: Response) => {
   };
 
   try {
-    let query = supabase
-      .from("informasi_publik")
-      .select("*", { count: 'exact' })
-      .order('created_at', { ascending: false });
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 10;
+    const skip = (pageNum - 1) * limitNum;
 
+    const where: any = {};
+    
     if (klasifikasi) {
-      query = query.eq("klasifikasi", klasifikasi);
+      where.klasifikasi = klasifikasi;
     }
 
     if (search) {
-      query = query.or(`judul.ilike.%${search}%,ringkasan_isi_informasi.ilike.%${search}%`);
+      where.OR = [
+        { judul: { contains: search, mode: 'insensitive' } },
+        { ringkasanIsiInformasi: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
-    const pageNum = parseInt(page as string, 10) || 1;
-    const limitNum = parseInt(limit as string, 10) || 10;
-    const offset = (pageNum - 1) * limitNum;
-    query = query.range(offset, offset + limitNum - 1);
-
-    const { data, error, count } = await query;
-    if (error) throw error;
+    const [data, count] = await Promise.all([
+      prisma.informasiPublik.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum
+      }),
+      prisma.informasiPublik.count({ where })
+    ]);
 
     res.status(200).json({
       data,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limitNum)
+        total: count,
+        totalPages: Math.ceil(count / limitNum)
       }
     });
   } catch (err: unknown) {
@@ -67,13 +73,10 @@ export const getInformasiById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    const { data, error } = await supabase
-      .from("informasi_publik")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const data = await prisma.informasiPublik.findUnique({
+      where: { id: parseInt(id) }
+    });
 
-    if (error) throw error;
     if (!data) {
       return res.status(404).json({ error: "Informasi tidak ditemukan" });
     }
@@ -96,21 +99,16 @@ export const createInformasi = async (req: Request, res: Response) => {
   }
 
   try {
-    const { data, error } = await supabase
-      .from("informasi_publik")
-      .insert([{
+    const data = await prisma.informasiPublik.create({
+      data: {
         judul,
         klasifikasi,
-        ringkasan_isi_informasi,
-        file_url,
-        pejabat_penguasa_informasi,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
+        ringkasanIsiInformasi: ringkasan_isi_informasi,
+        fileUrl: file_url,
+        pejabatPenguasaInformasi: pejabat_penguasa_informasi
+      }
+    });
 
-    if (error) throw error;
     res.status(201).json({ 
       message: "Informasi berhasil ditambahkan", 
       data 
@@ -127,24 +125,17 @@ export const updateInformasi = async (req: Request, res: Response) => {
   const { judul, klasifikasi, ringkasan_isi_informasi, file_url, pejabat_penguasa_informasi } = req.body;
 
   try {
-    const { data, error } = await supabase
-      .from("informasi_publik")
-      .update({
+    const data = await prisma.informasiPublik.update({
+      where: { id: parseInt(id) },
+      data: {
         judul,
         klasifikasi,
-        ringkasan_isi_informasi,
-        file_url,
-        pejabat_penguasa_informasi,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    if (!data) {
-      return res.status(404).json({ error: "Informasi tidak ditemukan" });
-    }
+        ringkasanIsiInformasi: ringkasan_isi_informasi,
+        fileUrl: file_url,
+        pejabatPenguasaInformasi: pejabat_penguasa_informasi,
+        updatedAt: new Date()
+      }
+    });
 
     res.status(200).json({ 
       message: "Informasi berhasil diperbarui", 
@@ -152,6 +143,9 @@ export const updateInformasi = async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     const error = err as ErrorWithMessage;
+    if (error.message.includes('Record to update not found')) {
+      return res.status(404).json({ error: "Informasi tidak ditemukan" });
+    }
     res.status(500).json({ error: "Gagal memperbarui informasi: " + error.message });
   }
 };
@@ -161,23 +155,18 @@ export const deleteInformasi = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    const { data, error } = await supabase
-      .from("informasi_publik")
-      .delete()
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    if (!data) {
-      return res.status(404).json({ error: "Informasi tidak ditemukan" });
-    }
+    await prisma.informasiPublik.delete({
+      where: { id: parseInt(id) }
+    });
 
     res.status(200).json({ 
       message: "Informasi berhasil dihapus" 
     });
   } catch (err: unknown) {
     const error = err as ErrorWithMessage;
+    if (error.message.includes('Record to delete does not exist')) {
+      return res.status(404).json({ error: "Informasi tidak ditemukan" });
+    }
     res.status(500).json({ error: "Gagal menghapus informasi: " + error.message });
   }
 };

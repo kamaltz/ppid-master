@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient";
+import { prisma } from "../lib/prismaClient";
 
 // Define Request and Response types for Next.js API routes
 interface Request {
