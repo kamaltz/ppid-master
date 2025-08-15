@@ -3,6 +3,19 @@ import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
+interface JWTPayload {
+  role: string;
+  userId: number;
+}
+
+interface UpdateData {
+  nama: string;
+  email: string;
+  no_telepon?: string;
+  alamat?: string;
+  hashed_password?: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -11,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     let user = null;
     if (decoded.role === 'Admin') {
@@ -41,10 +54,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     const { nama, email, no_telepon, alamat, currentPassword, newPassword } = await request.json();
 
-    let updateData: any = { nama, email };
+    const updateData: UpdateData = { nama, email };
     
     if (decoded.role === 'Pemohon') {
       updateData.no_telepon = no_telepon;

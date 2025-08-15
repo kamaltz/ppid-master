@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Calendar, User, Tag, FileText, ExternalLink, ArrowLeft } from "lucide-react";
@@ -22,11 +22,7 @@ export default function InformasiDetailPage() {
   const [informasi, setInformasi] = useState<InformasiDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchInformasi();
-  }, [params.id]);
-
-  const fetchInformasi = async () => {
+  const fetchInformasi = useCallback(async () => {
     try {
       const response = await fetch(`/api/informasi/${params.id}`);
       const data = await response.json();
@@ -41,7 +37,11 @@ export default function InformasiDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.id]);
+
+  useEffect(() => {
+    fetchInformasi();
+  }, [fetchInformasi]);
 
   const getCategoryName = (slug: string) => {
     const categories: Record<string, string> = {

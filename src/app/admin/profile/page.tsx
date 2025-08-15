@@ -100,7 +100,7 @@ export default function ProfilePage() {
       } else {
         alert('Gagal memperbarui profile: ' + data.error);
       }
-    } catch (error) {
+    } catch {
       alert('Terjadi kesalahan saat memperbarui profile');
     }
   };
@@ -143,7 +143,7 @@ export default function ProfilePage() {
       } else {
         alert('Gagal mengubah password: ' + data.error);
       }
-    } catch (error) {
+    } catch {
       alert('Terjadi kesalahan saat mengubah password');
     }
   };

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { Calendar, FileText, Download, Filter } from "lucide-react";
@@ -14,7 +13,12 @@ export default function AdminLaporanPage() {
   const [endDate, setEndDate] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<{
+    title: string;
+    period: string;
+    summary?: Record<string, string | number>;
+    details?: Record<string, unknown>[];
+  } | null>(null);
   
   const reportTemplates = [
     { id: 'permohonan-bulanan', name: 'Laporan Permohonan Informasi', desc: 'Ringkasan permohonan informasi berdasarkan periode' },
@@ -58,7 +62,7 @@ export default function AdminLaporanPage() {
       } else {
         alert('Gagal generate laporan: ' + data.error);
       }
-    } catch (error) {
+    } catch {
       alert('Terjadi kesalahan saat generate laporan');
     } finally {
       setIsGenerating(false);
@@ -74,7 +78,7 @@ export default function AdminLaporanPage() {
     if (format === 'csv') {
       if (reportData.details) {
         const headers = Object.keys(reportData.details[0] || {}).join(',');
-        const rows = reportData.details.map((item: any) => 
+        const rows = reportData.details.map((item: Record<string, unknown>) => 
           Object.values(item).map(val => `"${val}"`).join(',')
         ).join('\n');
         content = headers + '\n' + rows;

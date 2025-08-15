@@ -123,7 +123,7 @@ export default function RiwayatKeberatanPage() {
                       try {
                         const date = new Date(item.created_at);
                         return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-                      } catch (e) {
+                      } catch {
                         return 'Tanggal tidak tersedia';
                       }
                     })()}
@@ -199,7 +199,7 @@ export default function RiwayatKeberatanPage() {
                     try {
                       const date = new Date(selectedKeberatan.created_at);
                       return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-                    } catch (e) {
+                    } catch {
                       return 'Tanggal tidak tersedia';
                     }
                   })()}

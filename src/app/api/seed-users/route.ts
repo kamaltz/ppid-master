@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import bcrypt from 'bcryptjs';
 
@@ -93,11 +93,11 @@ export async function POST() {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Seed users error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

@@ -3,10 +3,29 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
-import { FileText, Download, Paperclip } from "lucide-react";
+import { Download, Paperclip } from "lucide-react";
+
+interface PermohonanRequest {
+  id: string;
+  rincian_informasi: string;
+  tujuan_penggunaan: string;
+  cara_memperoleh_informasi: string;
+  cara_mendapat_salinan: string;
+  status: string;
+  created_at: string;
+  file_attachments: string | string[];
+  catatan_ppid?: string;
+  pemohon?: {
+    nama: string;
+    email: string;
+    nik: string;
+    no_telepon: string;
+    alamat: string;
+  };
+}
 
 export default function DetailPermohonanPage() {
-  const [request, setRequest] = useState<any>(null);
+  const [request, setRequest] = useState<PermohonanRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const { token } = useAuth();

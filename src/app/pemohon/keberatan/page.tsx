@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SuccessModal from "@/components/SuccessModal";
@@ -15,21 +15,18 @@ export default function KeberatanPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [permintaanList, setPermintaanList] = useState<any[]>([]);
+  const [permintaanList, setPermintaanList] = useState<Array<{
+    id: number;
+    judul?: string;
+    rincian_informasi: string;
+    status: string;
+  }>>([]);
   const [isLoadingPermintaan, setIsLoadingPermintaan] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    fetchPermintaan();
-    const permintaanId = searchParams.get("permintaan_id");
-    if (permintaanId) {
-      setFormData((prev) => ({ ...prev, permintaan_id: permintaanId }));
-    }
-  }, [searchParams]);
-
-  const fetchPermintaan = async () => {
+  const fetchPermintaan = useCallback(async () => {
     if (!token) return;
     setIsLoadingPermintaan(true);
     try {
@@ -57,7 +54,15 @@ export default function KeberatanPage() {
     } finally {
       setIsLoadingPermintaan(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchPermintaan();
+    const permintaanId = searchParams.get("permintaan_id");
+    if (permintaanId) {
+      setFormData((prev) => ({ ...prev, permintaan_id: permintaanId }));
+    }
+  }, [searchParams, fetchPermintaan]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -104,7 +109,7 @@ export default function KeberatanPage() {
         console.error('API Error:', data);
         setErrors({ general: data.error || "Gagal mengajukan keberatan" });
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: "Terjadi kesalahan saat mengajukan keberatan" });
     } finally {
       setIsSubmitting(false);
@@ -257,6 +262,7 @@ export default function KeberatanPage() {
           router.push("/pemohon/dashboard");
         }}
         title="Keberatan Berhasil Diajukan"
+        message="Keberatan Anda telah berhasil diajukan dan akan diproses oleh PPID."
       />
     </div>
   );

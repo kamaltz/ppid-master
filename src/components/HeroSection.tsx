@@ -5,9 +5,34 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
+interface SlideContent {
+  title: string;
+  subtitle: string;
+  description: string;
+  image: string;
+  backgroundPosition?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+}
+
+interface HeroSettings {
+  title: string;
+  subtitle: string;
+  description: string;
+  backgroundImage: string;
+  ctaText: string;
+  ctaUrl: string;
+  isCarousel: boolean;
+  autoSlide: boolean;
+  slideInterval: number;
+  showCarouselCTA: boolean;
+  cleanTemplate: boolean;
+  slides: SlideContent[];
+}
+
 const HeroSection = () => {
   const router = useRouter();
-  const [heroSettings, setHeroSettings] = useState({
+  const [heroSettings, setHeroSettings] = useState<HeroSettings>({
     title: 'Selamat Datang di PPID Kabupaten Garut',
     subtitle: 'Pejabat Pengelola Informasi dan Dokumentasi',
     description: 'Kami berkomitmen untuk memberikan akses informasi publik yang transparan, akuntabel, dan mudah diakses oleh seluruh masyarakat.',
@@ -95,7 +120,7 @@ const HeroSection = () => {
     }
   };
 
-  const getCurrentContent = () => {
+  const getCurrentContent = (): SlideContent => {
     if (heroSettings.isCarousel && heroSettings.slides?.length > 0) {
       return heroSettings.slides[currentSlide];
     }
@@ -103,7 +128,9 @@ const HeroSection = () => {
       title: heroSettings.title,
       subtitle: heroSettings.subtitle,
       description: heroSettings.description,
-      image: heroSettings.backgroundImage
+      image: heroSettings.backgroundImage,
+      ctaText: heroSettings.ctaText,
+      ctaUrl: heroSettings.ctaUrl
     };
   };
 
@@ -173,7 +200,7 @@ const HeroSection = () => {
           currentContent.ctaText && currentContent.ctaUrl && (
             <div className="flex justify-center">
               <button 
-                onClick={() => router.push(currentContent.ctaUrl)}
+                onClick={() => router.push(currentContent.ctaUrl || '/permohonan')}
                 className={`font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center ${
                   heroSettings.cleanTemplate 
                     ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, FileText, Calendar, Filter } from "lucide-react";
 
@@ -20,6 +20,18 @@ interface FilterState {
   endDate: string;
 }
 
+interface InformasiItem {
+  id: number;
+  judul: string;
+  klasifikasi: string;
+  ringkasan_isi_informasi?: string;
+  pejabat_penguasa_informasi?: string;
+  tanggal_posting?: string;
+  created_at: string;
+  file_attachments?: string | unknown[];
+  links?: string | unknown[];
+}
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
@@ -33,30 +45,7 @@ export default function SearchPage() {
   });
   const [categories, setCategories] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (query) {
-      performSearch(query);
-    }
-  }, [query, filters]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/informasi');
-      const data = await response.json();
-      if (data.data) {
-        const uniqueCategories = [...new Set(data.data.map((item: any) => item.klasifikasi).filter(Boolean))];
-        setCategories(uniqueCategories);
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
-  };
-
-  const performSearch = async (searchQuery: string) => {
+  const performSearch = useCallback(async (searchQuery: string) => {
     setIsLoading(true);
     
     try {
@@ -68,25 +57,25 @@ export default function SearchPage() {
       
       // Apply filters
       if (filters.kategori) {
-        informasiData = informasiData.filter((item: any) => item.klasifikasi === filters.kategori);
+        informasiData = informasiData.filter((item: InformasiItem) => item.klasifikasi === filters.kategori);
       }
       
       if (filters.startDate) {
-        informasiData = informasiData.filter((item: any) => {
+        informasiData = informasiData.filter((item: InformasiItem) => {
           const itemDate = new Date(item.tanggal_posting || item.created_at);
           return itemDate >= new Date(filters.startDate);
         });
       }
       
       if (filters.endDate) {
-        informasiData = informasiData.filter((item: any) => {
+        informasiData = informasiData.filter((item: InformasiItem) => {
           const itemDate = new Date(item.tanggal_posting || item.created_at);
           return itemDate <= new Date(filters.endDate);
         });
       }
       
       const searchResults: SearchResult[] = [
-        ...informasiData.map((item: any) => {
+        ...informasiData.map((item: InformasiItem) => {
           // Combine multiple content fields for better search coverage
           const combinedContent = [
             item.ringkasan_isi_informasi || '',
@@ -150,7 +139,7 @@ export default function SearchPage() {
         
         // For informasi items, also search in additional fields
         if (result.type === 'informasi') {
-          const originalItem = informasiData.find((item: any) => item.id.toString() === result.id);
+          const originalItem = informasiData.find((item: InformasiItem) => item.id.toString() === result.id);
           if (originalItem) {
             const ringkasanMatch = originalItem.ringkasan_isi_informasi?.toLowerCase().includes(searchLower) || false;
             const pejabatMatch = originalItem.pejabat_penguasa_informasi?.toLowerCase().includes(searchLower) || false;
@@ -193,6 +182,29 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false);
     }
+  }, [filters]);
+
+  useEffect(() => {
+    if (query) {
+      performSearch(query);
+    }
+  }, [query, performSearch]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/informasi');
+      const data = await response.json();
+      if (data.data) {
+        const uniqueCategories = [...new Set(data.data.map((item: InformasiItem) => item.klasifikasi).filter(Boolean))] as string[];
+        setCategories(uniqueCategories);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
   };
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -223,7 +235,7 @@ export default function SearchPage() {
           
           {query && (
             <p className="text-gray-600">
-              Menampilkan hasil untuk: <span className="font-semibold">"{query}"</span>
+              Menampilkan hasil untuk: <span className="font-semibold">&ldquo;{query}&rdquo;</span>
             </p>
           )}
           

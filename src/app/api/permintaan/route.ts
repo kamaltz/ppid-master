@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  role: string;
+  userId: number;
+}
+
+interface WhereClause {
+  pemohon_id?: number;
+  status?: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -12,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Remove duplicate token verification since it's already done above
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -20,7 +30,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     // Filter based on user role
-    let where: any = {};
+    const where: WhereClause = {};
     
     // Pemohon only sees their own requests
     if (decoded.role === 'Pemohon') {
@@ -89,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     const { judul, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan } = await request.json();
 

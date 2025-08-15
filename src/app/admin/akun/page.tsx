@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { User, Mail, Plus, Edit, Trash2, Eye, X } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Account {
@@ -19,13 +19,13 @@ interface Account {
 }
 
 export default function AdminAkunPage() {
-  const { userRole } = useRoleAccess();
+  const { } = useRoleAccess();
   const { token } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nama: '',
     email: '',
@@ -33,11 +33,7 @@ export default function AdminAkunPage() {
   });
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     if (!token) return;
     setIsLoading(true);
     try {
@@ -55,7 +51,11 @@ export default function AdminAkunPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,8 +66,8 @@ export default function AdminAkunPage() {
       ));
       alert('Akun berhasil diperbarui!');
     } else {
-      const newAccount = {
-        id: Date.now(),
+      const newAccount: Account = {
+        id: Date.now().toString(),
         ...formData,
         status: 'Aktif',
         tanggal_dibuat: new Date().toISOString().split('T')[0]

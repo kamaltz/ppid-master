@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 
+interface JWTPayload {
+  role: string;
+  id: string;
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -16,7 +21,7 @@ export async function PUT(
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
     if (decoded.role !== 'ppid') {
       return NextResponse.json({
@@ -67,7 +72,7 @@ export async function PUT(
       success: true,
       data: { id: pageId, title, slug, content, status }
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       error: 'Gagal memperbarui halaman'
@@ -89,7 +94,7 @@ export async function DELETE(
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
     if (decoded.role !== 'ppid') {
       return NextResponse.json({
@@ -110,7 +115,7 @@ export async function DELETE(
       success: true,
       message: 'Halaman berhasil dihapus'
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       error: 'Gagal menghapus halaman'

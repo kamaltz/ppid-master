@@ -8,7 +8,7 @@ export async function GET() {
     const settingsObj = settings.reduce((acc, setting) => {
       acc[setting.key] = JSON.parse(setting.value);
       return acc;
-    }, {} as any);
+    }, {} as Record<string, unknown>);
     
     return NextResponse.json({
       success: true,

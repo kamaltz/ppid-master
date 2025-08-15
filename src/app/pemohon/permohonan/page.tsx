@@ -69,7 +69,7 @@ export default function RiwayatPermohonanPage() {
                 <tr key={request.id}>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{request.id}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    {request.judul || request.rincian_informasi.substring(0, 50) + '...'}
+                    {(request as Request).judul || request.rincian_informasi.substring(0, 50) + '...'}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
@@ -81,7 +81,7 @@ export default function RiwayatPermohonanPage() {
                       try {
                         const date = new Date(request.created_at);
                         return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-                      } catch (e) {
+                      } catch {
                         return 'Tanggal tidak tersedia';
                       }
                     })()}
@@ -173,7 +173,7 @@ export default function RiwayatPermohonanPage() {
                     try {
                       const date = new Date(selectedRequest.created_at);
                       return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-                    } catch (e) {
+                    } catch {
                       return 'Tanggal tidak tersedia';
                     }
                   })()}

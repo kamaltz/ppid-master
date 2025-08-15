@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useKeberatanData } from "@/hooks/useKeberatanData";
@@ -13,13 +12,13 @@ interface KeberatanDisplay {
   nama: string;
   email: string;
   permintaan_id: number;
+  judul: string;
   alasan_keberatan: string;
   status: string;
   tanggal: string;
 }
 
 export default function AdminKeberatanPage() {
-  const { userRole } = useRoleAccess();
   const { keberatan, isLoading, updateKeberatanStatus, deleteKeberatan } = useKeberatanData();
   const [selectedKeberatan, setSelectedKeberatan] = useState<KeberatanDisplay | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
@@ -36,14 +35,14 @@ export default function AdminKeberatanPage() {
     nama: item.pemohon?.nama || 'N/A',
     email: item.pemohon?.email || 'N/A',
     permintaan_id: item.permintaan_id,
-    judul: item.judul || 'Tidak ada judul',
+    judul: item.alasan_keberatan || 'Tidak ada judul',
     alasan_keberatan: item.alasan_keberatan,
     status: item.status,
     tanggal: (() => {
       try {
-        const date = new Date(item.created_at || item.tanggal_keberatan);
+        const date = new Date(item.tanggal_keberatan);
         return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak valid';
-      } catch (e) {
+      } catch {
         return 'Tanggal tidak valid';
       }
     })()
@@ -76,7 +75,7 @@ export default function AdminKeberatanPage() {
         try {
           await updateKeberatanStatus(id, { status: newStatus });
           setConfirmModal({ ...confirmModal, isOpen: false });
-        } catch (error) {
+        } catch {
           alert('Gagal mengupdate status keberatan');
         } finally {
           setIsProcessing(false);
@@ -96,7 +95,7 @@ export default function AdminKeberatanPage() {
         try {
           await deleteKeberatan(id);
           setConfirmModal({ ...confirmModal, isOpen: false });
-        } catch (error) {
+        } catch {
           alert('Gagal menghapus keberatan');
         } finally {
           setIsProcessing(false);

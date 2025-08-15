@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  role: string;
+  id: string;
+}
+
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -10,7 +15,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     const { status } = await request.json();
     const id = parseInt(params.id);
@@ -48,7 +53,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    jwt.verify(token, process.env.JWT_SECRET!);
 
     const id = parseInt(params.id);
 

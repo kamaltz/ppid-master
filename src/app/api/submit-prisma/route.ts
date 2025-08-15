@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  email: string;
+  id: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -13,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
         
         // Find pemohon by email from token
         const pemohon = await prisma.pemohon.findUnique({
@@ -23,7 +28,7 @@ export async function POST(request: NextRequest) {
         if (pemohon) {
           pemohonId = pemohon.id;
         }
-      } catch (tokenError) {
+      } catch {
         console.log('Token verification failed, using default pemohon');
       }
     }
@@ -52,10 +57,10 @@ export async function POST(request: NextRequest) {
       data: newRequest
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });
   }
 }

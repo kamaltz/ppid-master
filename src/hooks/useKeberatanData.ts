@@ -15,6 +15,12 @@ interface KeberatanData {
   tanggapan_atasan?: string;
 }
 
+interface KeberatanStatusData {
+  status: string;
+  tanggapan_atasan?: string;
+  catatan_ppid?: string;
+}
+
 export const useKeberatanData = () => {
   const [keberatan, setKeberatan] = useState<KeberatanData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +48,7 @@ export const useKeberatanData = () => {
     loadData();
   }, [loadData]);
 
-  const updateKeberatanStatus = async (id: number, statusData: any) => {
+  const updateKeberatanStatus = async (id: number, statusData: KeberatanStatusData) => {
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     

@@ -5,7 +5,7 @@ import { getRoleDisplayName } from "@/lib/roleUtils";
 import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import Chart from "@/components/ui/Chart";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 
 export default function DashboardPage() {
@@ -18,8 +18,13 @@ export default function DashboardPage() {
   const yearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   // Redirect PPID to specialized dashboard
+  useEffect(() => {
+    if (userRole === 'PPID_UTAMA') {
+      window.location.href = '/admin/ppid-dashboard';
+    }
+  }, [userRole]);
+
   if (userRole === 'PPID_UTAMA') {
-    window.location.href = '/admin/ppid-dashboard';
     return <div className="flex justify-center items-center h-screen">Redirecting...</div>;
   }
 
@@ -70,7 +75,7 @@ export default function DashboardPage() {
             </button>
             <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
               <span className="hidden sm:inline">{getRoleDisplayName(userRole)}</span>
-              <span className="sm:hidden">{userRole.split('_')[0]}</span>
+              <span className="sm:hidden">{userRole?.split('_')[0] || 'User'}</span>
             </div>
           </div>
         </div>
@@ -143,7 +148,7 @@ export default function DashboardPage() {
             <Chart
               type="line"
               title="📈 Tren Harian (7 Hari)"
-              data={chartData.daily}
+              data={chartData.daily.map(item => ({ ...item, value: item.count }))}
               height={250}
             />
           </div>
@@ -163,7 +168,7 @@ export default function DashboardPage() {
             <Chart
               type="line"
               title="⚖️ Permohonan Ditolak (7 Hari)"
-              data={chartData.keberatan}
+              data={chartData.keberatan.map(item => ({ ...item, value: item.count }))}
               height={250}
             />
           </div>
@@ -269,7 +274,7 @@ export default function DashboardPage() {
                       dateDisplay = date.toLocaleDateString('id-ID');
                       timeDisplay = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                     }
-                  } catch (e) {
+                  } catch {
                     // Keep default values
                   }
                   

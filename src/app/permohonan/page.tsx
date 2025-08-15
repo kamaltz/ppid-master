@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { createRequest } from "@/lib/api";
+
 import Link from "next/link";
 import { LogIn, UserPlus, AlertCircle } from "lucide-react";
 
@@ -84,9 +84,10 @@ export default function PermohonanPage() {
         cara_mendapat_salinan: 'Email'
       });
       setErrors({});
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting request:', error);
-      alert(error.message || 'Gagal mengirim permohonan. Silakan coba lagi.');
+      const errorMessage = error instanceof Error ? error.message : 'Gagal mengirim permohonan. Silakan coba lagi.';
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

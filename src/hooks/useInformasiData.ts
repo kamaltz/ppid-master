@@ -11,6 +11,23 @@ interface InformasiData {
   created_at: string;
 }
 
+interface InformasiFormData {
+  judul: string;
+  klasifikasi: string;
+  ringkasan_isi_informasi: string;
+  pejabat_penguasa_informasi?: string;
+  tanggal_posting?: string;
+  files?: Array<{
+    name: string;
+    url: string;
+    size: number;
+  }>;
+  links?: Array<{
+    title: string;
+    url: string;
+  }>;
+}
+
 export const useInformasiData = () => {
   const [informasi, setInformasi] = useState<InformasiData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +55,7 @@ export const useInformasiData = () => {
     loadData();
   }, [loadData]);
 
-  const createInformasi = async (data: any) => {
+  const createInformasi = async (data: InformasiFormData) => {
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     
@@ -47,7 +64,7 @@ export const useInformasiData = () => {
     return response;
   };
 
-  const updateInformasi = async (id: number, data: any) => {
+  const updateInformasi = async (id: number, data: InformasiFormData) => {
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     

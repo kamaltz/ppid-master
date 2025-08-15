@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface FileData {
+  originalName?: string;
+  name: string;
+  url: string;
+  size: number;
+}
+
+interface LinkData {
+  title: string;
+  url: string;
+}
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = parseInt(params.id);
@@ -32,11 +44,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     };
     
     return NextResponse.json({ success: true, data: processedInformasi });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('GET /api/informasi/[id] error:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message || 'Failed to fetch informasi' 
+      error: error instanceof Error ? error.message : 'Failed to fetch informasi' 
     }, { status: 500 });
   }
 }
@@ -69,8 +81,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         ringkasan_isi_informasi, 
         tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : undefined,
         pejabat_penguasa_informasi,
-        file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: any) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
-        links: links && links.length > 0 ? JSON.stringify(links.filter((l: any) => l.title && l.url)) : null
+        file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: FileData) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
+        links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null
       }
     });
 

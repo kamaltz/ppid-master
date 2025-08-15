@@ -12,12 +12,57 @@ interface GeneralSettings {
   websiteDescription: string;
 }
 
+interface HeaderSettings {
+  menu: Array<{
+    label: string;
+    url: string;
+    dropdown?: Array<{
+      label: string;
+      url: string;
+    }>;
+  }>;
+}
+
+interface FooterSettings {
+  socialMedia: {
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+    youtube?: string;
+  };
+  quickLinks: Array<{
+    label: string;
+    url: string;
+  }>;
+}
+
+interface StyleSettings {
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: string;
+}
+
+interface HeroSettings {
+  title: string;
+  subtitle: string;
+  backgroundImage: string;
+  ctaText: string;
+  ctaUrl: string;
+  slides?: Array<{
+    title: string;
+    subtitle: string;
+    image: string;
+    ctaText?: string;
+    ctaUrl?: string;
+  }>;
+}
+
 interface Settings {
   general: GeneralSettings;
-  header: any;
-  footer: any;
-  style: any;
-  hero: any;
+  header: HeaderSettings;
+  footer: FooterSettings;
+  style: StyleSettings;
+  hero: HeroSettings;
 }
 
 export const useSettings = () => {

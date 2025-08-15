@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable jsx-a11y/alt-text */
 
 import { useState, useRef } from "react";
 import { Bold, Italic, Underline, Link, Image, FileText } from "lucide-react";
@@ -42,7 +43,9 @@ const RichTextEditor = ({ value, onChange, onFileUpload }: RichTextEditorProps) 
   const insertImage = () => {
     const url = prompt("Masukkan URL gambar:");
     if (url) {
-      execCommand('insertImage', url);
+      const alt = prompt("Masukkan deskripsi gambar (alt text):") || "Gambar";
+      const imgHtml = `<img src="${url}" alt="${alt}" style="max-width: 100%; height: auto;" />`;
+      execCommand('insertHTML', imgHtml);
     }
   };
 

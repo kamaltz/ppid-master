@@ -16,11 +16,11 @@ export async function GET() {
         updated_at: s.updated_at
       }))
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching debug settings:', error);
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

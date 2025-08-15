@@ -85,6 +85,7 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
   
   .text-truncate-3 {
@@ -92,6 +93,7 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
   }
   
   @media (min-width: 640px) {

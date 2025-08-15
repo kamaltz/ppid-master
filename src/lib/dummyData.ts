@@ -39,7 +39,6 @@ export const generateDummyRequests = (count: number = 50): RequestData[] => {
 // Generate monthly data from actual requests
 export const generateMonthlyData = (requests: RequestData[]) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'];
-  const currentDate = new Date();
   
   return months.map((month, index) => {
     // Count actual requests for each month
@@ -80,12 +79,17 @@ export const generateDailyData = (requests: RequestData[]) => {
   });
 };
 
+interface InformasiItem {
+  kategori: string;
+  [key: string]: unknown;
+}
+
 // Generate category data from localStorage informasi
 export const generateCategoryData = () => {
   const savedInformasi = typeof window !== 'undefined' ? localStorage.getItem('informasi_data') : null;
   const informasiData = savedInformasi ? JSON.parse(savedInformasi) : [];
   
-  const categoryCounts = informasiData.reduce((acc: Record<string, number>, item: any) => {
+  const categoryCounts = informasiData.reduce((acc: Record<string, number>, item: InformasiItem) => {
     acc[item.kategori] = (acc[item.kategori] || 0) + 1;
     return acc;
   }, {});

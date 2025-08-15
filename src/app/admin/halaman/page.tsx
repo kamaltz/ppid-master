@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRoleAccess } from "@/lib/useRoleAccess";
+import { useState, useEffect, useCallback } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import FileUpload from "@/components/ui/FileUpload";
-import PagePreview from "@/components/ui/PagePreview";
 import SectionEditor from "@/components/ui/SectionEditor";
 
 interface PageContent {
@@ -25,7 +23,7 @@ interface Section {
   content: string;
   type: "text" | "image" | "file" | "hero";
   order: number;
-  files: any[];
+  files: FileItem[];
 }
 
 interface FileItem {
@@ -53,125 +51,7 @@ export default function AdminHalamanPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
-  useEffect(() => {
-    fetchPages();
-  }, []);
-
-  // Auto-save functionality
-  useEffect(() => {
-    if (!hasUnsavedChanges || (!selectedPage && !showAddForm)) return;
-    
-    const autoSaveTimer = setTimeout(() => {
-      if (formData.title && formData.slug) {
-        handleAutoSave();
-      }
-    }, 3000); // Auto-save after 3 seconds of inactivity
-    
-    return () => clearTimeout(autoSaveTimer);
-  }, [formData, hasUnsavedChanges]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 's') {
-          e.preventDefault();
-          if (formData.title && formData.slug) {
-            handleSave();
-          }
-        }
-        if (e.key === 'n') {
-          e.preventDefault();
-          handleAddPage();
-        }
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [formData]);
-
-  const fetchPages = async () => {
-    try {
-      const response = await fetch('/api/pages');
-      const result = await response.json();
-      if (result.success) {
-        setPages(result.data.map((page: any) => ({
-          id: page.id,
-          title: page.title,
-          slug: page.slug,
-          content: page.content || '',
-          files: [],
-          sections: [],
-          lastUpdated: new Date(page.updated_at || page.created_at).toISOString().split('T')[0]
-        })));
-      }
-    } catch (error) {
-      console.error('Error fetching pages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePageSelect = (pageId: string) => {
-    const page = pages.find(p => p.id === pageId);
-    if (page) {
-      setFormData({
-        title: page.title,
-        slug: page.slug,
-        content: page.content,
-        files: page.files,
-        sections: page.sections || []
-      });
-      setSelectedPage(pageId);
-      setShowAddForm(false);
-    }
-  };
-
-  const handleAddPage = () => {
-    setFormData({
-      title: "",
-      slug: "",
-      content: "",
-      files: [],
-      sections: []
-    });
-    setSelectedPage(null);
-    setShowAddForm(true);
-  };
-
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
-
-  const handleTitleChange = (title: string) => {
-    setFormData(prev => ({
-      ...prev,
-      title,
-      slug: prev.slug || generateSlug(title)
-    }));
-    setHasUnsavedChanges(true);
-    setAutoSaveStatus('unsaved');
-  };
-
-  const handleContentChange = (content: string) => {
-    setFormData(prev => ({ ...prev, content }));
-    setHasUnsavedChanges(true);
-    setAutoSaveStatus('unsaved');
-  };
-
-  const handleSlugChange = (slug: string) => {
-    setFormData(prev => ({ ...prev, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '') }));
-    setHasUnsavedChanges(true);
-    setAutoSaveStatus('unsaved');
-  };
-
-  const handleAutoSave = async () => {
+  const handleAutoSave = useCallback(async () => {
     if (!selectedPage || !hasUnsavedChanges) return;
     
     setAutoSaveStatus('saving');
@@ -192,12 +72,12 @@ export default function AdminHalamanPage() {
       });
       setHasUnsavedChanges(false);
       setAutoSaveStatus('saved');
-    } catch (error) {
+    } catch {
       setAutoSaveStatus('unsaved');
     }
-  };
+  }, [selectedPage, hasUnsavedChanges, formData]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!formData.title || !formData.slug) {
       alert('Judul dan slug harus diisi!');
       return;
@@ -269,12 +149,130 @@ export default function AdminHalamanPage() {
       setShowAddForm(false);
       setHasUnsavedChanges(false);
       setAutoSaveStatus('saved');
-    } catch (error) {
-      console.error('Error saving page:', error);
+    } catch {
+      console.error('Error saving page');
       alert('Terjadi kesalahan saat menyimpan halaman');
     } finally {
       setIsSaving(false);
     }
+  }, [formData, selectedPage]);
+
+  const handleAddPage = useCallback(() => {
+    setFormData({
+      title: "",
+      slug: "",
+      content: "",
+      files: [],
+      sections: []
+    });
+    setSelectedPage(null);
+    setShowAddForm(true);
+  }, []);
+
+  useEffect(() => {
+    fetchPages();
+  }, []);
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (!hasUnsavedChanges || (!selectedPage && !showAddForm)) return;
+    
+    const autoSaveTimer = setTimeout(() => {
+      if (formData.title && formData.slug) {
+        handleAutoSave();
+      }
+    }, 3000); // Auto-save after 3 seconds of inactivity
+    
+    return () => clearTimeout(autoSaveTimer);
+  }, [formData, hasUnsavedChanges, selectedPage, showAddForm, handleAutoSave]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 's') {
+          e.preventDefault();
+          if (formData.title && formData.slug) {
+            handleSave();
+          }
+        }
+        if (e.key === 'n') {
+          e.preventDefault();
+          handleAddPage();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [formData, handleSave, handleAddPage]);
+
+  const fetchPages = async () => {
+    try {
+      const response = await fetch('/api/pages');
+      const result = await response.json();
+      if (result.success) {
+        setPages(result.data.map((page: { id: string; title: string; slug: string; content?: string; updated_at?: string; created_at: string }) => ({
+          id: page.id,
+          title: page.title,
+          slug: page.slug,
+          content: page.content || '',
+          files: [],
+          sections: [],
+          lastUpdated: new Date(page.updated_at || page.created_at).toISOString().split('T')[0]
+        })));
+      }
+    } catch {
+      console.error('Error fetching pages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageSelect = (pageId: string) => {
+    const page = pages.find(p => p.id === pageId);
+    if (page) {
+      setFormData({
+        title: page.title,
+        slug: page.slug,
+        content: page.content,
+        files: page.files,
+        sections: page.sections || []
+      });
+      setSelectedPage(pageId);
+      setShowAddForm(false);
+    }
+  };
+
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  };
+
+  const handleTitleChange = (title: string) => {
+    setFormData(prev => ({
+      ...prev,
+      title,
+      slug: prev.slug || generateSlug(title)
+    }));
+    setHasUnsavedChanges(true);
+    setAutoSaveStatus('unsaved');
+  };
+
+  const handleContentChange = (content: string) => {
+    setFormData(prev => ({ ...prev, content }));
+    setHasUnsavedChanges(true);
+    setAutoSaveStatus('unsaved');
+  };
+
+  const handleSlugChange = (slug: string) => {
+    setFormData(prev => ({ ...prev, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '') }));
+    setHasUnsavedChanges(true);
+    setAutoSaveStatus('unsaved');
   };
 
   const handleFileUpload = (files: FileList) => {

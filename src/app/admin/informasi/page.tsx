@@ -1,34 +1,34 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useInformasiData } from "@/hooks/useInformasiData";
 import { useAuth } from "@/context/AuthContext";
 import { X, Upload, Link as LinkIcon, FileText } from "lucide-react";
 
+interface Category {
+  id: number;
+  slug: string;
+  nama: string;
+}
+
+interface InformasiItem {
+  id: number;
+  judul: string;
+  klasifikasi: string;
+  ringkasan_isi_informasi: string;
+  tanggal_posting?: string;
+  pejabat_penguasa_informasi?: string;
+  created_at: string;
+  links?: string | { title: string; url: string }[];
+  file_attachments?: string | { name: string; url: string; size?: number }[];
+}
+
 export default function AdminInformasiPage() {
   const { informasi, isLoading, createInformasi, updateInformasi, deleteInformasi } = useInformasiData();
-  const { getUserRole, user } = useAuth();
+  const { getUserRole } = useAuth();
   
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-  
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/kategori');
-      const data = await response.json();
-      if (data.success) {
-        setCategories(data.data);
-        if (data.data.length > 0 && !formData.klasifikasi) {
-          setFormData(prev => ({ ...prev, klasifikasi: data.data[0].slug }));
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
-  };
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ 
@@ -40,7 +40,26 @@ export default function AdminInformasiPage() {
     existingFiles: [] as { name: string; url: string; size?: number }[],
     links: [{ title: '', url: '' }] as { title: string; url: string }[]
   });
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch('/api/kategori');
+      const data = await response.json();
+      if (data.success) {
+        setCategories(data.data);
+        if (data.data.length > 0 && !formData.klasifikasi) {
+          setFormData(prev => ({ ...prev, klasifikasi: data.data[0].slug }));
+        }
+      }
+    } catch {
+      console.error('Failed to fetch categories');
+    }
+  }, [formData.klasifikasi]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,7 +123,7 @@ export default function AdminInformasiPage() {
     }
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: InformasiItem) => {
     // Parse links if it's a JSON string
     let parsedLinks = [{ title: '', url: '' }];
     if (item.links) {
@@ -113,7 +132,7 @@ export default function AdminInformasiPage() {
         if (!Array.isArray(parsedLinks) || parsedLinks.length === 0) {
           parsedLinks = [{ title: '', url: '' }];
         }
-      } catch (e) {
+      } catch {
         parsedLinks = [{ title: '', url: '' }];
       }
     }
@@ -126,7 +145,7 @@ export default function AdminInformasiPage() {
         if (!Array.isArray(existingFiles)) {
           existingFiles = [];
         }
-      } catch (e) {
+      } catch {
         existingFiles = [];
       }
     }
@@ -180,7 +199,7 @@ export default function AdminInformasiPage() {
       try {
         await deleteInformasi(id);
         alert('Informasi berhasil dihapus');
-      } catch (error) {
+      } catch {
         alert('Gagal menghapus informasi');
       }
     }

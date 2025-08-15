@@ -1,11 +1,16 @@
-import axios from "axios";
+interface RequestData {
+  rincian_informasi: string;
+  tujuan_penggunaan: string;
+  cara_memperoleh_informasi?: string;
+  cara_mendapat_salinan?: string;
+  file_attachments?: string[];
+}
 
-const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+interface StatusUpdateData {
+  status: string;
+  catatan_ppid?: string;
+  file_attachments?: string[];
+}
 
 export const loginUser = async (email: string, password: string) => {
   try {
@@ -79,7 +84,7 @@ export const getAdminData = async (endpoint: string, token: string) => {
   return await response.json();
 };
 
-export const createRequest = async (requestData: any, token: string) => {
+export const createRequest = async (requestData: RequestData, token: string) => {
   if (!token) {
     throw new Error("Authentication required");
   }
@@ -104,7 +109,7 @@ export const createRequest = async (requestData: any, token: string) => {
     try {
       const errorData = JSON.parse(errorText);
       throw new Error(errorData.error || errorData.message || "Failed to create request");
-    } catch (parseError) {
+    } catch {
       throw new Error(`Server error (${response.status}): ${errorText}`);
     }
   }
@@ -139,7 +144,7 @@ export const getPermintaan = async (token: string, params?: { page?: number; lim
   return await response.json();
 };
 
-export const updatePermintaanStatus = async (id: string, statusData: any, token: string) => {
+export const updatePermintaanStatus = async (id: string, statusData: StatusUpdateData, token: string) => {
   if (!token) {
     throw new Error("Authentication required");
   }

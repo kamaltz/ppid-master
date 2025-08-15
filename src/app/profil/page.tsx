@@ -2,8 +2,27 @@
 
 import { useState, useEffect } from "react";
 
+interface Section {
+  id: string;
+  title?: string;
+  content: string;
+}
+
+interface FileItem {
+  id: string;
+  name: string;
+  url?: string;
+}
+
+interface PageData {
+  title: string;
+  content?: string;
+  files?: FileItem[];
+  sections?: Section[];
+}
+
 export default function ProfilPage() {
-  const [pageData, setPageData] = useState({
+  const [pageData, setPageData] = useState<PageData>({
     title: "Profil PPID",
     content: "",
     files: [],
@@ -94,7 +113,7 @@ export default function ProfilPage() {
           {/* Custom Sections */}
           {pageData.sections && pageData.sections.length > 0 && (
             <div className="space-y-8">
-              {pageData.sections.map((section: any) => (
+              {pageData.sections.map((section: Section) => (
                 <div key={section.id} className="bg-white rounded-lg shadow-lg p-8">
                   {section.title && (
                     <h3 className="text-2xl font-bold mb-6 text-gray-800">{section.title}</h3>
@@ -113,7 +132,7 @@ export default function ProfilPage() {
             <div className="bg-white rounded-lg shadow-lg p-8 mt-8">
               <h3 className="text-2xl font-bold mb-6 text-gray-800">Dokumen Terkait</h3>
               <div className="grid gap-4">
-                {pageData.files.map((file: any) => (
+                {pageData.files.map((file: FileItem) => (
                   <div key={file.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="text-3xl">📄</div>

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -15,15 +14,11 @@ interface Permohonan {
   nama: string;
   email: string;
   informasi: string;
-  tujuan_penggunaan?: string;
-  cara_memperoleh_informasi?: string;
-  cara_mendapat_salinan?: string;
   status: string;
   tanggal: string;
 }
 
 export default function AdminPermohonanPage() {
-  const { userRole } = useRoleAccess();
   const { permintaan, isLoading, refreshData } = useDashboardData();
   const [selectedPermohonan, setSelectedPermohonan] = useState<Permohonan | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -50,7 +45,7 @@ export default function AdminPermohonanPage() {
       if (!isNaN(date.getTime())) {
         tanggalDisplay = date.toLocaleDateString('id-ID');
       }
-    } catch (e) {
+    } catch {
       // Keep default value
     }
     
@@ -58,10 +53,7 @@ export default function AdminPermohonanPage() {
       id: req.id,
       nama: req.pemohon?.nama || 'N/A',
       email: req.pemohon?.email || 'N/A',
-      informasi: req.judul || req.rincian_informasi,
-      tujuan_penggunaan: req.tujuan_penggunaan,
-      cara_memperoleh_informasi: req.cara_memperoleh_informasi,
-      cara_mendapat_salinan: req.cara_mendapat_salinan,
+      informasi: req.rincian_informasi,
       status: req.status,
       tanggal: tanggalDisplay
     };
@@ -112,7 +104,7 @@ export default function AdminPermohonanPage() {
           setConfirmModal({ ...confirmModal, isOpen: false });
           setSuccessModal({ isOpen: true, title: successTitle, message: successMessage });
           refreshData();
-        } catch (error) {
+        } catch {
           alert('Gagal mengupdate status');
         } finally {
           setIsProcessing(false);
@@ -152,7 +144,7 @@ export default function AdminPermohonanPage() {
             message: `Permohonan #${id} berhasil dihapus dari sistem.`
           });
           refreshData();
-        } catch (error) {
+        } catch {
           alert('Gagal menghapus permohonan');
         } finally {
           setIsProcessing(false);
@@ -462,18 +454,7 @@ export default function AdminPermohonanPage() {
                 <label className="text-sm font-medium text-gray-600">Informasi Diminta</label>
                 <p className="text-gray-900">{selectedPermohonan.informasi}</p>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Tujuan Penggunaan</label>
-                <p className="text-gray-900">{selectedPermohonan.tujuan_penggunaan || 'Tidak ada'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Cara Memperoleh Informasi</label>
-                <p className="text-gray-900">{selectedPermohonan.cara_memperoleh_informasi || 'Tidak ada'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Cara Mendapat Salinan</label>
-                <p className="text-gray-900">{selectedPermohonan.cara_mendapat_salinan || 'Tidak ada'}</p>
-              </div>
+
               <div>
                 <label className="text-sm font-medium text-gray-600">Status</label>
                 <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedPermohonan.status)}`}>

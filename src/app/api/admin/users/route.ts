@@ -3,6 +3,11 @@ import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
+interface JWTPayload {
+  role: string;
+  id: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -11,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
     if (decoded.role !== 'Admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
@@ -30,7 +35,7 @@ export async function GET(request: NextRequest) {
     ];
 
     return NextResponse.json({ data: users });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -43,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
     if (decoded.role !== 'Admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
@@ -82,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ message: 'User berhasil dibuat', data: newUser });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

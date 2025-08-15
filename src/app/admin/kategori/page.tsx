@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { Plus, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
@@ -139,7 +139,7 @@ export default function AdminKategoriPage() {
       setShowForm(false);
       setEditId(null);
       setFormData({ nama: '', slug: '', deskripsi: '' });
-    } catch (error) {
+    } catch {
       alert('Terjadi kesalahan');
     }
   };
@@ -190,7 +190,7 @@ export default function AdminKategoriPage() {
           } else {
             alert(data.error || 'Gagal menghapus kategori');
           }
-        } catch (error) {
+        } catch {
           alert('Terjadi kesalahan');
         }
       }

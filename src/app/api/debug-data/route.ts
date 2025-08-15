@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 
 export async function GET() {
@@ -25,8 +25,8 @@ export async function GET() {
         rincian_informasi: r.rincian_informasi
       }))
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Debug error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
 export default function AccessibilityHelper() {
@@ -30,7 +30,7 @@ export default function AccessibilityHelper() {
     localStorage.setItem('accessibility_enabled', JSON.stringify(newState));
   };
 
-  const speakText = (text: string) => {
+  const speakText = useCallback((text: string) => {
     if (!isEnabled || !text) return;
     
     window.speechSynthesis.cancel();
@@ -55,7 +55,7 @@ export default function AccessibilityHelper() {
     utterance.volume = 0.8;
     
     window.speechSynthesis.speak(utterance);
-  };
+  }, [isEnabled]);
 
   useEffect(() => {
     if (!isEnabled) return;
@@ -87,7 +87,7 @@ export default function AccessibilityHelper() {
 
     document.addEventListener('mouseover', handleMouseOver);
     return () => document.removeEventListener('mouseover', handleMouseOver);
-  }, [isEnabled]);
+  }, [isEnabled, speakText]);
 
   if (!isVisible) return null;
 

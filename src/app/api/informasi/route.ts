@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface WhereClause {
+  klasifikasi?: string;
+  OR?: Array<{
+    judul?: { contains: string; mode: 'insensitive' };
+    ringkasan_isi_informasi?: { contains: string; mode: 'insensitive' };
+  }>;
+}
+
+interface FileData {
+  originalName?: string;
+  name: string;
+  url: string;
+  size: number;
+}
+
+interface LinkData {
+  title: string;
+  url: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,7 +30,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    const where: any = {};
+    const where: WhereClause = {};
     if (klasifikasi) where.klasifikasi = klasifikasi;
     if (search) {
       where.OR = [
@@ -62,8 +82,8 @@ export async function POST(request: NextRequest) {
         ringkasan_isi_informasi, 
         tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : new Date(),
         pejabat_penguasa_informasi,
-        file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: any) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
-        links: links && links.length > 0 ? JSON.stringify(links.filter((l: any) => l.title && l.url)) : null
+        file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: FileData) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
+        links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null
       }
     });
 

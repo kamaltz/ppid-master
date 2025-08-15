@@ -1,32 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDashboardStats } from '../../../../../lib/controllers/adminController';
 
+interface MockRequest {
+  headers: Record<string, string>;
+}
+
+interface MockResponse {
+  status: (code: number) => {
+    json: (data: unknown) => void;
+  };
+  json: (data: unknown) => void;
+}
+
 export async function GET(request: NextRequest) {
   try {
-    let responseData: any;
+    let responseData: unknown;
     let statusCode = 200;
     
-    const req = {
+    const req: MockRequest = {
       headers: Object.fromEntries(request.headers.entries()),
-    } as any;
+    };
     
-    const res = {
+    const res: MockResponse = {
       status: (code: number) => {
         statusCode = code;
         return {
-          json: (data: any) => {
+          json: (data: unknown) => {
             responseData = data;
           }
         };
       },
-      json: (data: any) => {
+      json: (data: unknown) => {
         responseData = data;
       }
-    } as any;
+    };
     
     await getDashboardStats(req, res);
     return NextResponse.json(responseData, { status: statusCode });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

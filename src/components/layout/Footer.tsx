@@ -4,6 +4,11 @@ import { MapPin, Phone, Mail, Clock, ExternalLink, Facebook, Instagram, Twitter,
 import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
 
+interface QuickLink {
+  label: string;
+  url: string;
+}
+
 const Footer = () => {
   const { settings } = useSettings();
   const footer = settings?.footer;
@@ -58,7 +63,7 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">Link Penting</h3>
             <div className="space-y-2 text-sm">
-              {footer?.quickLinks?.map((link, index) => (
+              {footer?.quickLinks?.map((link: QuickLink, index: number) => (
                 <Link key={index} href={link.url} className="flex items-center hover:text-blue-200 transition-colors">
                   <ExternalLink className="h-3 w-3 mr-2" />
                   {link.label}

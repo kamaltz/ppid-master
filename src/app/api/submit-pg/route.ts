@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
       data: result.rows[0]
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });
   }
 }

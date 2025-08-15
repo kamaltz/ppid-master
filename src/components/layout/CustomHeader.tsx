@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface MenuItem {
   label: string;
@@ -102,9 +103,11 @@ export default function CustomHeader() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-3">
               {(generalSettings.logo || headerSettings.logo) && (
-                <img 
+                <Image 
                   src={generalSettings.logo || headerSettings.logo} 
                   alt="Logo" 
+                  width={40}
+                  height={40}
                   className="h-10 w-auto"
                 />
               )}

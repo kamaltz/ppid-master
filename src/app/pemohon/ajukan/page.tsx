@@ -43,8 +43,10 @@ export default function AjukanPermohonanPage() {
     try {
       await createRequest(formData, token!);
       setShowSuccessModal(true);
-    } catch (err: any) {
-      setError(err.error || "Terjadi kesalahan saat mengirim permohonan.");
+    } catch (err: unknown) {
+      setError(
+        (err as { error?: string })?.error || "Terjadi kesalahan saat mengirim permohonan."
+      );
     } finally {
       setIsLoading(false);
     }

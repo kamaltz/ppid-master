@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import RichTextEditor from '@/components/RichTextEditor';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { Plus, Edit, Trash2, Eye, Save, X } from 'lucide-react';
 
 interface Page {
@@ -29,11 +29,7 @@ export default function PagesManagement() {
   });
   const [showPreview, setShowPreview] = useState(false);
 
-  useEffect(() => {
-    fetchPages();
-  }, []);
-
-  const fetchPages = async () => {
+  const fetchPages = useCallback(async () => {
     try {
       const response = await fetch('/api/pages', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -42,12 +38,18 @@ export default function PagesManagement() {
       if (data.success) {
         setPages(data.data);
       }
-    } catch (error) {
-      console.error('Failed to fetch pages:', error);
+    } catch {
+      console.error('Failed to fetch pages');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchPages();
+  }, [fetchPages]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +115,7 @@ export default function PagesManagement() {
       } else {
         alert('Gagal menghapus halaman: ' + data.error);
       }
-    } catch (error) {
+    } catch {
       alert('Terjadi kesalahan saat menghapus halaman');
     }
   };
@@ -198,8 +200,8 @@ export default function PagesManagement() {
                 </label>
                 <RichTextEditor
                   value={formData.content}
-                  onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                  placeholder="Tulis konten halaman di sini..."
+                  onChange={(content: string) => setFormData(prev => ({ ...prev, content }))}
+                  onFileUpload={() => {}}
                 />
               </div>
 

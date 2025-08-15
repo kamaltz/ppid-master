@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  role: string;
+  userId: number;
+}
+
+interface WhereClause {
+  pemohon_id?: number;
+  status?: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -10,12 +20,12 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
     const { searchParams } = new URL(request.url);
     const pemohonId = searchParams.get('pemohon_id');
 
-    const where: any = {};
+    const where: WhereClause = {};
     if (decoded.role === 'Pemohon') {
       where.pemohon_id = decoded.userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
@@ -59,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     if (decoded.role !== 'Pemohon') {
       return NextResponse.json({ error: 'Only pemohon can create keberatan' }, { status: 403 });

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getPublicData } from "@/lib/api";
-import { Card, CardHeader, CardTitle, CardDescription } from "./ui/Card"; // Asumsi komponen Card
+import { Card, CardHeader } from "./ui/Card";
 import { FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -12,6 +12,8 @@ interface Informasi {
   judul: string;
   ringkasan_isi_informasi: string;
   klasifikasi: string;
+  tanggal_posting: string;
+  created_at: string;
 }
 
 export default function PublicInformationList() {
@@ -22,11 +24,7 @@ export default function PublicInformationList() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    fetchInformasi();
-  }, [currentPage]);
-
-  const fetchInformasi = async () => {
+  const fetchInformasi = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getPublicData(`/informasi?page=${currentPage}&limit=10`);
@@ -35,13 +33,19 @@ export default function PublicInformationList() {
         setTotalPages(data.pagination.totalPages);
         setTotal(data.pagination.total);
       }
-    } catch (err) {
+    } catch {
       setError('Gagal memuat informasi publik');
       setInformasi([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
+
+  useEffect(() => {
+    fetchInformasi();
+  }, [fetchInformasi]);
+
+
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -82,9 +86,9 @@ export default function PublicInformationList() {
                       <FileText className="h-6 w-6 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="hover:text-blue-600 transition-colors mb-2 text-lg leading-tight">
+                      <div className="hover:text-blue-600 transition-colors mb-2 text-lg leading-tight font-semibold text-gray-800">
                         {item.judul}
-                      </CardTitle>
+                      </div>
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="text-xs font-medium bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
                           {item.klasifikasi}

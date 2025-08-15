@@ -12,7 +12,7 @@ export async function getSettings() {
         acc[setting.key] = setting.value;
       }
       return acc;
-    }, {} as any);
+    }, {} as Record<string, unknown>);
     
     return settingsObj;
   } catch (error) {

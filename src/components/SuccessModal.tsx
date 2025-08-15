@@ -1,7 +1,7 @@
 // src/components/SuccessModal.tsx
 "use client";
 
-import { CheckCircle, FileText } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 interface SuccessModalProps {
   isOpen: boolean;

@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RequestData, generateDummyRequests, simulateRealtimeUpdate, generateStatusData, generateMonthlyData, generateDailyData, generateCategoryData } from '@/lib/dummyData';
 
+interface ChartDataItem {
+  label: string;
+  value: number;
+  color: string;
+}
+
+interface ChartData {
+  monthly: ChartDataItem[];
+  daily: ChartDataItem[];
+  category: ChartDataItem[];
+  status: ChartDataItem[];
+}
+
 export const useRealtimeData = () => {
   const [requests, setRequests] = useState<RequestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +47,7 @@ export const useRealtimeData = () => {
     rejected: requests.filter(r => r.status === 'rejected').length
   };
 
-  const [chartData, setChartData] = useState({
+  const [chartData, setChartData] = useState<ChartData>({
     monthly: [],
     daily: [],
     category: [],

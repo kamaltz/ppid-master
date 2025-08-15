@@ -1,34 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateUser, deleteUser, resetUserPassword } from '../../../../../../lib/controllers/adminController';
 
+interface MockRequest {
+  params: { id: string };
+  body: unknown;
+  headers: Record<string, string>;
+}
+
+interface MockResponse {
+  status: (code: number) => {
+    json: (data: unknown) => void;
+  };
+  json: (data: unknown) => void;
+}
+
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await request.json();
     const url = new URL(request.url);
     const isResetPassword = url.searchParams.get('action') === 'reset-password';
     
-    let responseData: any;
+    let responseData: unknown;
     let statusCode = 200;
     
-    const req = {
+    const req: MockRequest = {
       params,
       body,
       headers: Object.fromEntries(request.headers.entries()),
-    } as any;
+    };
     
-    const res = {
+    const res: MockResponse = {
       status: (code: number) => {
         statusCode = code;
         return {
-          json: (data: any) => {
+          json: (data: unknown) => {
             responseData = data;
           }
         };
       },
-      json: (data: any) => {
+      json: (data: unknown) => {
         responseData = data;
       }
-    } as any;
+    };
     
     if (isResetPassword) {
       await resetUserPassword(req, res);
@@ -37,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
     
     return NextResponse.json(responseData, { status: statusCode });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -49,32 +62,32 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const body = await request.json();
     
-    let responseData: any;
+    let responseData: unknown;
     let statusCode = 200;
     
-    const req = {
+    const req: MockRequest = {
       params,
       body,
       headers: Object.fromEntries(request.headers.entries()),
-    } as any;
+    };
     
-    const res = {
+    const res: MockResponse = {
       status: (code: number) => {
         statusCode = code;
         return {
-          json: (data: any) => {
+          json: (data: unknown) => {
             responseData = data;
           }
         };
       },
-      json: (data: any) => {
+      json: (data: unknown) => {
         responseData = data;
       }
-    } as any;
+    };
     
     await deleteUser(req, res);
     return NextResponse.json(responseData, { status: statusCode });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

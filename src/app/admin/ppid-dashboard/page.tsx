@@ -5,7 +5,6 @@ import {
   FileText,
   AlertTriangle,
   Info,
-  Users,
   BarChart3,
   ArrowRight,
   TrendingUp,
@@ -19,7 +18,7 @@ import Chart from "@/components/ui/Chart";
 export default function PPIDDashboardPage() {
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
-  const { stats, chartData, isLoading } = useDashboardData();
+  const { stats, chartData } = useDashboardData();
 
   const managementSections = userRole === 'PPID_PELAKSANA' ? [
     {
@@ -177,7 +176,7 @@ export default function PPIDDashboardPage() {
             <Chart
               type="line"
               title="📈 Tren Harian (7 Hari)"
-              data={chartData.daily}
+              data={chartData.daily.map(item => ({ label: item.date, value: item.count, color: '#3B82F6' }))}
               height={300}
             />
           </div>
@@ -197,7 +196,7 @@ export default function PPIDDashboardPage() {
             <Chart
               type="donut"
               title="🏷️ Kategori Informasi"
-              data={chartData.category}
+              data={chartData.status}
               height={280}
             />
           </div>

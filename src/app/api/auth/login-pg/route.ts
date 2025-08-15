@@ -1,32 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { login } from '../../../../../lib/controllers/authControllerPG';
 
+interface MockRequest {
+  body: unknown;
+}
+
+interface MockResponse {
+  status: (code: number) => {
+    json: (data: unknown) => void;
+  };
+  json: (data: unknown) => void;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    let responseData: any;
+    let responseData: unknown;
     let statusCode = 200;
     
-    const req = { body } as any;
-    const res = {
+    const req: MockRequest = { body };
+    const res: MockResponse = {
       status: (code: number) => {
         statusCode = code;
         return {
-          json: (data: any) => {
+          json: (data: unknown) => {
             responseData = data;
           }
         };
       },
-      json: (data: any) => {
+      json: (data: unknown) => {
         responseData = data;
       }
-    } as any;
+    };
     
     await login(req, res);
     
     return NextResponse.json(responseData, { status: statusCode });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ 
       error: 'Server error' 
     }, { status: 500 });

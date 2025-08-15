@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  role: string;
+  id: string;
+  email: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -10,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });

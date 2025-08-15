@@ -5,9 +5,15 @@ import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/api";
 import { isAdminRole, isPemohon } from "@/lib/roleUtils";
 
+interface User {
+  userId: string;
+  email: string;
+  role: string;
+}
+
 interface AuthContextType {
   token: string | null;
-  user: any;
+  user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -19,7 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 

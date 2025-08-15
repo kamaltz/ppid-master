@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { seedAllData, seedRequests, seedInformasi, seedPages } from "@/lib/seedData";
+import { seedAllData, seedRequests, seedInformasi } from "@/lib/seedData";
 
 export default function SeedPage() {
   const [isSeeding, setIsSeeding] = useState(false);
@@ -13,7 +13,7 @@ export default function SeedPage() {
     try {
       await seedAllData();
       setMessage("✅ All data uploaded successfully!");
-    } catch (error) {
+    } catch {
       setMessage("❌ Failed to upload data");
     } finally {
       setIsSeeding(false);
@@ -26,7 +26,7 @@ export default function SeedPage() {
     try {
       await seedRequests();
       setMessage("✅ Requests uploaded successfully!");
-    } catch (error) {
+    } catch {
       setMessage("❌ Failed to upload requests");
     } finally {
       setIsSeeding(false);
@@ -39,7 +39,7 @@ export default function SeedPage() {
     try {
       await seedInformasi();
       setMessage("✅ Informasi uploaded successfully!");
-    } catch (error) {
+    } catch {
       setMessage("❌ Failed to upload informasi");
     } finally {
       setIsSeeding(false);

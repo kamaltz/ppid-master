@@ -19,6 +19,18 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
 
+interface DropdownItem {
+  label: string;
+  url: string;
+}
+
+interface MenuItem {
+  label: string;
+  url: string;
+  hasDropdown: boolean;
+  dropdownItems?: DropdownItem[];
+}
+
 const Header = () => {
   const { token, logout } = useAuth();
   const router = useRouter();
@@ -67,7 +79,7 @@ const Header = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-6">
-          {settings?.header?.menuItems?.map((item, index) => (
+          {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
             <div key={index} className="relative group">
               {item.hasDropdown ? (
                 <>
@@ -79,7 +91,7 @@ const Header = () => {
                   </button>
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-1">
-                      {item.dropdownItems?.map((dropItem, dropIndex) => (
+                      {item.dropdownItems?.map((dropItem: DropdownItem, dropIndex: number) => (
                         <Link
                           key={dropIndex}
                           href={dropItem.url}
@@ -196,13 +208,13 @@ const Header = () => {
 
             {/* Mobile Navigation */}
             <nav className="space-y-2">
-              {settings?.header?.menuItems?.map((item, index) => (
+              {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
                 <div key={index}>
                   {item.hasDropdown ? (
                     <div className="space-y-1">
                       <div className="font-medium text-gray-800 py-2">{item.label}</div>
                       <div className="pl-4 space-y-1">
-                        {item.dropdownItems?.map((dropItem, dropIndex) => (
+                        {item.dropdownItems?.map((dropItem: DropdownItem, dropIndex: number) => (
                           <Link
                             key={dropIndex}
                             href={dropItem.url}

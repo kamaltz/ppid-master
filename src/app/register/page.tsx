@@ -69,6 +69,7 @@ export default function RegisterPage() {
     setSuccess(null);
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...submitData } = formData;
       const data = await registerUser(submitData);
       setSuccess(

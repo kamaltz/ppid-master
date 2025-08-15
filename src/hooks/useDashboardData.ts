@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAdminData, getPermintaan } from '@/lib/api';
+import { getPermintaan } from '@/lib/api';
 
 interface DashboardStats {
   total: number;
@@ -22,6 +22,38 @@ interface PermintaanData {
   created_at: string | Date;
   file_attachments?: string | string[];
 }
+
+interface LocalStorageItem {
+  created_at?: string;
+  tanggal?: string;
+  status: string;
+  nama?: string;
+  email?: string;
+  nik?: string;
+  no_telepon?: string;
+  rincian_informasi?: string;
+  jenis_informasi?: string;
+  pemohon?: {
+    nama: string;
+    email: string;
+    nik?: string;
+    no_telepon?: string;
+  };
+  [key: string]: unknown;
+}
+
+interface ChartDataItem {
+  label: string;
+  value: number;
+  color: string;
+}
+
+interface DailyDataItem {
+  date: string;
+  count: number;
+}
+
+
 
 export const useDashboardData = () => {
   const [permintaan, setPermintaan] = useState<PermintaanData[]>([]);
@@ -64,7 +96,7 @@ export const useDashboardData = () => {
       if (permintaanData.length === 0) {
         const localData = JSON.parse(localStorage.getItem('permintaan') || '[]');
         // Normalize data format and ensure proper dates
-        permintaanData = localData.map((item: any) => {
+        permintaanData = localData.map((item: LocalStorageItem) => {
           // Handle different date field names and formats
           let dateValue = item.created_at || item.tanggal;
           
@@ -113,10 +145,10 @@ export const useDashboardData = () => {
       // Calculate stats
       const newStats = {
         total: permintaanData.length,
-        diajukan: permintaanData.filter((p: any) => p.status === 'Diajukan').length,
-        diproses: permintaanData.filter((p: any) => p.status === 'Diproses').length,
-        selesai: permintaanData.filter((p: any) => p.status === 'Selesai').length,
-        ditolak: permintaanData.filter((p: any) => p.status === 'Ditolak').length
+        diajukan: permintaanData.filter((p: PermintaanData) => p.status === 'Diajukan').length,
+        diproses: permintaanData.filter((p: PermintaanData) => p.status === 'Diproses').length,
+        selesai: permintaanData.filter((p: PermintaanData) => p.status === 'Selesai').length,
+        ditolak: permintaanData.filter((p: PermintaanData) => p.status === 'Ditolak').length
       };
       
       setStats(newStats);
@@ -143,9 +175,9 @@ export const useDashboardData = () => {
   }, [loadData]);
 
   // Generate real-time chart data from database
-  const generateMonthlyData = (data: any[]) => {
+  const generateMonthlyData = (data: PermintaanData[]): ChartDataItem[] => {
     const monthlyStats: { [key: string]: number } = {};
-    data.forEach((item: any) => {
+    data.forEach((item: PermintaanData) => {
       if (!item.created_at) return;
       const itemDate = new Date(item.created_at);
       if (isNaN(itemDate.getTime())) {
@@ -162,7 +194,7 @@ export const useDashboardData = () => {
     }));
   };
 
-  const generateDailyData = (data: any[]) => {
+  const generateDailyData = (data: PermintaanData[]): DailyDataItem[] => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -170,7 +202,7 @@ export const useDashboardData = () => {
     }).reverse();
     
     return last7Days.map(date => {
-      const count = data.filter((item: any) => {
+      const count = data.filter((item: PermintaanData) => {
         if (!item.created_at) return false;
         const itemDate = new Date(item.created_at);
         if (isNaN(itemDate.getTime())) {
@@ -186,7 +218,7 @@ export const useDashboardData = () => {
     });
   };
 
-  const generateKeberatanData = (data: any[]) => {
+  const generateKeberatanData = (data: PermintaanData[]): DailyDataItem[] => {
     // Filter data keberatan dari permohonan yang ditolak
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
@@ -195,7 +227,7 @@ export const useDashboardData = () => {
     }).reverse();
     
     return last7Days.map(date => {
-      const keberatanCount = data.filter((item: any) => {
+      const keberatanCount = data.filter((item: PermintaanData) => {
         if (!item.created_at || item.status !== 'Ditolak') return false;
         const itemDate = new Date(item.created_at);
         if (isNaN(itemDate.getTime())) return false;
@@ -209,7 +241,7 @@ export const useDashboardData = () => {
     });
   };
   
-  const generateYearlyData = (data: any[]) => {
+  const generateYearlyData = (data: PermintaanData[]) => {
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     
@@ -221,7 +253,7 @@ export const useDashboardData = () => {
       yearlyKeberatan[year] = Array(12).fill(0);
       
       // Count actual data
-      data.forEach((item: any) => {
+      data.forEach((item: PermintaanData) => {
         if (!item.created_at) return;
         const itemDate = new Date(item.created_at);
         if (isNaN(itemDate.getTime()) || itemDate.getFullYear() !== year) return;

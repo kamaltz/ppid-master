@@ -13,8 +13,6 @@ import {
   Globe,
   AlertTriangle,
   User,
-  Menu,
-  X,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -95,7 +93,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const pathname = usePathname();
-  const { logout, getUserRole } = useAuth();
+  const { getUserRole } = useAuth();
   const userRole = getUserRole();
   const visibleMenuItems = menuItems.filter((item) =>
     canAccessMenu(userRole, item.roles)

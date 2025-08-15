@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { notFound } from "next/navigation";
 
 interface PageData {
@@ -16,17 +16,13 @@ export default function DynamicPage({ params }: { params: { slug: string } }) {
   const [page, setPage] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPage();
-  }, [params.slug]);
-
-  const fetchPage = async () => {
+  const fetchPage = useCallback(async () => {
     try {
       const response = await fetch('/api/pages');
       const result = await response.json();
       
       if (result.success) {
-        const foundPage = result.data.find((p: any) => p.slug === params.slug);
+        const foundPage = result.data.find((p: PageData) => p.slug === params.slug);
         if (foundPage) {
           setPage(foundPage);
         } else {
@@ -41,7 +37,11 @@ export default function DynamicPage({ params }: { params: { slug: string } }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.slug]);
+
+  useEffect(() => {
+    fetchPage();
+  }, [params.slug, fetchPage]);
 
   if (loading) {
     return (

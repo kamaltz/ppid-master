@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Plus, Edit, Trash2, GripVertical } from "lucide-react";
 import RichTextEditor from "./RichTextEditor";
-import FileUpload from "./FileUpload";
 
 interface Section {
   id: string;
@@ -11,7 +10,7 @@ interface Section {
   content: string;
   type: "text" | "image" | "file" | "hero";
   order: number;
-  files: any[];
+  files: { name: string; url: string; size?: number }[];
 }
 
 interface SectionEditorProps {

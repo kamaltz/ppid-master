@@ -13,6 +13,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface PermintaanData {
   id: number;
+  judul?: string;
   rincian_informasi: string;
   tujuan_penggunaan?: string;
   cara_memperoleh_informasi?: string;
@@ -23,12 +24,20 @@ interface PermintaanData {
   file_attachments?: string | string[];
 }
 
+interface KeberatanData {
+  id: number;
+  judul?: string;
+  alasan_keberatan?: string;
+  status?: string;
+  created_at: string;
+}
+
 export default function PemohonDashboardPage() {
   const [selectedRequest, setSelectedRequest] = useState<PermintaanData | null>(null);
   const { permintaan, stats, isLoading } = usePemohonData();
-  const { user } = useAuth();
+  useAuth();
   const router = useRouter();
-  const [keberatan, setKeberatan] = useState([]);
+  const [keberatan, setKeberatan] = useState<KeberatanData[]>([]);
   const [loadingKeberatan, setLoadingKeberatan] = useState(true);
 
   // Fetch keberatan data
@@ -92,15 +101,7 @@ export default function PemohonDashboardPage() {
     }
   };
   
-  const getTahapColor = (tahap: string) => {
-    switch (tahap) {
-      case 'PPID Utama': return 'bg-purple-100 text-purple-800';
-      case 'PPID Pelaksana': return 'bg-orange-100 text-orange-800';
-      case 'Selesai': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-  
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -133,7 +134,7 @@ export default function PemohonDashboardPage() {
             title: 'Berhasil Ditarik',
             message: `Permohonan #${id} berhasil ditarik kembali dari sistem.`
           });
-        } catch (error) {
+        } catch {
           alert('Gagal menarik permohonan');
         } finally {
           setIsProcessing(false);
@@ -159,7 +160,7 @@ export default function PemohonDashboardPage() {
         title: 'Berhasil Ditarik',
         message: `Keberatan #${selectedKeberatanId} berhasil ditarik kembali dari sistem.`
       });
-    } catch (error) {
+    } catch {
       alert('Gagal menarik keberatan');
     } finally {
       setIsProcessing(false);
@@ -273,7 +274,7 @@ export default function PemohonDashboardPage() {
                   <tr key={request.id}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{request.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {request.judul || request.rincian_informasi.substring(0, 50) + '...'}
+                      {(request as PermintaanData).judul || request.rincian_informasi.substring(0, 50) + '...'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
@@ -290,7 +291,7 @@ export default function PemohonDashboardPage() {
                         try {
                           const date = new Date(request.created_at);
                           return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-                        } catch (e) {
+                        } catch {
                           return 'Tanggal tidak tersedia';
                         }
                       })()}
@@ -357,7 +358,7 @@ export default function PemohonDashboardPage() {
                   </td>
                 </tr>
               ) : (
-                keberatan.map((item: any) => (
+                keberatan.map((item: KeberatanData) => (
                   <tr key={item.id}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">
@@ -373,7 +374,7 @@ export default function PemohonDashboardPage() {
                         try {
                           const date = new Date(item.created_at);
                           return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-                        } catch (e) {
+                        } catch {
                           return 'Tanggal tidak tersedia';
                         }
                       })()}
@@ -496,7 +497,7 @@ export default function PemohonDashboardPage() {
                     try {
                       const date = new Date(selectedRequest.created_at);
                       return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-                    } catch (e) {
+                    } catch {
                       return 'Tanggal tidak tersedia';
                     }
                   })()}

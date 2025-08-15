@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  role: string;
+  id: string;
+}
+
+interface StatusStats {
+  [key: string]: number;
+}
+
+interface ReportData {
+  title: string;
+  period: string;
+  summary: Record<string, unknown>;
+  details: Record<string, unknown>[];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -10,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
@@ -18,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const { template, startDate, endDate } = await request.json();
 
-    let reportData: any = {};
+    let reportData: ReportData = { title: '', period: '', summary: {}, details: [] };
     const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), 0, 1);
     const end = endDate ? new Date(endDate) : new Date();
 
@@ -43,7 +59,7 @@ export async function POST(request: NextRequest) {
           orderBy: { created_at: 'desc' }
         });
 
-        const statusStats = requests.reduce((acc: any, req) => {
+        const statusStats = requests.reduce((acc: StatusStats, req) => {
           acc[req.status] = (acc[req.status] || 0) + 1;
           return acc;
         }, {});
@@ -135,7 +151,7 @@ export async function POST(request: NextRequest) {
             return acc + days;
           }, 0) / allRequests.length : 0;
 
-        const statusBreakdown = allRequests.reduce((acc: any, req) => {
+        const statusBreakdown = allRequests.reduce((acc: StatusStats, req) => {
           acc[req.status] = (acc[req.status] || 0) + 1;
           return acc;
         }, {});

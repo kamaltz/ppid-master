@@ -1,9 +1,35 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
+import Image from "next/image";
+
+interface Slide {
+  id: number;
+  image: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  ctaText: string;
+  ctaUrl: string;
+  backgroundPosition: string;
+}
+
+interface HeroSettings {
+  title: string;
+  subtitle: string;
+  description: string;
+  backgroundImage: string;
+  ctaText: string;
+  ctaUrl: string;
+  isCarousel: boolean;
+  autoSlide: boolean;
+  slideInterval: number;
+  showCarouselCTA: boolean;
+  cleanTemplate: boolean;
+  slides: Slide[];
+}
 
 export default function AdminPengaturanPage() {
   const [activeTab, setActiveTab] = useState('general');
@@ -55,7 +81,7 @@ export default function AdminPengaturanPage() {
     showSocialMedia: true
   });
 
-  const [heroSettings, setHeroSettings] = useState({
+  const [heroSettings, setHeroSettings] = useState<HeroSettings>({
     title: 'Selamat Datang di PPID Kabupaten Garut',
     subtitle: 'Pejabat Pengelola Informasi dan Dokumentasi',
     description: 'Kami berkomitmen untuk memberikan akses informasi publik yang transparan, akuntabel, dan mudah diakses oleh seluruh masyarakat.',
@@ -140,7 +166,7 @@ export default function AdminPengaturanPage() {
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('❌ Gagal menyimpan pengaturan: ' + error.message);
+      alert('❌ Gagal menyimpan pengaturan: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
@@ -159,12 +185,15 @@ export default function AdminPengaturanPage() {
         if (result.data.footer) setFooterSettings(result.data.footer);
         if (result.data.hero) {
           const heroData = result.data.hero;
-          const slidesWithDefaults = (heroData.slides || []).map(slide => ({
-            ...slide,
-            ctaText: slide.ctaText ?? '',
-            ctaUrl: slide.ctaUrl ?? '',
-            backgroundPosition: slide.backgroundPosition ?? 'cover'
-          }));
+          const slidesWithDefaults = (heroData.slides || []).map((slide: unknown) => {
+            const slideData = slide as Record<string, unknown>;
+            return {
+              ...slideData,
+              ctaText: slideData.ctaText ?? '',
+              ctaUrl: slideData.ctaUrl ?? '',
+              backgroundPosition: slideData.backgroundPosition ?? 'cover'
+            };
+          });
           
           setHeroSettings({
             ...heroData,
@@ -181,11 +210,9 @@ export default function AdminPengaturanPage() {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleHeaderChange = (field: string, value: any) => {
-    setHeaderSettings(prev => ({ ...prev, [field]: value }));
-  };
 
-  const handleFooterChange = (field: string, value: any) => {
+
+  const handleFooterChange = (field: string, value: unknown) => {
     setFooterSettings(prev => ({ ...prev, [field]: value }));
   };
 
@@ -212,13 +239,13 @@ export default function AdminPengaturanPage() {
       } else {
         alert('❌ Gagal upload gambar: ' + result.error);
       }
-    } catch (error) {
+    } catch {
       alert('❌ Gagal upload gambar');
     }
   };
 
   const addSlide = () => {
-    const newSlide = {
+    const newSlide: Slide = {
       id: Date.now(),
       image: '',
       title: '',
@@ -254,7 +281,7 @@ export default function AdminPengaturanPage() {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
-      const img = new Image();
+      const img = new window.Image();
       
       img.onload = () => {
         canvas.width = targetWidth;
@@ -307,7 +334,7 @@ export default function AdminPengaturanPage() {
       } else {
         alert('❌ Gagal upload gambar: ' + result.error);
       }
-    } catch (error) {
+    } catch {
       alert('❌ Gagal upload gambar');
     }
   };
@@ -320,7 +347,7 @@ export default function AdminPengaturanPage() {
     }));
   };
 
-  const updateMenuItem = (index: number, field: string, value: any) => {
+  const updateMenuItem = (index: number, field: string, value: unknown) => {
     setHeaderSettings(prev => ({
       ...prev,
       menuItems: prev.menuItems.map((item, i) => 
@@ -504,7 +531,7 @@ export default function AdminPengaturanPage() {
                             } else {
                               alert('❌ Gagal upload logo: ' + result.error);
                             }
-                          } catch (error) {
+                          } catch {
                             alert('❌ Gagal upload logo');
                           }
                         }
@@ -532,7 +559,7 @@ export default function AdminPengaturanPage() {
                   {settings.logo && (
                     <div className="mt-2">
                       <p className="text-sm font-medium text-gray-700 mb-2">Preview Logo:</p>
-                      <img src={settings.logo} alt="Logo Preview" className="h-16 w-auto border rounded-lg" />
+                      <Image src={settings.logo} alt="Logo Preview" width={64} height={64} className="h-16 w-auto border rounded-lg" />
                     </div>
                   )}
                 </div>
@@ -1150,7 +1177,7 @@ export default function AdminPengaturanPage() {
                                       )}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">
-                                      Mode: <strong>{slide.backgroundPosition || 'cover'}</strong>
+                                      Mode: <strong>{slide.backgroundPosition || "cover"}</strong>
                                     </p>
                                   </div>
                                 )}
@@ -1161,7 +1188,7 @@ export default function AdminPengaturanPage() {
                         
                         {heroSettings.slides.length === 0 && (
                           <div className="text-center py-8 text-gray-500">
-                            <p>Belum ada slide. Klik "Tambah Slide" untuk menambah slide pertama.</p>
+                            <p>Belum ada slide. Klik &quot;Tambah Slide&quot; untuk menambah slide pertama.</p>
                           </div>
                         )}
                       </div>

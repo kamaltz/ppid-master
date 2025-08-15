@@ -446,9 +446,9 @@ const Chart = ({ data, type, title, height = 300 }: ChartProps) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
-      <div style={{ height: `${height}px` }}>
+    <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md">
+      <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-800 mb-2 sm:mb-3 md:mb-4">{title}</h3>
+      <div style={{ height: `${height}px`, minHeight: '200px' }}>
         {type === "bar" && <BarChart />}
         {type === "line" && <LineChart />}
         {type === "pie" && <PieChart />}
