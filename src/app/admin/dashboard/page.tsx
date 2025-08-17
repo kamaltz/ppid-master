@@ -166,60 +166,62 @@ export default function DashboardPage() {
           
           <div className="bg-gradient-to-br from-red-50 to-pink-100 p-1 rounded-xl">
             <Chart
-              type="line"
-              title="⚖️ Permohonan Ditolak (7 Hari)"
-              data={chartData.keberatan.map(item => ({ ...item, value: item.count }))}
+              type="bar"
+              title="⚖️ Keberatan per Bulan"
+              data={chartData.keberatan}
               height={250}
             />
           </div>
         </div>
         
-        {/* Yearly Progress Chart - Full Width */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-2">
-            <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">
-              📈 Progress Tahunan
-            </h3>
-            <select 
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto"
-            >
-              {yearOptions.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+        {/* Yearly Progress Chart - Full Width - Available for Admin */}
+        {userRole === 'Admin' && (
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-2">
+              <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">
+                📈 Progress Tahunan
+              </h3>
+              <select 
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto"
+              >
+                {yearOptions.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-100 p-1 rounded-xl">
+              <Chart
+                type="line"
+                title={`📊 Permohonan & Keberatan ${selectedYear}`}
+                data={{
+                  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                  datasets: [
+                    {
+                      label: 'Permohonan',
+                      data: chartData.yearlyPermohonan?.[selectedYear] || Array(12).fill(0),
+                      borderColor: 'rgb(59, 130, 246)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      tension: 0.4,
+                      fill: false
+                    },
+                    {
+                      label: 'Keberatan',
+                      data: chartData.yearlyKeberatan?.[selectedYear] || Array(12).fill(0),
+                      borderColor: 'rgb(239, 68, 68)',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      tension: 0.4,
+                      fill: false
+                    }
+                  ]
+                }}
+                height={300}
+              />
+            </div>
           </div>
-          
-          <div className="bg-gradient-to-br from-indigo-50 to-blue-100 p-1 rounded-xl">
-            <Chart
-              type="line"
-              title={`📊 Permohonan & Keberatan ${selectedYear}`}
-              data={{
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-                datasets: [
-                  {
-                    label: 'Permohonan',
-                    data: chartData.yearlyPermohonan?.[selectedYear] || Array(12).fill(0),
-                    borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.4,
-                    fill: false
-                  },
-                  {
-                    label: 'Keberatan (Ditolak)',
-                    data: chartData.yearlyKeberatan?.[selectedYear] || Array(12).fill(0),
-                    borderColor: 'rgb(239, 68, 68)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    tension: 0.4,
-                    fill: false
-                  }
-                ]
-              }}
-              height={300}
-            />
-          </div>
-        </div>
+        )}
 
         {/* Requests Table */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">

@@ -186,21 +186,54 @@ export default function PPIDDashboardPage() {
           <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-1 rounded-xl">
             <Chart
               type="bar"
-              title="📅 Permohonan per Bulan"
+              title="📅 Permohonan per Bulan (6 Bulan)"
               data={chartData.monthly}
               height={280}
             />
           </div>
 
-          <div className="bg-gradient-to-br from-orange-50 to-amber-100 p-1 rounded-xl">
+          <div className="bg-gradient-to-br from-red-50 to-pink-100 p-1 rounded-xl">
             <Chart
-              type="donut"
-              title="🏷️ Kategori Informasi"
-              data={chartData.status}
+              type="bar"
+              title="⚖️ Keberatan per Bulan"
+              data={chartData.keberatan}
               height={280}
             />
           </div>
         </div>
+
+        {userRole === 'PPID_UTAMA' && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-100 p-1 rounded-xl">
+              <Chart
+                type="line"
+                title="📈 Progress Tahunan Permohonan & Keberatan"
+                data={{
+                  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                  datasets: [
+                    {
+                      label: 'Permohonan',
+                      data: chartData.yearlyPermohonan?.[new Date().getFullYear()] || Array(12).fill(0),
+                      borderColor: 'rgb(59, 130, 246)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      tension: 0.4,
+                      fill: false
+                    },
+                    {
+                      label: 'Keberatan',
+                      data: chartData.yearlyKeberatan?.[new Date().getFullYear()] || Array(12).fill(0),
+                      borderColor: 'rgb(239, 68, 68)',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      tension: 0.4,
+                      fill: false
+                    }
+                  ]
+                }}
+                height={300}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-md text-white">
           <div className="flex items-center justify-between">

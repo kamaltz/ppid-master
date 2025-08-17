@@ -125,6 +125,7 @@ model InformasiPublik {
   thumbnail                  String?
   jadwal_publish             DateTime?
   images                     String?  @db.Text
+  created_by                 Int?
   created_at                 DateTime @default(now())
   updated_at                 DateTime @default(now()) @updatedAt
 
@@ -134,6 +135,7 @@ model InformasiPublik {
 model ActivityLog {
   id         Int      @id @default(autoincrement())
   action     String
+  resource   String?
   details    String?  @db.Text
   user_id    String?
   user_role  String?

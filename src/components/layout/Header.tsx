@@ -66,7 +66,7 @@ const Header = () => {
         {/* Logo & Title */}
         <Link href="/" className="flex items-center space-x-2 md:space-x-3">
           <Image 
-            src={settings?.general?.logo || "/logo-garut.svg"} 
+            src={settings?.general?.logo && settings.general.logo.startsWith('/') ? settings.general.logo : "/logo-garut.svg"} 
             alt="Logo" 
             width={32} 
             height={32}

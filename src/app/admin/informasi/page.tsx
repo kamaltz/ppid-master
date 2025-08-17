@@ -592,7 +592,7 @@ export default function AdminInformasiPage() {
                     <li>• Gambar berkualitas tinggi dan relevan dengan informasi</li>
                   </ul>
                 </div>
-                {formData.thumbnail && (
+                {formData.thumbnail && formData.thumbnail.startsWith('http') && (
                   <div className="mt-2">
                     <p className="text-sm font-medium text-gray-700 mb-2">Preview Thumbnail:</p>
                     <Image src={formData.thumbnail} alt="Thumbnail Preview" width={128} height={96} className="object-cover border rounded-lg" onError={() => {
@@ -654,7 +654,7 @@ export default function AdminInformasiPage() {
                 
                 {formData.images.length > 0 && (
                   <div className="grid grid-cols-4 gap-2">
-                    {formData.images.map((img, index) => (
+                    {formData.images.filter(img => img && (img.startsWith('http') || img.startsWith('/'))).map((img, index) => (
                       <div key={index} className="relative">
                         <Image src={img} alt={`Gallery ${index + 1}`} width={80} height={80} className="w-full h-20 object-cover rounded border" />
                         <button
@@ -676,7 +676,7 @@ export default function AdminInformasiPage() {
                 <div className="bg-white p-6 rounded-lg max-w-4xl max-h-96 overflow-y-auto">
                   <h3 className="text-lg font-semibold mb-4">Pilih Gambar dari Storage</h3>
                   <div className="grid grid-cols-6 gap-2 mb-4">
-                    {availableImages.map((img, index) => (
+                    {availableImages.filter(img => img && (img.startsWith('http') || img.startsWith('/'))).map((img, index) => (
                       <div key={index} className="cursor-pointer" onClick={() => {
                         if (!formData.images.includes(img)) {
                           setFormData(prev => ({ ...prev, images: [...prev.images, img] }));

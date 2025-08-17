@@ -174,24 +174,32 @@ export const useDashboardData = () => {
     loadData();
   }, [loadData]);
 
-  // Generate real-time chart data from database
+  // Generate 6-month data with current month in middle
   const generateMonthlyData = (data: PermintaanData[]): ChartDataItem[] => {
-    const monthlyStats: { [key: string]: number } = {};
-    data.forEach((item: PermintaanData) => {
-      if (!item.created_at) return;
-      const itemDate = new Date(item.created_at);
-      if (isNaN(itemDate.getTime())) {
-        console.warn('Invalid date found:', item.created_at);
-        return;
-      }
-      const month = itemDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
-      monthlyStats[month] = (monthlyStats[month] || 0) + 1;
+    const currentDate = new Date();
+    const months = [];
+    
+    // Generate 6 months: 2 before current, current, 3 after current
+    for (let i = -2; i <= 3; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      months.push(date);
+    }
+    
+    return months.map(month => {
+      const count = data.filter((item: PermintaanData) => {
+        if (!item.created_at) return false;
+        const itemDate = new Date(item.created_at);
+        if (isNaN(itemDate.getTime())) return false;
+        return itemDate.getFullYear() === month.getFullYear() && 
+               itemDate.getMonth() === month.getMonth();
+      }).length;
+      
+      return {
+        label: month.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
+        value: count,
+        color: '#8B5CF6'
+      };
     });
-    return Object.entries(monthlyStats).map(([month, count]) => ({ 
-      label: month, 
-      value: count || 0,
-      color: '#8B5CF6'
-    }));
   };
 
   const generateDailyData = (data: PermintaanData[]): DailyDataItem[] => {
@@ -218,25 +226,29 @@ export const useDashboardData = () => {
     });
   };
 
-  const generateKeberatanData = (data: PermintaanData[]): DailyDataItem[] => {
-    // Filter data keberatan dari permohonan yang ditolak
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date.toISOString().split('T')[0];
-    }).reverse();
+  const generateKeberatanData = (data: PermintaanData[]): ChartDataItem[] => {
+    const currentDate = new Date();
+    const months = [];
     
-    return last7Days.map(date => {
-      const keberatanCount = data.filter((item: PermintaanData) => {
+    // Generate 6 months for keberatan data
+    for (let i = -2; i <= 3; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      months.push(date);
+    }
+    
+    return months.map(month => {
+      const count = data.filter((item: PermintaanData) => {
         if (!item.created_at || item.status !== 'Ditolak') return false;
         const itemDate = new Date(item.created_at);
         if (isNaN(itemDate.getTime())) return false;
-        return itemDate.toISOString().split('T')[0] === date;
+        return itemDate.getFullYear() === month.getFullYear() && 
+               itemDate.getMonth() === month.getMonth();
       }).length;
       
-      return { 
-        date: new Date(date).toLocaleDateString('id-ID', { weekday: 'short' }), 
-        count: keberatanCount
+      return {
+        label: month.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
+        value: count,
+        color: '#EF4444'
       };
     });
   };
