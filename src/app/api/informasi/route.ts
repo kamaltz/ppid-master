@@ -4,6 +4,10 @@ import jwt from 'jsonwebtoken';
 
 interface WhereClause {
   klasifikasi?: string;
+  tanggal_posting?: {
+    gte?: Date;
+    lte?: Date;
+  };
   OR?: Array<{
     judul?: { contains: string; mode: 'insensitive' };
     ringkasan_isi_informasi?: { contains: string; mode: 'insensitive' };
@@ -27,6 +31,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const klasifikasi = searchParams.get('klasifikasi');
     const search = searchParams.get('search');
+    const tahun = searchParams.get('tahun');
+    const tanggalMulai = searchParams.get('tanggalMulai');
+    const tanggalSelesai = searchParams.get('tanggalSelesai');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
@@ -38,12 +45,33 @@ export async function GET(request: NextRequest) {
         { ringkasan_isi_informasi: { contains: search, mode: 'insensitive' } }
       ];
     }
+    
+    // Year filter
+    if (tahun) {
+      const startOfYear = new Date(`${tahun}-01-01`);
+      const endOfYear = new Date(`${tahun}-12-31T23:59:59`);
+      where.tanggal_posting = {
+        gte: startOfYear,
+        lte: endOfYear
+      };
+    }
+    
+    // Date range filter (overrides year filter if both provided)
+    if (tanggalMulai || tanggalSelesai) {
+      where.tanggal_posting = {};
+      if (tanggalMulai) {
+        where.tanggal_posting.gte = new Date(tanggalMulai);
+      }
+      if (tanggalSelesai) {
+        where.tanggal_posting.lte = new Date(`${tanggalSelesai}T23:59:59`);
+      }
+    }
 
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       prisma.informasiPublik.findMany({
         where,
-        orderBy: { created_at: 'desc' },
+        orderBy: { tanggal_posting: 'desc' },
         skip,
         take: limit
       }),

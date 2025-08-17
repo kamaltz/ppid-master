@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "PPID Garut - Unified Next.js Application with API Routes",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:pg": "cp .env.local.postgres .env.local && next dev --turbopack",
@@ -17,6 +18,7 @@
     "seed:pg": "node lib/scripts/seedPostgres.js",
 
     "add:informasi": "node lib/scripts/add-sample-informasi.js",
+    "batch:informasi": "node lib/scripts/batch-informasi-2020-2025.js",
     "migrate:informasi": "node lib/scripts/migrate-informasi.js",
     "reset-db": "node lib/scripts/resetDatabase.js",
     "clear-crud": "node lib/scripts/clearCrudData.js",

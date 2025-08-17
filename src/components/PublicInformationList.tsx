@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getPublicData } from "@/lib/api";
 import { Card, CardHeader } from "./ui/Card";
-import { FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, Search, Filter, Eye } from "lucide-react";
 import Link from "next/link";
 
 // Definisikan tipe data untuk konsistensi
@@ -49,7 +49,6 @@ export default function PublicInformationList() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) return <p className="text-center">Memuat informasi...</p>;
@@ -59,10 +58,20 @@ export default function PublicInformationList() {
     <div className="bg-white rounded-xl shadow-lg p-6">
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">Informasi Terbaru</h3>
-        <p className="text-sm text-gray-600">
-          {total > 0 ? `Menampilkan ${informasi.length} dari ${total} informasi` : 'Tidak ada informasi'}
-        </p>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Informasi Terbaru</h3>
+            <p className="text-sm text-gray-600">
+              {total > 0 ? `Menampilkan ${informasi.length} dari ${total} informasi` : 'Tidak ada informasi'}
+            </p>
+          </div>
+          <Link href="/informasi">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors">
+              <Eye className="w-4 h-4" />
+              Lihat Semua
+            </button>
+          </Link>
+        </div>
       </div>
 
       {/* Content */}
