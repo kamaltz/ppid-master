@@ -137,7 +137,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links, status, thumbnail, jadwal_publish, images } = body;
     
-    console.log('Received data:', { judul, klasifikasi, status, images: images?.length || 0 });
+    console.log('Received data:', { judul, klasifikasi, status, files: files?.length || 0, images: images?.length || 0 });
+    console.log('Files data:', files);
     
     if (!judul || !klasifikasi) {
       return NextResponse.json({ error: 'Judul dan klasifikasi wajib diisi' }, { status: 400 });

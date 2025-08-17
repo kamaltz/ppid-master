@@ -12,13 +12,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const id = parseInt(params.id);
 
-    const informasi = await prisma.informasi.findUnique({
-      where: { id },
-      include: {
-        kategori: {
-          select: { id: true, nama: true }
-        }
-      }
+    const informasi = await prisma.informasiPublik.findUnique({
+      where: { id }
     });
 
     if (!informasi) {
@@ -55,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const id = parseInt(params.id);
 
-    const existingInformasi = await prisma.informasi.findUnique({
+    const existingInformasi = await prisma.informasiPublik.findUnique({
       where: { id }
     });
 
@@ -65,14 +60,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const { judul, klasifikasi, ringkasan_isi_informasi, status } = await request.json();
 
-    const updatedInformasi = await prisma.informasi.update({
+    const updatedInformasi = await prisma.informasiPublik.update({
       where: { id },
       data: {
         judul: judul || existingInformasi.judul,
         klasifikasi: klasifikasi || existingInformasi.klasifikasi,
         ringkasan_isi_informasi: ringkasan_isi_informasi || existingInformasi.ringkasan_isi_informasi,
-        status: status || existingInformasi.status,
-        updated_at: new Date()
+        status: status || existingInformasi.status
       }
     });
 
@@ -102,7 +96,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const id = parseInt(params.id);
     const userId = parseInt(decoded.id) || decoded.userId;
 
-    const existingInformasi = await prisma.informasi.findUnique({
+    const existingInformasi = await prisma.informasiPublik.findUnique({
       where: { id }
     });
 
@@ -110,12 +104,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Information not found' }, { status: 404 });
     }
 
-    // Check permissions: PPID can only delete their own information, admin can delete any
-    if (decoded.role !== 'ADMIN' && existingInformasi.created_by !== userId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
-    await prisma.informasi.delete({
+    await prisma.informasiPublik.delete({
       where: { id }
     });
 

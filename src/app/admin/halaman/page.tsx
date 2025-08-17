@@ -5,7 +5,7 @@ import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import FileUpload from "@/components/ui/FileUpload";
-import SectionEditor from "@/components/ui/SectionEditor";
+
 
 interface PageContent {
   id: string;
@@ -13,18 +13,10 @@ interface PageContent {
   slug: string;
   content: string;
   files: FileItem[];
-  sections: Section[];
   lastUpdated: string;
 }
 
-interface Section {
-  id: string;
-  title: string;
-  content: string;
-  type: "text" | "image" | "file" | "hero";
-  order: number;
-  files: { name: string; url: string; size?: number }[];
-}
+
 
 interface FileItem {
   id: string;
@@ -43,8 +35,7 @@ export default function AdminHalamanPage() {
     title: "",
     slug: "",
     content: "",
-    files: [] as FileItem[],
-    sections: [] as Section[]
+    files: [] as FileItem[]
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -56,7 +47,7 @@ export default function AdminHalamanPage() {
     
     setAutoSaveStatus('saving');
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       await fetch(`/api/pages/${selectedPage}`, {
         method: 'PUT',
         headers: {
@@ -87,7 +78,7 @@ export default function AdminHalamanPage() {
     try {
       if (selectedPage) {
         // Update existing page
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         const response = await fetch(`/api/pages/${selectedPage}`, {
           method: 'PUT',
           headers: {
@@ -115,10 +106,12 @@ export default function AdminHalamanPage() {
         }
       } else {
         // Add new page
+        const token = localStorage.getItem('auth_token');
         const response = await fetch('/api/pages', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             title: formData.title,
@@ -522,16 +515,7 @@ export default function AdminHalamanPage() {
                     <p className="text-xs text-gray-500 mt-2">Upload dokumen, gambar, atau file pendukung lainnya</p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      🧩 Section Editor
-                    </h4>
-                    <SectionEditor
-                      sections={formData.sections}
-                      onSectionsChange={(sections) => setFormData({...formData, sections})}
-                    />
-                    <p className="text-xs text-gray-500 mt-2">Buat section terstruktur untuk konten yang lebih rapi</p>
-                  </div>
+
                 </div>
 
                 {/* Preview Info & Shortcuts */}

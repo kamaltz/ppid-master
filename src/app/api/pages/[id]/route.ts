@@ -55,7 +55,7 @@ export async function PUT(
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
-    if (decoded.role !== 'Admin') {
+    if (!['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role)) {
       return NextResponse.json({
         success: false,
         error: 'Akses ditolak'
@@ -142,7 +142,7 @@ export async function DELETE(
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
-    if (decoded.role !== 'Admin') {
+    if (!['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role)) {
       return NextResponse.json({
         success: false,
         error: 'Akses ditolak'

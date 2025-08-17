@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 interface JWTPayload {
   role: string;
@@ -8,7 +9,7 @@ interface JWTPayload {
   email: string;
 }
 
-export async function DELETE(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -35,48 +36,38 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    let deletedAccount;
+    const hashedPassword = await bcrypt.hash('Garut@2025?', 10);
+
+    let updatedAccount;
     switch (table) {
       case 'admin':
-        deletedAccount = await prisma.admin.delete({
-          where: { id: numericId }
+        updatedAccount = await prisma.admin.update({
+          where: { id: numericId },
+          data: { hashed_password: hashedPassword }
         });
         break;
       case 'pemohon':
-        deletedAccount = await prisma.pemohon.delete({
-          where: { id: numericId }
+        updatedAccount = await prisma.pemohon.update({
+          where: { id: numericId },
+          data: { hashed_password: hashedPassword }
         });
         break;
       case 'ppid':
-        deletedAccount = await prisma.ppid.delete({
-          where: { id: numericId }
+        updatedAccount = await prisma.ppid.update({
+          where: { id: numericId },
+          data: { hashed_password: hashedPassword }
         });
         break;
       default:
         return NextResponse.json({ error: 'Invalid table' }, { status: 400 });
     }
 
-    // Log activity
-    try {
-      await prisma.activityLog.create({
-        data: {
-          action: 'DELETE_ACCOUNT',
-          details: `Deleted ${table} account: ${deletedAccount.nama} (${deletedAccount.email})`,
-          user_id: decoded.id,
-          user_role: decoded.role,
-          ip_address: request.headers.get('x-forwarded-for') || 'unknown'
-        }
-      });
-    } catch (logError) {
-      console.warn('Failed to log activity:', logError);
-    }
-
     return NextResponse.json({ 
       success: true, 
-      message: 'Account deleted successfully' 
+      message: 'Password reset successfully' 
     });
   } catch (error) {
-    console.error('Delete account error:', error);
+    console.error('Reset password error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

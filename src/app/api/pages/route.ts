@@ -25,24 +25,32 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('POST /api/pages called');
     // Check authentication
     const authHeader = request.headers.get('authorization');
+    console.log('Auth header present:', !!authHeader);
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('No Bearer token found');
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const token = authHeader.split(' ')[1];
-    let decoded;
+    console.log('Token extracted:', !!token);
+    let decoded: any;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { role: string; userId: number };
-    } catch {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      console.log('Token decoded, role:', decoded.role);
+    } catch (error) {
+      console.log('JWT verify failed:', error);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Check if user is admin
-    if (decoded.role !== 'Admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    // Check if user is admin or PPID
+    if (!['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role)) {
+      console.log('Role not authorized:', decoded.role);
+      return NextResponse.json({ error: 'Admin or PPID access required' }, { status: 403 });
     }
+    console.log('Authorization passed');
 
     const { title, slug, content, status } = await request.json();
     console.log('Creating page:', { title, slug, status });

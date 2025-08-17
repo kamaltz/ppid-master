@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
-    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
+    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         id: `admin_${admin.id}`,
         nama: admin.nama,
         email: admin.email,
-        role: 'Admin',
+        role: 'ADMIN',
         status: 'Aktif',
         tanggal_dibuat: admin.created_at.toISOString().split('T')[0],
         table: 'admin'
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         id: `pemohon_${pemohon.id}`,
         nama: pemohon.nama,
         email: pemohon.email,
-        role: 'Pemohon',
+        role: 'PEMOHON',
         status: 'Aktif',
         tanggal_dibuat: pemohon.created_at.toISOString().split('T')[0],
         nik: pemohon.nik,
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
-    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
+    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash('Garut@2025?', 10);
 
     let newAccount;
-    if (role === 'Admin') {
+    if (role === 'ADMIN') {
       newAccount = await prisma.admin.create({
         data: {
           nama,
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
           hashed_password: hashedPassword
         }
       });
-    } else if (role === 'Pemohon') {
+    } else if (role === 'PEMOHON') {
       newAccount = await prisma.pemohon.create({
         data: {
           nama,

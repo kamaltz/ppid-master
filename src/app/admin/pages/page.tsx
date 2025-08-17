@@ -201,7 +201,20 @@ export default function PagesManagement() {
                 <RichTextEditor
                   value={formData.content}
                   onChange={(content: string) => setFormData(prev => ({ ...prev, content }))}
-                  onFileUpload={() => {}}
+                  onFileUpload={async (file: File) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const response = await fetch('/api/upload/image', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${token}` },
+                      body: formData
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                      return result.url;
+                    }
+                    throw new Error('Upload failed');
+                  }}
                 />
               </div>
 

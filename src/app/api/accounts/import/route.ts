@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
-    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
+    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      if (!['Admin', 'Pemohon', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(role)) {
+      if (!['ADMIN', 'PEMOHON', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(role)) {
         errors.push(`Baris ${i + 2}: Role tidak valid (${role})`);
         continue;
       }
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        if (account.role === 'Admin') {
+        if (account.role === 'ADMIN') {
           await prisma.admin.create({
             data: {
               nama: account.nama,
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
               hashed_password: hashedPassword
             }
           });
-        } else if (account.role === 'Pemohon') {
+        } else if (account.role === 'PEMOHON') {
           await prisma.pemohon.create({
             data: {
               nama: account.nama,

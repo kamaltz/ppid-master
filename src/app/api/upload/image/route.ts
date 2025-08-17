@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import jwt from 'jsonwebtoken';
+import { existsSync } from 'fs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,13 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.\./g, '_');
     const filename = `${timestamp}-${sanitizedName}`;
-    const path = join(process.cwd(), 'public/uploads/images', filename);
+    const uploadDir = join(process.cwd(), 'public/uploads/images');
+    const path = join(uploadDir, filename);
+
+    // Create directory if it doesn't exist
+    if (!existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
 
     await writeFile(path, buffer);
 

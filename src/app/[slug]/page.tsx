@@ -75,15 +75,8 @@ export default function DynamicPage({ params }: { params: Promise<{ slug: string
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-blue-600 text-white py-16">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold mb-4">{page.title}</h1>
-          <p className="text-blue-100">
-            Terakhir diperbarui: {new Date(page.updated_at).toLocaleDateString('id-ID', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </p>
         </div>
       </div>
 
@@ -99,12 +92,7 @@ export default function DynamicPage({ params }: { params: Promise<{ slug: string
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2024 PPID Kabupaten Garut. Semua hak dilindungi.</p>
-        </div>
-      </footer>
+
     </div>
   );
 }

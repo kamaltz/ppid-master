@@ -1,164 +1,135 @@
 "use client";
-/* eslint-disable jsx-a11y/alt-text */
 
-import { useState, useRef } from "react";
-import { Bold, Italic, Underline, Link, Image, FileText } from "lucide-react";
+import { useEffect, useRef } from 'react';
+import { Bold, Italic, Underline, List, ListOrdered, Link, Image } from 'lucide-react';
 
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
-  onFileUpload: (files: FileList) => void;
+  onFileUpload: (file: File) => Promise<string>;
 }
 
-const RichTextEditor = ({ value, onChange, onFileUpload }: RichTextEditorProps) => {
+export default function RichTextEditor({ value, onChange, onFileUpload }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showLinkDialog, setShowLinkDialog] = useState(false);
-  const [linkText, setLinkText] = useState("");
-  const [linkUrl, setLinkUrl] = useState("");
 
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
+
+  const handleInput = () => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      onFileUpload(e.target.files);
-    }
+  const execCommand = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+    handleInput();
   };
 
-  const insertLink = () => {
-    if (linkText && linkUrl) {
-      const linkHtml = `<a href="${linkUrl}" target="_blank" class="text-blue-600 underline">${linkText}</a>`;
-      execCommand('insertHTML', linkHtml);
-      setShowLinkDialog(false);
-      setLinkText("");
-      setLinkUrl("");
-    }
-  };
-
-  const insertImage = () => {
-    const url = prompt("Masukkan URL gambar:");
-    if (url) {
-      const alt = prompt("Masukkan deskripsi gambar (alt text):") || "Gambar";
-      const imgHtml = `<img src="${url}" alt="${alt}" style="max-width: 100%; height: auto;" />`;
-      execCommand('insertHTML', imgHtml);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onFileUpload) {
+      try {
+        const imageUrl = await onFileUpload(file);
+        execCommand('insertImage', imageUrl);
+      } catch (error) {
+        console.error('Image upload failed:', error);
+      }
     }
   };
 
   return (
-    <div className="border rounded-lg">
-      <div className="flex items-center gap-2 p-2 border-b bg-gray-50">
+    <div className="border border-gray-300 rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="bg-gray-50 border-b border-gray-300 p-2 flex flex-wrap gap-1">
         <button
           type="button"
           onClick={() => execCommand('bold')}
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-2 hover:bg-gray-200 rounded"
+          title="Bold"
         >
           <Bold className="w-4 h-4" />
         </button>
         <button
           type="button"
           onClick={() => execCommand('italic')}
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-2 hover:bg-gray-200 rounded"
+          title="Italic"
         >
           <Italic className="w-4 h-4" />
         </button>
         <button
           type="button"
           onClick={() => execCommand('underline')}
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-2 hover:bg-gray-200 rounded"
+          title="Underline"
         >
           <Underline className="w-4 h-4" />
         </button>
-        <div className="w-px h-6 bg-gray-300" />
+        <div className="w-px bg-gray-300 mx-1"></div>
         <button
           type="button"
-          onClick={() => setShowLinkDialog(true)}
-          className="p-1 hover:bg-gray-200 rounded"
+          onClick={() => execCommand('insertUnorderedList')}
+          className="p-2 hover:bg-gray-200 rounded"
+          title="Bullet List"
+        >
+          <List className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand('insertOrderedList')}
+          className="p-2 hover:bg-gray-200 rounded"
+          title="Numbered List"
+        >
+          <ListOrdered className="w-4 h-4" />
+        </button>
+        <div className="w-px bg-gray-300 mx-1"></div>
+        <select
+          onChange={(e) => execCommand('formatBlock', e.target.value)}
+          className="px-2 py-1 text-sm border border-gray-300 rounded"
+          defaultValue=""
+        >
+          <option value="">Format</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="p">Paragraph</option>
+        </select>
+        <button
+          type="button"
+          onClick={() => {
+            const url = prompt('Enter URL:');
+            if (url) execCommand('createLink', url);
+          }}
+          className="p-2 hover:bg-gray-200 rounded"
+          title="Insert Link"
         >
           <Link className="w-4 h-4" />
         </button>
-        <button
-          type="button"
-          onClick={insertImage}
-          className="p-1 hover:bg-gray-200 rounded"
-        >
+        <label className="p-2 hover:bg-gray-200 rounded cursor-pointer" title="Insert Image">
           <Image className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="p-1 hover:bg-gray-200 rounded"
-        >
-          <FileText className="w-4 h-4" />
-        </button>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+        </label>
       </div>
-      
+
+      {/* Editor */}
       <div
         ref={editorRef}
         contentEditable
-        className="p-3 min-h-[200px] focus:outline-none"
-        dangerouslySetInnerHTML={{ __html: value }}
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
+        onInput={handleInput}
+        className="min-h-[300px] p-4 focus:outline-none"
+        style={{ lineHeight: '1.6' }}
+        suppressContentEditableWarning={true}
       />
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.png,.jpg,.jpeg"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-
-      {showLinkDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Tambah Link</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Teks Link</label>
-                <input
-                  type="text"
-                  value={linkText}
-                  onChange={(e) => setLinkText(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Nama link yang ditampilkan"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">URL</label>
-                <input
-                  type="url"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="https://example.com"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={insertLink}
-                  className="bg-blue-600 text-white px-4 py-2 rounded"
-                >
-                  Tambah
-                </button>
-                <button
-                  onClick={() => setShowLinkDialog(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
-                >
-                  Batal
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
-};
-
-export default RichTextEditor;
+}

@@ -105,10 +105,16 @@ export default function AdminInformasiPage() {
 
   const fetchAvailableImages = useCallback(async () => {
     try {
-      const response = await fetch('/api/uploads/images');
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/uploads/images', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       if (data.success) {
-        setAvailableImages(data.images || []);
+        const imageUrls = data.images?.map((img: any) => img.url || img) || [];
+        setAvailableImages(imageUrls);
       }
     } catch (error) {
       console.error('Failed to fetch available images:', error);
@@ -162,18 +168,26 @@ export default function AdminInformasiPage() {
         const uploadFormData = new FormData();
         uploadFormData.append('file', file);
         
+        const token = localStorage.getItem('auth_token');
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
           body: uploadFormData
         });
         
         const uploadResult = await uploadResponse.json();
+        console.log('Upload result:', uploadResult);
         if (uploadResult.success) {
           uploadedFiles.push({
             name: uploadResult.originalName,
             url: uploadResult.url,
             size: uploadResult.size || 0
           });
+        } else {
+          console.error('Upload failed:', uploadResult.error);
+          alert(`Upload gagal untuk file ${file.name}: ${uploadResult.error}`);
         }
       }
       
@@ -186,6 +200,8 @@ export default function AdminInformasiPage() {
         })),
         ...uploadedFiles
       ];
+      
+      console.log('All files to be saved:', allFiles);
       
       const submitData = {
         judul: formData.judul,

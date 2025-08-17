@@ -33,7 +33,16 @@ export default function InformasiDetailPage() {
       const data = await response.json();
       
       if (data.success) {
-        setInformasi(data.data);
+        const processedData = {
+          ...data.data,
+          images: data.data.images ? (typeof data.data.images === 'string' ? JSON.parse(data.data.images) : data.data.images) : [],
+          links: data.data.links ? (typeof data.data.links === 'string' ? JSON.parse(data.data.links) : data.data.links) : [],
+          file_attachments: data.data.file_attachments ? (typeof data.data.file_attachments === 'string' ? JSON.parse(data.data.file_attachments) : data.data.file_attachments) : []
+        };
+        
+        console.log('Raw file_attachments:', data.data.file_attachments);
+        console.log('Processed file_attachments:', processedData.file_attachments);
+        setInformasi(processedData);
       } else {
         console.error('API Error:', data.error);
       }

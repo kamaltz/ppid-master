@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { Plus, Edit, Trash2, Eye, X, Upload, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, X, Upload, Download, Key } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Account {
@@ -29,11 +29,14 @@ export default function AdminAkunPage() {
   const [formData, setFormData] = useState({
     nama: '',
     email: '',
-    role: 'Pemohon'
+    role: 'PEMOHON'
   });
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{type: 'delete' | 'reset' | 'save' | 'bulk-delete' | 'bulk-reset', data?: any}>({type: 'delete'});
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
 
   const fetchAccounts = useCallback(async () => {
     if (!token) return;
@@ -59,9 +62,13 @@ export default function AdminAkunPage() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setConfirmAction({type: 'save', data: formData});
+    setShowConfirmModal(true);
+  };
+
+  const confirmSave = async () => {
     if (!token) {
       alert('Token tidak ditemukan');
       return;
@@ -69,8 +76,23 @@ export default function AdminAkunPage() {
 
     try {
       if (editId) {
-        // TODO: Implement edit functionality
-        alert('Fitur edit belum tersedia');
+        const response = await fetch(`/api/accounts/${editId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('Akun berhasil diperbarui');
+          fetchAccounts();
+        } else {
+          alert(data.error || 'Gagal memperbarui akun');
+        }
       } else {
         const response = await fetch('/api/accounts', {
           method: 'POST',
@@ -85,19 +107,20 @@ export default function AdminAkunPage() {
         
         if (data.success) {
           alert(`Akun berhasil dibuat dengan password default: Garut@2025?`);
-          fetchAccounts(); // Refresh the accounts list
+          fetchAccounts();
         } else {
           alert(data.error || 'Gagal membuat akun');
         }
       }
     } catch (error) {
-      console.error('Error creating account:', error);
-      alert('Terjadi kesalahan saat membuat akun');
+      console.error('Error saving account:', error);
+      alert('Terjadi kesalahan saat menyimpan akun');
     }
     
     setShowForm(false);
     setEditId(null);
-    setFormData({ nama: '', email: '', role: 'Pemohon' });
+    setFormData({ nama: '', email: '', role: 'PEMOHON' });
+    setShowConfirmModal(false);
   };
 
   const handleEdit = (account: Account) => {
@@ -110,12 +133,13 @@ export default function AdminAkunPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    const account = accounts.find(a => a.id === id);
-    if (!confirm(`Yakin ingin menghapus akun "${account?.nama}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      return;
-    }
+  const handleDelete = (id: string) => {
+    setConfirmAction({type: 'delete', data: id});
+    setShowConfirmModal(true);
+  };
 
+  const confirmDelete = async () => {
+    const id = confirmAction.data;
     if (!token) {
       alert('Token tidak ditemukan');
       return;
@@ -142,6 +166,134 @@ export default function AdminAkunPage() {
     } catch (error) {
       console.error('Error deleting account:', error);
       alert('Terjadi kesalahan saat menghapus akun');
+    }
+    setShowConfirmModal(false);
+  };
+
+  const handleResetPassword = (id: string) => {
+    setConfirmAction({type: 'reset', data: id});
+    setShowConfirmModal(true);
+  };
+
+  const confirmResetPassword = async () => {
+    const id = confirmAction.data;
+    if (!token) {
+      alert('Token tidak ditemukan');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/accounts/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ accountId: id })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Password berhasil direset ke: Garut@2025?');
+      } else {
+        alert(data.error || 'Gagal reset password');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('Terjadi kesalahan saat reset password');
+    }
+    setShowConfirmModal(false);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedAccounts.length === 0) {
+      alert('Pilih akun yang ingin dihapus');
+      return;
+    }
+    setConfirmAction({type: 'bulk-delete', data: selectedAccounts});
+    setShowConfirmModal(true);
+  };
+
+  const handleBulkResetPassword = () => {
+    if (selectedAccounts.length === 0) {
+      alert('Pilih akun yang ingin direset passwordnya');
+      return;
+    }
+    setConfirmAction({type: 'bulk-reset', data: selectedAccounts});
+    setShowConfirmModal(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = confirmAction.data;
+    if (!token) {
+      alert('Token tidak ditemukan');
+      return;
+    }
+
+    try {
+      for (const id of ids) {
+        await fetch('/api/accounts/delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ accountId: id })
+        });
+      }
+      
+      alert(`${ids.length} akun berhasil dihapus`);
+      fetchAccounts();
+      setSelectedAccounts([]);
+    } catch (error) {
+      console.error('Error bulk deleting accounts:', error);
+      alert('Terjadi kesalahan saat menghapus akun');
+    }
+    setShowConfirmModal(false);
+  };
+
+  const confirmBulkResetPassword = async () => {
+    const ids = confirmAction.data;
+    if (!token) {
+      alert('Token tidak ditemukan');
+      return;
+    }
+
+    try {
+      for (const id of ids) {
+        await fetch('/api/accounts/reset-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ accountId: id })
+        });
+      }
+      
+      alert(`Password ${ids.length} akun berhasil direset ke: Garut@2025?`);
+      setSelectedAccounts([]);
+    } catch (error) {
+      console.error('Error bulk resetting passwords:', error);
+      alert('Terjadi kesalahan saat reset password');
+    }
+    setShowConfirmModal(false);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedAccounts(accounts.map(account => account.id));
+    } else {
+      setSelectedAccounts([]);
+    }
+  };
+
+  const handleSelectAccount = (accountId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedAccounts([...selectedAccounts, accountId]);
+    } else {
+      setSelectedAccounts(selectedAccounts.filter(id => id !== accountId));
     }
   };
 
@@ -194,11 +346,10 @@ export default function AdminAkunPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'Admin': return 'bg-red-100 text-red-800';
-      case 'PPID': return 'bg-blue-100 text-blue-800';
-      case 'PPID_Pelaksana': return 'bg-green-100 text-green-800';
-      case 'Atasan_PPID': return 'bg-purple-100 text-purple-800';
-      case 'Pemohon': return 'bg-gray-100 text-gray-800';
+      case 'ADMIN': return 'bg-red-100 text-red-800';
+      case 'PPID_UTAMA': return 'bg-blue-100 text-blue-800';
+      case 'PPID_PELAKSANA': return 'bg-green-100 text-green-800';
+      case 'PEMOHON': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -255,12 +406,12 @@ export default function AdminAkunPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select
-                  value={formData.role || 'Pemohon'}
+                  value={formData.role || 'PEMOHON'}
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                   className="w-full border rounded px-3 py-2"
                 >
-                  <option value="Pemohon">Pemohon</option>
-                  <option value="Admin">Admin</option>
+                  <option value="PEMOHON">Pemohon</option>
+                  <option value="ADMIN">Admin</option>
                   <option value="PPID_UTAMA">PPID Utama</option>
                   <option value="PPID_PELAKSANA">PPID Pelaksana</option>
                 </select>
@@ -275,17 +426,17 @@ export default function AdminAkunPage() {
               )}
               
               <div className="flex space-x-2">
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-                  {editId ? 'Update' : 'Buat Akun'}
+                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                  {editId ? 'Update' : 'Simpan'}
                 </button>
                 <button 
                   type="button" 
                   onClick={() => {
-                    setShowForm(false); 
-                    setEditId(null); 
-                    setFormData({ nama: '', email: '', role: 'Pemohon' });
+                    setShowForm(false);
+                    setEditId(null);
+                    setFormData({ nama: '', email: '', role: 'PEMOHON' });
                   }}
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                 >
                   Batal
                 </button>
@@ -294,59 +445,26 @@ export default function AdminAkunPage() {
           </div>
         )}
 
-        {showImport && (
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-xl font-bold mb-4">Import Akun dari Excel</h2>
-            
-            <div className="space-y-4">
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-yellow-800 mb-2">Format File Excel:</h3>
-                <p className="text-sm text-yellow-700 mb-3">
-                  File harus berformat CSV atau Excel (.xlsx) dengan kolom: <strong>nama, email, role</strong>
-                </p>
-                <button
-                  onClick={downloadTemplate}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Template
-                </button>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Pilih File Excel/CSV</label>
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              
-              <div className="bg-blue-50 p-3 rounded">
-                <p className="text-sm text-blue-700">
-                  <strong>Catatan:</strong> Semua akun akan dibuat dengan password default: <strong>Garut@2025?</strong>
-                </p>
-              </div>
-              
-              <div className="flex space-x-2">
-                <button 
-                  onClick={handleImportExcel}
-                  disabled={!importFile}
-                  className="bg-green-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
-                >
-                  Import Akun
-                </button>
-                <button 
-                  onClick={() => {
-                    setShowImport(false);
-                    setImportFile(null);
-                  }}
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
-                >
-                  Batal
-                </button>
-              </div>
+        {selectedAccounts.length > 0 && (
+          <div className="bg-white p-4 rounded-lg shadow-md mb-4 flex items-center justify-between">
+            <span className="text-sm text-gray-600">
+              {selectedAccounts.length} akun dipilih
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={handleBulkResetPassword}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
+              >
+                <Key className="w-4 h-4" />
+                Reset Password
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Hapus
+              </button>
             </div>
           </div>
         )}
@@ -355,11 +473,18 @@ export default function AdminAkunPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedAccounts.length === accounts.length && accounts.length > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Dibuat</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
               </tr>
             </thead>
@@ -373,110 +498,102 @@ export default function AdminAkunPage() {
               ) : accounts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                    Belum ada akun terdaftar
+                    Belum ada akun
                   </td>
                 </tr>
-              ) : accounts.map((account) => (
-                <tr key={account.id}>
-                  <td className="px-6 py-4 text-sm text-gray-900">{account.nama}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{account.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(account.role)}`}>
-                      {getRoleDisplayName(account.role)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                      {account.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{account.tanggal_dibuat}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                    <button 
-                      onClick={() => handleViewDetail(account)}
-                      className="text-green-600 hover:text-green-900"
-                      title="Lihat Detail"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleEdit(account)}
-                      className="text-blue-600 hover:text-blue-900"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(account.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Hapus"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              ) : (
+                accounts.map((account) => (
+                  <tr key={account.id}>
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedAccounts.includes(account.id)}
+                        onChange={(e) => handleSelectAccount(account.id, e.target.checked)}
+                        className="rounded"
+                      />
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{account.nama}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{account.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(account.role)}`}>
+                        {getRoleDisplayName(account.role)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{account.tanggal_dibuat}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                      <button 
+                        onClick={() => handleEdit(account)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleResetPassword(account.id)}
+                        className="text-yellow-600 hover:text-yellow-900"
+                        title="Reset Password"
+                      >
+                        <Key className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(account.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-        
-        {/* Detail Modal */}
-        {selectedAccount && (
+
+        {/* Confirmation Modal */}
+        {showConfirmModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Detail Akun</h3>
-                <button 
-                  onClick={() => setSelectedAccount(null)}
-                  className="text-gray-500 hover:text-gray-700"
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">
+                {confirmAction.type === 'delete' && 'Konfirmasi Hapus'}
+                {confirmAction.type === 'reset' && 'Konfirmasi Reset Password'}
+                {confirmAction.type === 'save' && 'Konfirmasi Simpan'}
+                {confirmAction.type === 'bulk-delete' && 'Konfirmasi Hapus Massal'}
+                {confirmAction.type === 'bulk-reset' && 'Konfirmasi Reset Password Massal'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {confirmAction.type === 'delete' && `Yakin ingin menghapus akun "${accounts.find(a => a.id === confirmAction.data)?.nama}"? Tindakan ini tidak dapat dibatalkan.`}
+                {confirmAction.type === 'reset' && `Yakin ingin reset password akun "${accounts.find(a => a.id === confirmAction.data)?.nama}" ke password default?`}
+                {confirmAction.type === 'save' && `Yakin ingin ${editId ? 'memperbarui' : 'menyimpan'} akun ini?`}
+                {confirmAction.type === 'bulk-delete' && `Yakin ingin menghapus ${confirmAction.data?.length} akun yang dipilih? Tindakan ini tidak dapat dibatalkan.`}
+                {confirmAction.type === 'bulk-reset' && `Yakin ingin reset password ${confirmAction.data?.length} akun yang dipilih ke password default?`}
+              </p>
+              <div className="flex space-x-3 justify-end">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
                 >
-                  <X className="w-5 h-5" />
+                  Batal
                 </button>
-              </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">ID</label>
-                  <p className="text-gray-900">{selectedAccount.id}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Nama Lengkap</label>
-                  <p className="text-gray-900">{selectedAccount.nama}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Email</label>
-                  <p className="text-gray-900">{selectedAccount.email}</p>
-                </div>
-                {selectedAccount.role === 'Pemohon' && selectedAccount.nik && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">NIK</label>
-                    <p className="text-gray-900">{selectedAccount.nik}</p>
-                  </div>
-                )}
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Role</label>
-                  <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(selectedAccount.role)}`}>
-                    {getRoleDisplayName(selectedAccount.role)}
-                  </span>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Status</label>
-                  <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                    {selectedAccount.status}
-                  </span>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Tanggal Dibuat</label>
-                  <p className="text-gray-900">{selectedAccount.tanggal_dibuat}</p>
-                </div>
-              </div>
-              
-              <div className="mt-6 flex justify-end">
-                <button 
-                  onClick={() => setSelectedAccount(null)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                <button
+                  onClick={() => {
+                    if (confirmAction.type === 'delete') confirmDelete();
+                    if (confirmAction.type === 'reset') confirmResetPassword();
+                    if (confirmAction.type === 'save') confirmSave();
+                    if (confirmAction.type === 'bulk-delete') confirmBulkDelete();
+                    if (confirmAction.type === 'bulk-reset') confirmBulkResetPassword();
+                  }}
+                  className={`px-4 py-2 text-white rounded ${
+                    confirmAction.type === 'delete' || confirmAction.type === 'bulk-delete' ? 'bg-red-600 hover:bg-red-700' :
+                    confirmAction.type === 'reset' || confirmAction.type === 'bulk-reset' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                    'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
-                  Tutup
+                  {confirmAction.type === 'delete' && 'Hapus'}
+                  {confirmAction.type === 'reset' && 'Reset'}
+                  {confirmAction.type === 'save' && 'Simpan'}
+                  {confirmAction.type === 'bulk-delete' && 'Hapus Semua'}
+                  {confirmAction.type === 'bulk-reset' && 'Reset Semua'}
                 </button>
               </div>
             </div>
