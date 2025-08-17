@@ -26,6 +26,27 @@ export async function POST(request: NextRequest) {
           process.env.JWT_SECRET || 'fallback-secret',
           { expiresIn: '24h' }
         );
+        
+        // Log successful admin login
+        try {
+          global.activityLogs = global.activityLogs || [];
+          global.activityLogs.unshift({
+            id: Date.now(),
+            action: 'LOGIN',
+            level: 'SUCCESS',
+            message: `Admin ${email} berhasil login ke sistem`,
+            user_id: admin.id.toString(),
+            user_role: 'ADMIN',
+            user_email: email,
+            ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+            user_agent: request.headers.get('user-agent') || 'Unknown',
+            created_at: new Date().toISOString()
+          });
+          console.log('Admin login logged successfully');
+        } catch (logError) {
+          console.error('Failed to log admin login:', logError);
+        }
+        
         return NextResponse.json({
           success: true,
           token,
@@ -46,6 +67,27 @@ export async function POST(request: NextRequest) {
           process.env.JWT_SECRET || 'fallback-secret',
           { expiresIn: '24h' }
         );
+        
+        // Log successful PPID login
+        try {
+          global.activityLogs = global.activityLogs || [];
+          global.activityLogs.unshift({
+            id: Date.now(),
+            action: 'LOGIN',
+            level: 'SUCCESS',
+            message: `${ppid.role} ${email} berhasil login ke sistem`,
+            user_id: ppid.id.toString(),
+            user_role: ppid.role,
+            user_email: email,
+            ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+            user_agent: request.headers.get('user-agent') || 'Unknown',
+            created_at: new Date().toISOString()
+          });
+          console.log('PPID login logged successfully');
+        } catch (logError) {
+          console.error('Failed to log PPID login:', logError);
+        }
+        
         return NextResponse.json({
           success: true,
           token,
@@ -64,6 +106,27 @@ export async function POST(request: NextRequest) {
           process.env.JWT_SECRET || 'fallback-secret',
           { expiresIn: '24h' }
         );
+        
+        // Log successful Pemohon login
+        try {
+          global.activityLogs = global.activityLogs || [];
+          global.activityLogs.unshift({
+            id: Date.now() + 1,
+            action: 'LOGIN',
+            level: 'SUCCESS',
+            message: `Pemohon ${email} berhasil login ke sistem`,
+            user_id: pemohon.id.toString(),
+            user_role: 'PEMOHON',
+            user_email: email,
+            ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+            user_agent: request.headers.get('user-agent') || 'Unknown',
+            created_at: new Date().toISOString()
+          });
+          console.log('Pemohon login logged successfully');
+        } catch (logError) {
+          console.error('Failed to log Pemohon login:', logError);
+        }
+        
         return NextResponse.json({
           success: true,
           token,
@@ -73,6 +136,25 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('No valid user found for email:', email);
+    
+    // Log failed login directly
+    try {
+      global.activityLogs = global.activityLogs || [];
+      global.activityLogs.unshift({
+        id: Date.now(),
+        action: 'LOGIN_FAILED',
+        level: 'WARN',
+        message: `Percobaan login gagal untuk ${email}`,
+        user_email: email,
+        ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+        user_agent: request.headers.get('user-agent') || 'Unknown',
+        created_at: new Date().toISOString()
+      });
+      console.log('Failed login logged successfully');
+    } catch (logError) {
+      console.error('Failed to log failed login:', logError);
+    }
+    
     return NextResponse.json({ error: 'Email atau password salah' }, { status: 401 });
   } catch (error) {
     console.error('Login error:', error);
