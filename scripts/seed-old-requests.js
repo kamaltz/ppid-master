@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
@@ -43,35 +44,20 @@ async function seedOldRequests() {
       const createdDate = new Date();
       createdDate.setDate(createdDate.getDate() - request.days);
 
-      const result = await prisma.$executeRaw`
-        INSERT INTO permintaan (
-          nama_lengkap, alamat, pekerjaan, no_telepon, email, judul,
-          rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi,
-          cara_mendapat_salinan, status, created_at, updated_at
-        ) VALUES (
-          'Test User Keberatan',
-          'Jl. Test No. 123, Garut',
-          'Tester',
-          '081234567890',
-          'test.keberatan@example.com',
-          ${request.title},
-          ${request.info},
-          'Untuk keperluan testing sistem keberatan',
-          'Email',
-          'Email',
-          'Diproses',
-          ${createdDate},
-          ${createdDate}
-        )
-      `;
+      // Use existing pemohon user
+      const pemohon = await prisma.pemohon.findUnique({
+        where: { email: 'camvr35@gmail.com' }
+      });
       
-      /*await prisma.permintaan.create({
+      if (!pemohon) {
+        console.log('❌ User camvr35@gmail.com not found. Please register first.');
+        continue;
+      }
+
+      // Create request using correct model
+      await prisma.request.create({
         data: {
-          nama_lengkap: 'Test User Keberatan',
-          alamat: 'Jl. Test No. 123, Garut',
-          pekerjaan: 'Tester',
-          no_telepon: '081234567890',
-          email: 'test.keberatan@example.com',
+          pemohon_id: pemohon.id,
           judul: request.title,
           rincian_informasi: request.info,
           tujuan_penggunaan: 'Untuk keperluan testing sistem keberatan',
@@ -81,7 +67,7 @@ async function seedOldRequests() {
           created_at: createdDate,
           updated_at: createdDate
         }
-      });*/
+      });
 
       console.log(`✅ Created request: ${request.title} (${request.days} days ago)`);
     }
