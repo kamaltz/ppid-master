@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Clock, Calendar } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SuccessModal from "@/components/SuccessModal";
 import { useRouter, useSearchParams } from "next/navigation";
+import { calculateWorkingDays, canFileObjection } from "@/lib/workingDays";
 
 export default function KeberatanPage() {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ export default function KeberatanPage() {
     judul?: string;
     rincian_informasi: string;
     status: string;
+    created_at: string;
   }>>([]);
   const [isLoadingPermintaan, setIsLoadingPermintaan] = useState(false);
   const { token } = useAuth();
@@ -70,6 +72,15 @@ export default function KeberatanPage() {
     if (!formData.permintaan_id) {
       newErrors.permintaan_id =
         "Pilih permohonan yang ingin diajukan keberatan";
+    } else {
+      // Check if selected request meets 17 working days requirement
+      const selectedRequest = permintaanList.find(item => item.id.toString() === formData.permintaan_id);
+      if (selectedRequest) {
+        const { canFile } = canFileObjection(new Date(selectedRequest.created_at));
+        if (!canFile) {
+          newErrors.permintaan_id = "Keberatan hanya dapat diajukan setelah 17 hari kerja";
+        }
+      }
     }
 
     if (!formData.judul.trim()) {
@@ -152,6 +163,19 @@ export default function KeberatanPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Pilih Permohonan *
             </label>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start space-x-2">
+                <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-blue-800 mb-1">Ketentuan Pengajuan Keberatan</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Keberatan hanya dapat diajukan setelah 17 hari kerja sejak permohonan diajukan</li>
+                    <li>• Perhitungan hari kerja tidak termasuk Sabtu, Minggu, dan hari libur nasional</li>
+                    <li>• Permohonan yang belum memenuhi syarat akan ditandai "Belum 17 hari"</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
             <p className="text-sm text-gray-500 mb-2">
               Pilih permohonan yang ingin diajukan keberatan.
             </p>
@@ -172,6 +196,7 @@ export default function KeberatanPage() {
               </option>
               {permintaanList.length > 0
                 ? permintaanList.map((item) => {
+                    const { canFile, workingDays } = canFileObjection(new Date(item.created_at));
                     let displayStatus = item.status;
                     if (item.status === "Diverifikasi")
                       displayStatus = "Di Verifikasi PPID Utama";
@@ -179,9 +204,9 @@ export default function KeberatanPage() {
                       displayStatus = "Diproses PPID Pelaksana";
 
                     return (
-                      <option key={item.id} value={item.id}>
+                      <option key={item.id} value={item.id} disabled={!canFile}>
                         #{item.id} - {item.judul || item.rincian_informasi.substring(0, 30)}
-                        ... - ({displayStatus})
+                        ... - ({displayStatus}) - {workingDays} hari kerja {!canFile ? '(Belum 17 hari)' : ''}
                       </option>
                     );
                   })
@@ -191,6 +216,37 @@ export default function KeberatanPage() {
                     </option>
                   )}
             </select>
+            {formData.permintaan_id && (() => {
+              const selectedRequest = permintaanList.find(item => item.id.toString() === formData.permintaan_id);
+              if (selectedRequest) {
+                const { canFile, workingDays } = canFileObjection(new Date(selectedRequest.created_at));
+                return (
+                  <div className={`mt-2 p-3 rounded-lg border ${
+                    canFile ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+                  }`}>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className={`w-4 h-4 ${
+                        canFile ? 'text-green-600' : 'text-yellow-600'
+                      }`} />
+                      <span className={`text-sm font-medium ${
+                        canFile ? 'text-green-800' : 'text-yellow-800'
+                      }`}>
+                        Permohonan telah berjalan {workingDays} hari kerja
+                      </span>
+                    </div>
+                    <p className={`text-xs mt-1 ${
+                      canFile ? 'text-green-700' : 'text-yellow-700'
+                    }`}>
+                      {canFile 
+                        ? 'Keberatan dapat diajukan untuk permohonan ini'
+                        : `Keberatan dapat diajukan setelah ${17 - workingDays} hari kerja lagi`
+                      }
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             {errors.permintaan_id && (
               <div className="flex items-center mt-1 text-red-600 text-sm">
                 <AlertCircle className="w-4 h-4 mr-1" />

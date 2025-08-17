@@ -31,6 +31,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [chatSession, setChatSession] = useState<ChatSession>({ is_active: true });
+  const [canSendMessage, setCanSendMessage] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,9 +45,20 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       const data = await response.json();
       if (data.success) {
         setResponses(data.data);
-        // Check if chat was ended by looking for system message
-        const systemMessage = data.data.find((msg: any) => msg.user_role === 'System' && msg.message.includes('Chat telah diakhiri'));
-        setChatSession({ is_active: !systemMessage });
+        // Simple chat status - always active unless manually set to false
+        // Don't override if already set by resume function
+        if (chatSession.is_active === undefined) {
+          setChatSession({ is_active: true });
+        }
+        
+        // Check if pemohon can send message
+        if (currentUserRole === 'Pemohon') {
+          const pemohonMessages = data.data.filter((msg: any) => msg.user_role === 'Pemohon');
+          const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(msg.user_role));
+          
+          // Pemohon can send if chat is active AND (no messages yet, or if admin has replied to their last message)
+          setCanSendMessage(chatSession.is_active && (pemohonMessages.length === 0 || adminMessages.length >= pemohonMessages.length));
+        }
       }
     } catch (error) {
       console.error('Failed to fetch responses:', error);
@@ -54,8 +66,12 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   };
 
   const sendResponse = async (messageType = 'text') => {
-    if (!chatSession.is_active) {
+    if (currentUserRole === 'Pemohon' && !chatSession.is_active) {
       alert('Chat telah diakhiri');
+      return;
+    }
+    if (currentUserRole === 'Pemohon' && !canSendMessage) {
+      alert('Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
       return;
     }
     if (!message.trim() && attachments.length === 0) {
@@ -99,13 +115,38 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       if (response.ok) {
         setMessage('');
         setAttachments([]);
+        
         fetchResponses();
+        
+        // Send auto-reply for pemohon messages
+        if (currentUserRole === 'Pemohon') {
+          setTimeout(async () => {
+            try {
+              await fetch(`/api/permintaan/${requestId}/responses`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  message: 'Terima kasih atas pesan Anda. Mohon tunggu PPID merespon chat Anda.',
+                  attachments: [],
+                  message_type: 'text'
+                })
+              });
+              fetchResponses();
+            } catch (error) {
+              console.log('Auto-reply failed:', error);
+            }
+          }, 1000);
+        }
       } else {
         const errorData = await response.json();
         alert('Gagal mengirim pesan: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Failed to send response:', error);
+      alert('Gagal mengirim pesan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -114,18 +155,56 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const endChat = async () => {
     if (!confirm('Yakin ingin mengakhiri chat? Pemohon tidak akan bisa mengirim pesan lagi.')) return;
     
+    // Immediately update UI
+    setChatSession({ is_active: false });
+    setCanSendMessage(false);
+    
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/chat/${requestId}/end`, {
+      await fetch(`/api/permintaan/${requestId}/responses`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: 'Chat telah diakhiri oleh admin.',
+          attachments: [],
+          message_type: 'system'
+        })
       });
       
-      if (response.ok) {
-        fetchResponses();
-      }
+      fetchResponses();
     } catch (error) {
       console.error('Failed to end chat:', error);
+    }
+  };
+
+  const resumeChat = async () => {
+    if (!confirm('Yakin ingin melanjutkan chat? Pemohon akan bisa mengirim pesan lagi.')) return;
+    
+    // Immediately update UI state
+    setChatSession({ is_active: true });
+    setCanSendMessage(true);
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      await fetch(`/api/permintaan/${requestId}/responses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: 'Chat telah dilanjutkan oleh admin.',
+          attachments: [],
+          message_type: 'system'
+        })
+      });
+      
+      fetchResponses();
+    } catch (error) {
+      console.error('Failed to resume chat:', error);
     }
   };
 
@@ -135,9 +214,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
     return () => clearInterval(interval);
   }, [requestId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [responses]);
+  // Auto-scroll disabled - users can scroll manually
 
   const getRoleColor = (role: string) => {
     const colors = {
@@ -163,14 +240,26 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
           {!chatSession.is_active && (
             <span className="text-sm text-red-600 font-medium">Chat Diakhiri</span>
           )}
-          {isAdmin && chatSession.is_active && (
-            <button
-              onClick={endChat}
-              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 flex items-center gap-1"
-            >
-              <StopCircle className="w-4 h-4" />
-              Akhiri Chat
-            </button>
+          {isAdmin && (
+            <div className="flex gap-2">
+              {chatSession.is_active ? (
+                <button
+                  onClick={endChat}
+                  className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 flex items-center gap-1"
+                >
+                  <StopCircle className="w-4 h-4" />
+                  Akhiri Chat
+                </button>
+              ) : (
+                <button
+                  onClick={resumeChat}
+                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 flex items-center gap-1"
+                >
+                  <StopCircle className="w-4 h-4" />
+                  Lanjutkan Chat
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -266,7 +355,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       </div>
       
       <div className="p-4 border-t">
-        {!chatSession.is_active ? (
+        {!chatSession.is_active && !isAdmin ? (
           <div className="text-center py-4 text-gray-500">
             <p>Chat telah diakhiri. Tidak dapat mengirim pesan baru.</p>
             {chatSession.ended_by && (
@@ -331,14 +420,18 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder={chatSession.is_active ? "Tulis pesan..." : "Chat telah diakhiri"}
+                placeholder={
+                  !chatSession.is_active ? "Chat telah diakhiri" :
+                  currentUserRole === 'Pemohon' && !canSendMessage ? "Tunggu balasan PPID..." :
+                  "Tulis pesan..."
+                }
                 className="flex-1 border rounded-lg px-3 py-2"
                 onKeyPress={(e) => e.key === 'Enter' && sendResponse()}
-                disabled={!chatSession.is_active}
+                disabled={(currentUserRole === 'Pemohon' && (!chatSession.is_active || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatSession.is_active && currentUserRole !== 'Admin')}
               />
               <button
                 onClick={() => sendResponse()}
-                disabled={isLoading || (!message.trim() && attachments.length === 0) || !chatSession.is_active}
+                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && (!chatSession.is_active || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatSession.is_active && currentUserRole !== 'Admin')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />

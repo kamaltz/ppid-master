@@ -38,19 +38,38 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     
     const { id } = await params;
     const requestId = parseInt(id);
-    const { message, attachments } = await request.json();
+    const body = await request.json();
+    const { message, attachments, message_type } = body;
     
-    // Check if chat is ended
-    const systemMessage = await prisma.requestResponse.findFirst({
-      where: {
-        request_id: requestId,
-        user_role: 'System',
-        message: { contains: 'Chat telah diakhiri' }
+    // Allow empty messages for system messages
+    if ((!message || message.trim() === '') && message_type !== 'system') {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+    
+    // Only check chat status for pemohon, allow admin to send anytime
+    if (decoded.role === 'Pemohon') {
+      const endMessage = await prisma.requestResponse.findFirst({
+        where: {
+          request_id: requestId,
+          message_type: 'system',
+          message: { contains: 'Chat telah diakhiri' }
+        },
+        orderBy: { created_at: 'desc' }
+      });
+      
+      const resumeMessage = await prisma.requestResponse.findFirst({
+        where: {
+          request_id: requestId,
+          message_type: 'system',
+          message: { contains: 'Chat telah dilanjutkan' }
+        },
+        orderBy: { created_at: 'desc' }
+      });
+      
+      // Chat is ended if end message exists and is more recent than resume message
+      if (endMessage && (!resumeMessage || new Date(endMessage.created_at) > new Date(resumeMessage.created_at))) {
+        return NextResponse.json({ error: 'Chat has been ended' }, { status: 400 });
       }
-    });
-    
-    if (systemMessage) {
-      return NextResponse.json({ error: 'Chat has been ended' }, { status: 400 });
     }
     
     const response = await prisma.requestResponse.create({
@@ -60,7 +79,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         user_role: decoded.role || 'User',
         user_name: decoded.nama || decoded.name || decoded.email || 'Unknown User',
         message: message || '',
-        attachments: attachments && attachments.length > 0 ? JSON.stringify(attachments) : null
+        attachments: attachments && attachments.length > 0 ? JSON.stringify(attachments) : null,
+        message_type: message_type || 'text'
       }
     });
     
