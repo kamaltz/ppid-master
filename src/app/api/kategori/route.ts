@@ -17,18 +17,7 @@ export async function GET(request?: NextRequest) {
       }
     }
 
-    const includeStats = isAdmin;
-    const categories = await prisma.kategori.findMany({
-      ...(includeStats && {
-        include: {
-          _count: {
-            select: {
-              informasi: true,
-              permintaan: true
-            }
-          }
-        }
-      }),
+    const categories = await prisma.kategoriInformasi.findMany({
       orderBy: { nama: 'asc' }
     });
 
@@ -60,23 +49,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { nama, deskripsi } = await request.json();
+    const { nama, slug, deskripsi } = await request.json();
     
     if (!nama) {
       return NextResponse.json({ error: 'Nama kategori wajib diisi' }, { status: 400 });
     }
 
+    if (!slug) {
+      return NextResponse.json({ error: 'Slug kategori wajib diisi' }, { status: 400 });
+    }
+
     // Check for duplicate
-    const existing = await prisma.kategori.findFirst({
-      where: { nama }
+    const existing = await prisma.kategoriInformasi.findFirst({
+      where: { 
+        OR: [
+          { nama },
+          { slug }
+        ]
+      }
     });
 
     if (existing) {
-      return NextResponse.json({ error: 'Nama kategori sudah digunakan' }, { status: 400 });
+      return NextResponse.json({ error: 'Nama atau slug kategori sudah digunakan' }, { status: 400 });
     }
 
-    const kategori = await prisma.kategori.create({
-      data: { nama, deskripsi }
+    const kategori = await prisma.kategoriInformasi.create({
+      data: { nama, slug, deskripsi }
     });
 
     return NextResponse.json({ 

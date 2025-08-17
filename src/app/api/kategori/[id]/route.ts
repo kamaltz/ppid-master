@@ -18,18 +18,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       }
     }
 
-    const kategori = await prisma.kategori.findUnique({
-      where: { id },
-      ...(isAdmin && {
-        include: {
-          _count: {
-            select: {
-              informasi: true,
-              permintaan: true
-            }
-          }
-        }
-      })
+    const kategori = await prisma.kategoriInformasi.findUnique({
+      where: { id }
     });
 
     if (!kategori) {
@@ -65,10 +55,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const id = parseInt(params.id);
-    const { nama, deskripsi } = await request.json();
+    const { nama, slug, deskripsi } = await request.json();
 
     // Check if category exists
-    const existing = await prisma.kategori.findUnique({
+    const existing = await prisma.kategoriInformasi.findUnique({
       where: { id }
     });
 
@@ -76,9 +66,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Kategori tidak ditemukan' }, { status: 404 });
     }
 
-    const kategori = await prisma.kategori.update({
+    const kategori = await prisma.kategoriInformasi.update({
       where: { id },
-      data: { nama, deskripsi }
+      data: { nama, slug, deskripsi }
     });
 
     return NextResponse.json({ 
@@ -116,7 +106,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const id = parseInt(params.id);
 
     // Check if category exists
-    const existing = await prisma.kategori.findUnique({
+    const existing = await prisma.kategoriInformasi.findUnique({
       where: { id }
     });
 
@@ -125,7 +115,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     try {
-      await prisma.kategori.delete({
+      await prisma.kategoriInformasi.delete({
         where: { id }
       });
 

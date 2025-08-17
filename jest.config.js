@@ -6,8 +6,13 @@ module.exports = {
     '**/__tests__/**/*.spec.{js,jsx,ts,tsx}'
   ],
   testTimeout: 30000,
+  preset: 'ts-jest',
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': 'ts-jest'
+    '^.+\\.(js|jsx|ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx'
+      }
+    }]
   },
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],
   transformIgnorePatterns: [
