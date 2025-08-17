@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/api";
 import { isAdminRole, isPemohon } from "@/lib/roleUtils";
@@ -30,16 +30,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
+    const checkTokenExpiration = () => {
+      const savedToken = localStorage.getItem("auth_token");
+      
+      if (savedToken) {
+        try {
+          const payload = JSON.parse(atob(savedToken.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          
+          if (payload.exp && payload.exp < currentTime) {
+            // Token expired, logout user
+            logout();
+            return false;
+          }
+          return true;
+        } catch (error) {
+          // Invalid token, logout user
+          logout();
+          return false;
+        }
+      }
+      return false;
+    };
+
     const savedToken = localStorage.getItem("auth_token");
     const savedUser = localStorage.getItem("user_data");
-    if (savedToken) {
+    
+    if (savedToken && checkTokenExpiration()) {
       setToken(savedToken);
       if (savedUser) {
         setUser(JSON.parse(savedUser));
       }
     }
+    
     setLoading(false);
-  }, []);
+
+    // Check token expiration every minute
+    const interval = setInterval(checkTokenExpiration, 60000);
+    
+    return () => clearInterval(interval);
+  }, [logout]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -78,14 +108,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_data");
     localStorage.removeItem("user_role");
     router.push("/login");
-  };
+  }, [router]);
 
   const getUserRole = () => {
     return user?.role || localStorage.getItem("user_role");
