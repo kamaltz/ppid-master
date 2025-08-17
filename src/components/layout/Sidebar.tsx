@@ -20,80 +20,123 @@ import {
   UserCog,
   UserCircle,
   MessageCircle,
+  Shield,
+  Activity,
+  HardDrive,
+  Minus,
 } from "lucide-react";
 
 const menuItems = [
+  // Dashboard
   {
     href: "/admin/dashboard",
     icon: LayoutDashboard,
     label: "Dashboard",
-    roles: [ROLES.ADMIN, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    category: "main"
   },
-  {
-    href: "/admin/ppid-dashboard",
-    icon: LayoutDashboard,
-    label: "Dashboard PPID",
-    roles: [ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
-  },
+  
+  // Manajemen Permohonan
   {
     href: "/admin/permohonan",
     icon: FileText,
     label: "Permohonan",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
-  },
-  {
-    href: "/admin/informasi",
-    icon: Info,
-    label: "Informasi",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
-  },
-  {
-    href: "/admin/kategori",
-    icon: FolderOpen,
-    label: "Kategori Informasi",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
+    category: "request"
   },
   {
     href: "/admin/keberatan",
     icon: AlertTriangle,
     label: "Keberatan",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    category: "request"
   },
   {
     href: "/admin/chat",
     icon: MessageCircle,
-    label: "Kelola Chat",
+    label: "Chat",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    category: "request"
+  },
+  
+  // Manajemen Informasi
+  {
+    href: "/admin/informasi",
+    icon: Info,
+    label: "Informasi Publik",
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
+    category: "content"
+  },
+  {
+    href: "/admin/kategori",
+    icon: FolderOpen,
+    label: "Kategori",
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
+    category: "content"
   },
   {
     href: "/admin/halaman",
     icon: Globe,
-    label: "Kelola Halaman",
+    label: "Halaman",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+    category: "content"
   },
-  {
-    href: "/admin/laporan",
-    icon: BarChart3,
-    label: "Laporan",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
-  },
+  
+  // Manajemen User
   {
     href: "/admin/akun",
     icon: UserCog,
     label: "Kelola Akun",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+    category: "user"
   },
   {
-    href: "/admin/profile",
-    icon: UserCircle,
-    label: "Profile",
+    href: "/admin/permissions",
+    icon: Shield,
+    label: "Kelola Akses",
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+    category: "user"
+  },
+  
+  // Laporan & Monitoring
+  {
+    href: "/admin/laporan",
+    icon: BarChart3,
+    label: "Laporan",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    category: "report"
+  },
+  {
+    href: "/admin/logs",
+    icon: Activity,
+    label: "Log Aktivitas",
+    roles: [ROLES.ADMIN],
+    category: "report"
+  },
+  
+  // Sistem
+  {
+    href: "/admin/media",
+    icon: HardDrive,
+    label: "Media",
+    roles: [ROLES.ADMIN],
+    category: "system"
   },
   {
     href: "/admin/pengaturan",
     icon: Settings,
     label: "Pengaturan",
     roles: [ROLES.ADMIN],
+    category: "system"
+  },
+  
+  // Profile
+  {
+    href: "/admin/profile",
+    icon: UserCircle,
+    label: "Profil Saya",
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    category: "profile"
   },
 ];
 
@@ -173,47 +216,67 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
         {/* Navigation */}
         <nav className="mt-2 flex-1 overflow-y-auto">
-          {visibleMenuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
+          {(() => {
+            let lastCategory = '';
+            return visibleMenuItems.map((item, index) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              const showSeparator = item.category !== lastCategory && index > 0;
+              lastCategory = item.category;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => {
-                  // Close sidebar on mobile after navigation
-                  if (window.innerWidth < 1024) {
-                    onToggle();
-                  }
-                }}
-                className={`flex items-center py-3 text-sm font-medium transition-colors group ${
-                  isActive
-                    ? "text-blue-800 bg-blue-50 border-r-2 border-blue-800"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                } ${
-                  isOpen ? 'px-4' : 'px-4 lg:justify-center'
-                }`}
-                title={!isOpen ? item.label : ''}
-              >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${
-                  isOpen ? 'mr-3' : 'lg:mr-0'
-                }`} />
-                <span className={`text-truncate transition-all duration-300 ${
-                  isOpen ? 'opacity-100' : 'opacity-0 lg:opacity-0 w-0 lg:w-0'
-                }`}>
-                  {item.label}
-                </span>
-                
-                {/* Tooltip for collapsed state */}
-                {!isOpen && (
-                  <div className="hidden lg:block absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
-                    {item.label}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
+              return (
+                <div key={item.href}>
+                  {/* Category Separator */}
+                  {showSeparator && isOpen && (
+                    <div className="px-4 py-2">
+                      <div className="border-t border-gray-200"></div>
+                    </div>
+                  )}
+                  {showSeparator && !isOpen && (
+                    <div className="px-4 py-1">
+                      <div className="flex justify-center">
+                        <Minus className="w-4 h-4 text-gray-300" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Link
+                    href={item.href}
+                    onClick={() => {
+                      // Close sidebar on mobile after navigation
+                      if (window.innerWidth < 1024) {
+                        onToggle();
+                      }
+                    }}
+                    className={`flex items-center py-3 text-sm font-medium transition-colors group ${
+                      isActive
+                        ? "text-blue-800 bg-blue-50 border-r-2 border-blue-800"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    } ${
+                      isOpen ? 'px-4' : 'px-4 lg:justify-center'
+                    }`}
+                    title={!isOpen ? item.label : ''}
+                  >
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${
+                      isOpen ? 'mr-3' : 'lg:mr-0'
+                    }`} />
+                    <span className={`text-truncate transition-all duration-300 ${
+                      isOpen ? 'opacity-100' : 'opacity-0 lg:opacity-0 w-0 lg:w-0'
+                    }`}>
+                      {item.label}
+                    </span>
+                    
+                    {/* Tooltip for collapsed state */}
+                    {!isOpen && (
+                      <div className="hidden lg:block absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                        {item.label}
+                      </div>
+                    )}
+                  </Link>
+                </div>
+              );
+            });
+          })()}
         </nav>
 
 

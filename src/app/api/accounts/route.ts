@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
           hashed_password: hashedPassword
         }
       });
-    } else {
+    } else if (['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(role)) {
       newAccount = await prisma.ppid.create({
         data: {
           nama,
@@ -152,6 +152,8 @@ export async function POST(request: NextRequest) {
           no_pegawai: `PEG${Date.now()}`
         }
       });
+    } else {
+      return NextResponse.json({ error: 'Role tidak valid untuk kelola akses' }, { status: 400 });
     }
 
     return NextResponse.json({ 

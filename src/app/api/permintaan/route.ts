@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     if (decoded.role === 'Pemohon') {
       where.pemohon_id = decoded.userId;
     }
-    // PPID Pelaksana only sees requests that are being processed
+    // PPID Pelaksana only sees requests assigned to them
     else if (decoded.role === 'PPID_PELAKSANA') {
-      where.status = 'Diproses';
+      where.assigned_to = decoded.userId;
     }
     
     // Apply status filter if provided
@@ -115,6 +115,17 @@ export async function POST(request: NextRequest) {
         tujuan_penggunaan,
         cara_memperoleh_informasi: cara_memperoleh_informasi || 'Email',
         cara_mendapat_salinan: cara_mendapat_salinan || 'Email'
+      }
+    });
+
+    // Log activity
+    await prisma.activityLog.create({
+      data: {
+        action: 'CREATE_REQUEST',
+        details: `Created request: ${newRequest.judul || 'Untitled'}`,
+        user_id: decoded.userId?.toString(),
+        user_role: decoded.role,
+        ip_address: request.headers.get('x-forwarded-for') || 'unknown'
       }
     });
 

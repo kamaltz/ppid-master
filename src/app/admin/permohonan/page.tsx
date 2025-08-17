@@ -376,12 +376,31 @@ export default function AdminPermohonanPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                     {item.status === 'Diajukan' ? (
-                      <button 
-                        onClick={() => updateStatus(item.id, 'Diproses')}
-                        className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
-                      >
-                        Proses
-                      </button>
+                      <RoleGuard requiredRoles={[ROLES.PPID_UTAMA]} showAccessDenied={false}>
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              // Assign to PPID Pelaksana
+                              fetch('/api/admin/assign-request', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                                },
+                                body: JSON.stringify({
+                                  requestId: item.id,
+                                  assignedTo: parseInt(e.target.value)
+                                })
+                              }).then(() => refreshData());
+                            }
+                          }}
+                          className="text-xs border rounded px-2 py-1"
+                        >
+                          <option value="">Teruskan ke...</option>
+                          <option value="1">PPID Pelaksana 1</option>
+                          <option value="2">PPID Pelaksana 2</option>
+                        </select>
+                      </RoleGuard>
                     ) : item.status === 'Diproses' ? (
                       <div className="flex gap-1">
                         <button 
@@ -407,12 +426,14 @@ export default function AdminPermohonanPage() {
                   >
                     Detail
                   </button>
-                  <a 
-                    href={`/admin/permohonan/${item.id}`}
-                    className="text-green-600 hover:text-green-900 text-xs mr-2"
-                  >
-                    Respon
-                  </a>
+                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
+                    <a 
+                      href={`/admin/permohonan/${item.id}`}
+                      className="text-green-600 hover:text-green-900 text-xs mr-2"
+                    >
+                      Respon
+                    </a>
+                  </RoleGuard>
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                     <button 
                       onClick={() => deletePermohonan(item.id)}

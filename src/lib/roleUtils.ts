@@ -1,5 +1,5 @@
 export const ROLES = {
-  ADMIN: "Admin",
+  ADMIN: "ADMIN",
   PPID: "PPID", 
   PPID_UTAMA: "PPID_UTAMA",
   PPID_PELAKSANA: "PPID_PELAKSANA",
@@ -8,7 +8,7 @@ export const ROLES = {
 } as const;
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
-export type AdminRole = "Admin" | "PPID_PELAKSANA" | "PPID" | "PPID_UTAMA" | "ATASAN_PPID";
+export type AdminRole = "ADMIN" | "PPID_PELAKSANA" | "PPID" | "PPID_UTAMA" | "ATASAN_PPID";
 
 export const isAdmin = (role: string | null): boolean => {
   return role === ROLES.ADMIN;
@@ -37,17 +37,18 @@ export const canAccessMenu = (role: string | null, menuRoles: string[]): boolean
 
 export const getRoleDisplayName = (role: string | null): string => {
   switch (role) {
-    case ROLES.ADMIN:
+    case "ADMIN":
+    case "Admin":
       return "Administrator";
-    case ROLES.PPID:
+    case "PPID":
       return "PPID";
-    case ROLES.PPID_UTAMA:
+    case "PPID_UTAMA":
       return "PPID Utama";
-    case ROLES.PPID_PELAKSANA:
+    case "PPID_PELAKSANA":
       return "PPID Pelaksana";
-    case ROLES.ATASAN_PPID:
+    case "ATASAN_PPID":
       return "Atasan PPID";
-    case ROLES.PEMOHON:
+    case "Pemohon":
       return "Pemohon";
     default:
       return "Unknown";

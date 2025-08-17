@@ -12,6 +12,8 @@ model Admin {
   email           String   @unique
   hashed_password String
   nama            String
+  role            String?  @default("ADMIN")
+  permissions     String?  @db.Text
   created_at      DateTime @default(now())
 
   @@map("admin")
@@ -39,6 +41,7 @@ model Ppid {
   hashed_password String
   nama            String
   role            String   @default("PPID_PELAKSANA")
+  permissions     String?  @db.Text
   created_at      DateTime @default(now())
 
   @@map("ppid")
