@@ -82,7 +82,7 @@ export default function AdminAkunPage() {
         const data = await response.json();
         
         if (data.success) {
-          alert(`Akun berhasil dibuat dengan password default: ppid321`);
+          alert(`Akun berhasil dibuat dengan password default: Garut@2025?`);
           fetchAccounts(); // Refresh the accounts list
         } else {
           alert(data.error || 'Gagal membuat akun');
@@ -120,7 +120,11 @@ export default function AdminAkunPage() {
     }
 
     try {
-      const response = await fetch(`/api/accounts/${id}`, {
+      // Extract numeric ID and table from prefixed ID (e.g., "admin_123" -> "123")
+      const numericId = id.split('_')[1];
+      const table = id.split('_')[0];
+      
+      const response = await fetch(`/api/accounts/${table}/${numericId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -213,7 +217,7 @@ export default function AdminAkunPage() {
               {!editId && (
                 <div className="bg-blue-50 p-3 rounded">
                   <p className="text-sm text-blue-700">
-                    Password default: <strong>ppid321</strong>
+                    Password default: <strong>Garut@2025?</strong>
                   </p>
                 </div>
               )}

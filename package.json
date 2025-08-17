@@ -19,6 +19,7 @@
 
     "add:informasi": "node lib/scripts/add-sample-informasi.js",
     "batch:informasi": "node lib/scripts/batch-informasi-2020-2025.js",
+    "seed:accounts": "node lib/scripts/seed-new-accounts.js",
     "migrate:informasi": "node lib/scripts/migrate-informasi.js",
     "reset-db": "node lib/scripts/resetDatabase.js",
     "clear-crud": "node lib/scripts/clearCrudData.js",

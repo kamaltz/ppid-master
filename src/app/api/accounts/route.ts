@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash('ppid321', 10);
+    const hashedPassword = await bcrypt.hash('Garut@2025?', 10);
 
     let newAccount;
     if (role === 'Admin') {
