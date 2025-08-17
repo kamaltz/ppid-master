@@ -6,6 +6,8 @@ import { Volume2, VolumeX } from "lucide-react";
 export default function AccessibilityHelper() {
   const [isEnabled, setIsEnabled] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('accessibility_enabled');
@@ -30,32 +32,49 @@ export default function AccessibilityHelper() {
     localStorage.setItem('accessibility_enabled', JSON.stringify(newState));
   };
 
-  const speakText = useCallback((text: string) => {
+  const speakText = useCallback(async (text: string) => {
     if (!isEnabled || !text) return;
     
+    // Stop any current audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
     window.speechSynthesis.cancel();
     
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Try to find Indonesian voice
-    const voices = window.speechSynthesis.getVoices();
-    const indonesianVoice = voices.find(voice => 
-      voice.lang.includes('id') || 
-      voice.name.toLowerCase().includes('indonesia') ||
-      voice.name.toLowerCase().includes('bahasa')
-    );
-    
-    if (indonesianVoice) {
-      utterance.voice = indonesianVoice;
+    try {
+      const response = await fetch('/api/elevenlabs/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          text,
+          voice_id: 'pNInz6obpgDQGcFmaJgB',
+          model_id: 'eleven_multilingual_v2'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('ElevenLabs API failed');
+      }
+      
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      setCurrentAudio(audio);
+      
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        setCurrentAudio(null);
+      };
+      
+      await audio.play();
+    } catch (error) {
+      console.error('ElevenLabs TTS error:', error);
     }
-    
-    utterance.lang = 'id-ID';
-    utterance.rate = 0.7;
-    utterance.pitch = 1;
-    utterance.volume = 0.8;
-    
-    window.speechSynthesis.speak(utterance);
-  }, [isEnabled]);
+  }, [isEnabled, currentAudio]);
 
   useEffect(() => {
     if (!isEnabled) return;
@@ -63,6 +82,11 @@ export default function AccessibilityHelper() {
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target) return;
+
+      // Clear previous timer
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
 
       let textToSpeak = '';
 
@@ -81,13 +105,22 @@ export default function AccessibilityHelper() {
       }
 
       if (textToSpeak) {
-        speakText(textToSpeak);
+        // Add 800ms delay before speaking
+        const timer = setTimeout(() => {
+          speakText(textToSpeak);
+        }, 800);
+        setDebounceTimer(timer);
       }
     };
 
     document.addEventListener('mouseover', handleMouseOver);
-    return () => document.removeEventListener('mouseover', handleMouseOver);
-  }, [isEnabled, speakText]);
+    return () => {
+      document.removeEventListener('mouseover', handleMouseOver);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [isEnabled, speakText, debounceTimer]);
 
   if (!isVisible) return null;
 

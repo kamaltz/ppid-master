@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/api";
 import { isAdminRole, isPemohon } from "@/lib/roleUtils";
@@ -28,6 +28,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_data");
+    localStorage.removeItem("user_role");
+    router.push("/login");
+  };
 
   useEffect(() => {
     const checkTokenExpiration = () => {
@@ -69,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const interval = setInterval(checkTokenExpiration, 60000);
     
     return () => clearInterval(interval);
-  }, [logout]);
+  }, [router]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -108,14 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_data");
-    localStorage.removeItem("user_role");
-    router.push("/login");
-  }, [router]);
+
 
   const getUserRole = () => {
     return user?.role || localStorage.getItem("user_role");
