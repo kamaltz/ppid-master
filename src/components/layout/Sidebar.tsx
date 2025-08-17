@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, getRoleDisplayName, canAccessMenu } from "@/lib/roleUtils";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   LayoutDashboard,
   FileText,
@@ -27,122 +28,95 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  // Dashboard
   {
     href: "/admin/dashboard",
     icon: LayoutDashboard,
     label: "Dashboard",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    permission: null,
     category: "main"
   },
-  
-  // Manajemen Permohonan
   {
     href: "/admin/permohonan",
     icon: FileText,
     label: "Permohonan",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    permission: "permohonan",
     category: "request"
   },
   {
     href: "/admin/keberatan",
     icon: AlertTriangle,
     label: "Keberatan",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    permission: "keberatan",
     category: "request"
   },
   {
     href: "/admin/chat",
     icon: MessageCircle,
     label: "Chat",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    permission: "chat",
     category: "request"
   },
-  
-  // Manajemen Informasi
   {
     href: "/admin/informasi",
     icon: Info,
     label: "Informasi Publik",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
+    permission: "informasi",
     category: "content"
   },
   {
     href: "/admin/kategori",
     icon: FolderOpen,
     label: "Kategori",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
+    permission: "kategori",
     category: "content"
   },
-  {
-    href: "/admin/halaman",
-    icon: Globe,
-    label: "Halaman",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
-    category: "content"
-  },
-  
-  // Manajemen User
   {
     href: "/admin/akun",
     icon: UserCog,
     label: "Kelola Akun",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+    permission: "kelola_akun",
     category: "user"
   },
   {
     href: "/admin/roles",
     icon: Users,
     label: "Manajemen Role",
-    roles: [ROLES.ADMIN],
+    permission: "manajemen_role",
     category: "user"
   },
   {
     href: "/admin/permissions",
     icon: Shield,
     label: "Kelola Akses",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
+    permission: "kelola_akses",
     category: "user"
-  },
-  
-  // Laporan & Monitoring
-  {
-    href: "/admin/laporan",
-    icon: BarChart3,
-    label: "Laporan",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
-    category: "report"
   },
   {
     href: "/admin/logs",
     icon: Activity,
     label: "Log Aktivitas",
-    roles: [ROLES.ADMIN],
+    permission: "log_aktivitas",
     category: "report"
   },
-  
-  // Sistem
   {
     href: "/admin/media",
     icon: HardDrive,
     label: "Media",
-    roles: [ROLES.ADMIN],
+    permission: "media",
     category: "system"
   },
   {
     href: "/admin/pengaturan",
     icon: Settings,
     label: "Pengaturan",
-    roles: [ROLES.ADMIN],
+    permission: "pengaturan",
     category: "system"
   },
-  
-  // Profile
   {
     href: "/admin/profile",
     icon: UserCircle,
     label: "Profil Saya",
-    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+    permission: "profile",
     category: "profile"
   },
 ];
@@ -156,9 +130,12 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const pathname = usePathname();
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
-  const visibleMenuItems = menuItems.filter((item) =>
-    canAccessMenu(userRole, item.roles)
-  );
+  const { hasPermission } = useUserPermissions();
+  
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (!item.permission) return true; // Dashboard always visible
+    return hasPermission(item.permission as any);
+  });
 
 
 

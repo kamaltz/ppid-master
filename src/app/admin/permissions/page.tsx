@@ -18,6 +18,13 @@ interface Permission {
   chat: boolean;
   permohonan: boolean;
   keberatan: boolean;
+  kelola_akun: boolean;
+  manajemen_role: boolean;
+  kelola_akses: boolean;
+  log_aktivitas: boolean;
+  pengaturan: boolean;
+  media: boolean;
+  profile: boolean;
 }
 
 export default function PermissionsPage() {
@@ -31,14 +38,20 @@ export default function PermissionsPage() {
     kategori: false,
     chat: false,
     permohonan: false,
-    keberatan: false
+    keberatan: false,
+    kelola_akun: false,
+    manajemen_role: false,
+    kelola_akses: false,
+    log_aktivitas: false,
+    pengaturan: false,
+    media: false,
+    profile: false
   });
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
 
   const fetchUsers = useCallback(async () => {
     try {
-      // Fetch all users in one call
       const response = await fetch('/api/admin/users', { 
         headers: { Authorization: `Bearer ${token}` } 
       });
@@ -58,6 +71,14 @@ export default function PermissionsPage() {
 
   const updatePermissions = async (userId: number, newPermissions: Permission) => {
     try {
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? { ...user, permissions: JSON.stringify(newPermissions) }
+            : user
+        )
+      );
+
       const response = await fetch("/api/admin/role-permissions", {
         method: "POST",
         headers: {
@@ -72,44 +93,115 @@ export default function PermissionsPage() {
 
       const data = await response.json();
       
-      if (data.success) {
-        alert("Permissions berhasil diupdate!");
+      if (!data.success) {
         fetchUsers();
-        setSelectedUser(null);
-      } else {
         alert(data.error || "Gagal update permissions");
       }
     } catch (error) {
       console.error("Failed to update permissions:", error);
+      fetchUsers();
       alert("Terjadi kesalahan saat update permissions");
+    }
+  };
+
+  const getDefaultPermissions = (role: string): Permission => {
+    switch (role) {
+      case 'ADMIN':
+        return {
+          informasi: true,
+          kategori: true,
+          chat: true,
+          permohonan: true,
+          keberatan: true,
+          kelola_akun: true,
+          manajemen_role: true,
+          kelola_akses: true,
+          log_aktivitas: true,
+          pengaturan: true,
+          media: true,
+          profile: true
+        };
+      case 'PPID_UTAMA':
+        return {
+          informasi: true,
+          kategori: true,
+          chat: true,
+          permohonan: true,
+          keberatan: true,
+          kelola_akun: false,
+          manajemen_role: false,
+          kelola_akses: false,
+          log_aktivitas: false,
+          pengaturan: true,
+          media: true,
+          profile: true
+        };
+      case 'PPID_PELAKSANA':
+        return {
+          informasi: true,
+          kategori: true,
+          chat: true,
+          permohonan: true,
+          keberatan: true,
+          kelola_akun: false,
+          manajemen_role: false,
+          kelola_akses: false,
+          log_aktivitas: false,
+          pengaturan: false,
+          media: false,
+          profile: true
+        };
+      case 'ATASAN_PPID':
+        return {
+          informasi: true,
+          kategori: false,
+          chat: false,
+          permohonan: true,
+          keberatan: true,
+          kelola_akun: false,
+          manajemen_role: false,
+          kelola_akses: false,
+          log_aktivitas: false,
+          pengaturan: false,
+          media: false,
+          profile: true
+        };
+      default:
+        return {
+          informasi: false,
+          kategori: false,
+          chat: false,
+          permohonan: false,
+          keberatan: false,
+          kelola_akun: false,
+          manajemen_role: false,
+          kelola_akses: false,
+          log_aktivitas: false,
+          pengaturan: false,
+          media: false,
+          profile: false
+        };
     }
   };
 
   const openPermissionModal = (user: User) => {
     setSelectedUser(user);
     try {
-      const userPermissions = user.permissions ? JSON.parse(user.permissions) : {
-        informasi: false,
-        kategori: false,
-        chat: false,
-        permohonan: false,
-        keberatan: false
+      const defaultPerms = getDefaultPermissions(user.role);
+      const userPermissions = user.permissions ? JSON.parse(user.permissions) : defaultPerms;
+      // Ensure all permission keys exist with boolean values
+      const completePermissions = {
+        ...defaultPerms,
+        ...userPermissions
       };
-      setPermissions(userPermissions);
+      setPermissions(completePermissions);
     } catch {
-      setPermissions({
-        informasi: false,
-        kategori: false,
-        chat: false,
-        permohonan: false,
-        keberatan: false
-      });
+      setPermissions(getDefaultPermissions(user.role));
     }
   };
 
   useEffect(() => {
     fetchUsers();
-    // Auto refresh every 30 seconds for real-time data
     const interval = setInterval(fetchUsers, 30000);
     return () => clearInterval(interval);
   }, [fetchUsers]);
@@ -158,7 +250,6 @@ export default function PermissionsPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -191,7 +282,6 @@ export default function PermissionsPage() {
         </div>
       </div>
 
-      {/* Users List */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-gray-500">Memuat pengguna PPID...</div>
@@ -199,7 +289,6 @@ export default function PermissionsPage() {
           <div className="p-8 text-center text-gray-500">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p>Tidak ada pengguna PPID ditemukan</p>
-            <p className="text-sm mt-2">Hanya menampilkan PPID Utama, PPID Pelaksana, dan Atasan PPID</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -211,9 +300,32 @@ export default function PermissionsPage() {
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{user.nama}</h3>
                       <p className="text-sm text-gray-600">{user.email}</p>
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getRoleColor(user.role)}`}>
-                        {getRoleDisplayName(user.role)}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                          {getRoleDisplayName(user.role)}
+                        </span>
+                        {(() => {
+                          try {
+                            const userPerms = user.permissions ? JSON.parse(user.permissions) : {};
+                            const activePerms = Object.entries(userPerms).filter(([_, value]) => value).length;
+                            return activePerms > 0 ? (
+                              <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                                {activePerms} akses aktif
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                Tidak ada akses
+                              </span>
+                            );
+                          } catch {
+                            return (
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                Tidak ada akses
+                              </span>
+                            );
+                          }
+                        })()}
+                      </div>
                     </div>
                   </div>
                   
@@ -233,7 +345,6 @@ export default function PermissionsPage() {
         )}
       </div>
 
-      {/* Permission Modal */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
@@ -247,70 +358,55 @@ export default function PermissionsPage() {
               </button>
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Akses Informasi</label>
-                <input
-                  type="checkbox"
-                  checked={permissions.informasi}
-                  onChange={(e) => setPermissions({...permissions, informasi: e.target.checked})}
-                  className="rounded"
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Akses Kategori</label>
-                <input
-                  type="checkbox"
-                  checked={permissions.kategori}
-                  onChange={(e) => setPermissions({...permissions, kategori: e.target.checked})}
-                  className="rounded"
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Akses Chat</label>
-                <input
-                  type="checkbox"
-                  checked={permissions.chat}
-                  onChange={(e) => setPermissions({...permissions, chat: e.target.checked})}
-                  className="rounded"
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Akses Permohonan</label>
-                <input
-                  type="checkbox"
-                  checked={permissions.permohonan}
-                  onChange={(e) => setPermissions({...permissions, permohonan: e.target.checked})}
-                  className="rounded"
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Akses Keberatan</label>
-                <input
-                  type="checkbox"
-                  checked={permissions.keberatan}
-                  onChange={(e) => setPermissions({...permissions, keberatan: e.target.checked})}
-                  className="rounded"
-                />
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-3">
+                {[
+                  { key: 'informasi', label: 'Akses Informasi' },
+                  { key: 'kategori', label: 'Akses Kategori' },
+                  { key: 'chat', label: 'Akses Chat' },
+                  { key: 'permohonan', label: 'Akses Permohonan' },
+                  { key: 'keberatan', label: 'Akses Keberatan' },
+                  { key: 'kelola_akun', label: 'Kelola Akun' },
+                  { key: 'manajemen_role', label: 'Manajemen Role' },
+                  { key: 'kelola_akses', label: 'Kelola Akses' },
+                  { key: 'log_aktivitas', label: 'Log Aktivitas' },
+                  { key: 'pengaturan', label: 'Pengaturan' },
+                  { key: 'media', label: 'Media' },
+                  { key: 'profile', label: 'Profile' }
+                ].map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                    <label className="text-sm font-medium">{label}</label>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(permissions[key as keyof Permission])}
+                      onChange={(e) => {
+                        const newPermissions = {...permissions, [key]: e.target.checked};
+                        setPermissions(newPermissions);
+                        updatePermissions(selectedUser.id, newPermissions);
+                      }}
+                      className="rounded"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
             
-            <div className="mt-6 flex justify-end gap-2">
-              <button 
+            <div className="mt-6 flex justify-between">
+              <button
+                onClick={() => {
+                  const defaultPerms = getDefaultPermissions(selectedUser.role);
+                  setPermissions(defaultPerms);
+                  updatePermissions(selectedUser.id, defaultPerms);
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+              >
+                Reset ke Default
+              </button>
+              <button
                 onClick={() => setSelectedUser(null)}
                 className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
               >
-                Batal
-              </button>
-              <button 
-                onClick={() => updatePermissions(selectedUser.id, permissions)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Simpan
+                Tutup
               </button>
             </div>
           </div>
