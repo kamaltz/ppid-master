@@ -1,81 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-interface JWTPayload {
-  role: string;
-  id: string;
-}
-
-interface Category {
-  id: number;
-  nama: string;
-  slug: string;
-  deskripsi: string;
-  created_at: string;
-}
-
-declare global {
-  var categories: Category[];
-}
-
-// Global in-memory storage for categories (shared across requests)
-global.categories = global.categories || [
-  { id: 1, nama: "Informasi Berkala", slug: "informasi-berkala", deskripsi: "Informasi yang wajib disediakan secara berkala", created_at: "2024-01-01" },
-  { id: 2, nama: "Informasi Setiap Saat", slug: "informasi-setiap-saat", deskripsi: "Informasi yang wajib disediakan setiap saat", created_at: "2024-01-02" },
-  { id: 3, nama: "Informasi Serta Merta", slug: "informasi-serta-merta", deskripsi: "Informasi yang wajib diumumkan serta merta", created_at: "2024-01-03" }
-];
-
-export async function GET() {
+export async function GET(request?: NextRequest) {
   try {
-    return NextResponse.json({ success: true, data: global.categories });
-  } catch (error: unknown) {
-    console.error('GET /api/kategori error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to fetch categories' 
-    }, { status: 500 });
+    const authHeader = request?.headers?.get('authorization');
+    let isAdmin = false;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        isAdmin = ['ADMIN', 'PPID_UTAMA'].includes(decoded.role);
+      } catch (error) {
+        // Token invalid, continue as public user
+      }
+    }
+
+    const includeStats = isAdmin;
+    const categories = await prisma.kategori.findMany({
+      ...(includeStats && {
+        include: {
+          _count: {
+            select: {
+              informasi: true,
+              permintaan: true
+            }
+          }
+        }
+      }),
+      orderBy: { nama: 'asc' }
+    });
+
+    return NextResponse.json({ success: true, data: categories });
+  } catch (error) {
+    console.error('Get kategori error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    if (!['Admin', 'PPID_UTAMA'].includes(decoded.role)) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { nama, slug, deskripsi } = await request.json();
-
-    // Check for duplicate names
-    const existingCategory = global.categories?.find(cat => cat.nama === nama);
-    if (existingCategory) {
-      return NextResponse.json({ success: false, error: 'Nama kategori sudah digunakan' }, { status: 400 });
-    }
-
-    // Add to global storage
-    const newKategori = {
-      id: Date.now(),
-      nama,
-      slug: slug || nama.toLowerCase().replace(/\s+/g, '-'),
-      deskripsi,
-      created_at: new Date().toISOString()
-    };
+    const token = authHeader.split(' ')[1];
+    let decoded: any;
     
-    global.categories?.push(newKategori);
-    return NextResponse.json({ success: true, data: newKategori }, { status: 201 });
-  } catch (error: unknown) {
-    console.error('POST /api/kategori error:', error);
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-      return NextResponse.json({ success: false, error: 'Nama atau slug sudah digunakan' }, { status: 400 });
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
+
+    // Only Admin and PPID can create categories
+    if (!['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { nama, deskripsi } = await request.json();
+    
+    if (!nama) {
+      return NextResponse.json({ error: 'Nama kategori wajib diisi' }, { status: 400 });
+    }
+
+    // Check for duplicate
+    const existing = await prisma.kategori.findFirst({
+      where: { nama }
+    });
+
+    if (existing) {
+      return NextResponse.json({ error: 'Nama kategori sudah digunakan' }, { status: 400 });
+    }
+
+    const kategori = await prisma.kategori.create({
+      data: { nama, deskripsi }
+    });
+
     return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to create category' 
-    }, { status: 500 });
+      success: true, 
+      message: 'Kategori berhasil dibuat', 
+      data: kategori 
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Create kategori error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

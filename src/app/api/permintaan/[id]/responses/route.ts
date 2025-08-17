@@ -2,24 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const requestId = parseInt(id);
-    
-    const responses = await prisma.requestResponse.findMany({
-      where: { request_id: requestId },
-      orderBy: { created_at: 'asc' }
-    });
-    
-    return NextResponse.json({ success: true, data: responses });
-  } catch (error) {
-    console.error('Get responses error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
-  }
+interface JWTPayload {
+  id: string;
+  role: string;
+  userId?: number;
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -27,66 +16,124 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const token = authHeader.split(' ')[1];
-    let decoded;
+    let decoded: JWTPayload;
+    
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-      console.log('Decoded token:', decoded);
-    } catch (jwtError) {
-      console.error('JWT Error:', jwtError);
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (error) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
-    
-    const { id } = await params;
-    const requestId = parseInt(id);
-    const body = await request.json();
-    const { message, attachments, message_type } = body;
-    
-    // Allow empty messages for system messages
-    if ((!message || message.trim() === '') && message_type !== 'system') {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
-    }
-    
-    // Only check chat status for pemohon, allow admin to send anytime
-    if (decoded.role === 'Pemohon') {
-      const endMessage = await prisma.requestResponse.findFirst({
-        where: {
-          request_id: requestId,
-          message_type: 'system',
-          message: { contains: 'Chat telah diakhiri' }
-        },
-        orderBy: { created_at: 'desc' }
-      });
-      
-      const resumeMessage = await prisma.requestResponse.findFirst({
-        where: {
-          request_id: requestId,
-          message_type: 'system',
-          message: { contains: 'Chat telah dilanjutkan' }
-        },
-        orderBy: { created_at: 'desc' }
-      });
-      
-      // Chat is ended if end message exists and is more recent than resume message
-      if (endMessage && (!resumeMessage || new Date(endMessage.created_at) > new Date(resumeMessage.created_at))) {
-        return NextResponse.json({ error: 'Chat has been ended' }, { status: 400 });
-      }
-    }
-    
-    const response = await prisma.requestResponse.create({
-      data: {
-        request_id: requestId,
-        user_id: decoded.id?.toString() || '1',
-        user_role: decoded.role || 'User',
-        user_name: decoded.nama || decoded.name || decoded.email || 'Unknown User',
-        message: message || '',
-        attachments: attachments && attachments.length > 0 ? JSON.stringify(attachments) : null,
-        message_type: message_type || 'text'
+
+    const id = parseInt(params.id);
+    const userId = parseInt(decoded.id) || decoded.userId;
+
+    const permintaan = await prisma.permintaan.findUnique({
+      where: { id },
+      include: {
+        tanggapan: {
+          orderBy: { created_at: 'desc' }
+        }
       }
     });
-    
-    return NextResponse.json({ success: true, data: response });
+
+    if (!permintaan) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // Check access permissions
+    if (decoded.role === 'Pemohon' && permintaan.pemohon_id !== userId) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      data: permintaan.tanggapan || []
+    });
   } catch (error) {
-    console.error('Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Get responses error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded: JWTPayload;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Only PPID and Admin can add responses
+    if (!['PPID_UTAMA', 'PPID_PELAKSANA', 'ADMIN'].includes(decoded.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const id = parseInt(params.id);
+    const userId = parseInt(decoded.id) || decoded.userId;
+
+    const permintaan = await prisma.permintaan.findUnique({
+      where: { id }
+    });
+
+    if (!permintaan) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    const { isi_tanggapan, file_path } = await request.json();
+
+    if (!isi_tanggapan) {
+      return NextResponse.json({ error: 'Response content is required' }, { status: 400 });
+    }
+
+    // Create response using tanggapan table
+    const response = await prisma.tanggapan.create({
+      data: {
+        permintaan_id: id,
+        ppid_id: userId,
+        isi_tanggapan,
+        file_path: file_path || null
+      }
+    });
+
+    // Update request status if needed
+    await prisma.permintaan.update({
+      where: { id },
+      data: {
+        status: 'Ditanggapi',
+        updated_at: new Date()
+      }
+    });
+
+    // Log activity
+    try {
+      await prisma.activityLog.create({
+        data: {
+          action: 'ADD_RESPONSE',
+          details: `Added response to request ${id}`,
+          user_id: userId.toString(),
+          user_role: decoded.role,
+          ip_address: request.headers.get('x-forwarded-for') || 'unknown'
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log activity:', logError);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Response added successfully',
+      data: response 
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Add response error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

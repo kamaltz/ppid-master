@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
 export async function GET() {
   try {
     const settings = await prisma.setting.findMany();
     
-    const settingsObj = settings.reduce((acc, setting) => {
-      acc[setting.key] = JSON.parse(setting.value);
+    const settingsObj = settings?.reduce((acc, setting) => {
+      try {
+        acc[setting.key] = JSON.parse(setting.value);
+      } catch {
+        acc[setting.key] = setting.value;
+      }
       return acc;
-    }, {} as Record<string, unknown>);
+    }, {} as Record<string, unknown>) || {};
     
     return NextResponse.json({
       success: true,
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    if (decoded.role !== 'Admin') {
+    if (decoded.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 

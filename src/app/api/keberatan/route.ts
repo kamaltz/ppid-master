@@ -3,8 +3,9 @@ import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
+  id: string;
   role: string;
-  userId: number;
+  userId?: number;
 }
 
 interface WhereClause {
@@ -25,9 +26,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const pemohonId = searchParams.get('pemohon_id');
 
+    const userId = parseInt(decoded.id) || decoded.userId;
     const where: WhereClause = {};
     if (decoded.role === 'Pemohon') {
-      where.pemohon_id = decoded.userId;
+      where.pemohon_id = userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
       // PPID Pelaksana only sees keberatan that are being processed (status = 'Diproses')
       where.status = 'Diproses';
@@ -81,12 +83,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Alasan keberatan wajib diisi' }, { status: 400 });
     }
 
+    const userId = parseInt(decoded.id) || decoded.userId;
+    
     // Create a dummy request if none provided (for testing)
     let requestId = permintaan_id;
     if (!requestId) {
-      const dummyRequest = await prisma.request.create({
+      const dummyRequest = await prisma.permintaan.create({
         data: {
-          pemohon_id: decoded.userId,
+          pemohon_id: userId,
           rincian_informasi: 'Dummy request for keberatan test',
           tujuan_penggunaan: 'Testing purposes'
         }
@@ -94,10 +98,10 @@ export async function POST(request: NextRequest) {
       requestId = dummyRequest.id;
     } else {
       // Verify the request belongs to the user
-      const permintaan = await prisma.request.findFirst({
+      const permintaan = await prisma.permintaan.findFirst({
         where: {
           id: parseInt(requestId),
-          pemohon_id: decoded.userId
+          pemohon_id: userId
         }
       });
 
@@ -109,7 +113,7 @@ export async function POST(request: NextRequest) {
     const keberatan = await prisma.keberatan.create({
       data: {
         permintaan_id: parseInt(requestId),
-        pemohon_id: decoded.userId,
+        pemohon_id: userId,
         judul: judul || null,
         alasan_keberatan,
         status: 'Diajukan'
@@ -120,7 +124,7 @@ export async function POST(request: NextRequest) {
       success: true, 
       message: 'Keberatan berhasil dibuat', 
       data: keberatan 
-    });
+    }, { status: 201 });
   } catch (error) {
     console.error('Create keberatan error:', error);
     return NextResponse.json({ 

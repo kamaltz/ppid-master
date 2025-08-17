@@ -2,127 +2,124 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-interface FileData {
-  originalName?: string;
-  name: string;
-  url: string;
-  size: number;
+interface JWTPayload {
+  id: string;
+  role: string;
+  userId?: number;
 }
 
-interface LinkData {
-  title: string;
-  url: string;
-}
-
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id: idParam } = await params;
-    const id = parseInt(idParam);
-    
-    if (isNaN(id)) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'ID tidak valid' 
-      }, { status: 400 });
-    }
-    
-    const informasi = await prisma.informasiPublik.findUnique({
-      where: { id }
+    const id = parseInt(params.id);
+
+    const informasi = await prisma.informasi.findUnique({
+      where: { id },
+      include: {
+        kategori: {
+          select: { id: true, nama: true }
+        }
+      }
     });
-    
+
     if (!informasi) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Informasi tidak ditemukan' 
-      }, { status: 404 });
+      return NextResponse.json({ error: 'Information not found' }, { status: 404 });
     }
-    
-    // Parse links, file_attachments, and images if they exist
-    const processedInformasi = {
-      ...informasi,
-      links: informasi.links ? JSON.parse(informasi.links) : [],
-      file_attachments: informasi.file_attachments ? JSON.parse(informasi.file_attachments) : [],
-      images: informasi.images ? JSON.parse(informasi.images) : []
-    };
-    
-    return NextResponse.json({ success: true, data: processedInformasi });
-  } catch (error: unknown) {
-    console.error('GET /api/informasi/[id] error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to fetch informasi' 
-    }, { status: 500 });
+
+    return NextResponse.json({ success: true, data: informasi });
+  } catch (error) {
+    console.error('Get informasi by ID error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
-
-    const { id: idParam } = await params;
-    const id = parseInt(idParam);
-    if (isNaN(id)) {
-      return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
+    const token = authHeader.split(' ')[1];
+    let decoded: JWTPayload;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links, status, thumbnail, jadwal_publish, images } = body;
-    
-    console.log('Update data:', { judul, klasifikasi, status, images: images?.length || 0 });
-    
-    if (!judul || !klasifikasi || !ringkasan_isi_informasi) {
-      return NextResponse.json({ error: 'Judul, klasifikasi, dan ringkasan wajib diisi' }, { status: 400 });
+    // Only PPID and Admin can update information
+    if (!['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const data = await prisma.informasiPublik.update({
+    const id = parseInt(params.id);
+
+    const existingInformasi = await prisma.informasi.findUnique({
+      where: { id }
+    });
+
+    if (!existingInformasi) {
+      return NextResponse.json({ error: 'Information not found' }, { status: 404 });
+    }
+
+    const { judul, klasifikasi, ringkasan_isi_informasi, status } = await request.json();
+
+    const updatedInformasi = await prisma.informasi.update({
       where: { id },
-      data: { 
-        judul, 
-        klasifikasi, 
-        ringkasan_isi_informasi, 
-        tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : undefined,
-        pejabat_penguasa_informasi,
-        status: status || undefined,
-        thumbnail: thumbnail !== undefined ? thumbnail : undefined,
-        jadwal_publish: jadwal_publish ? new Date(jadwal_publish) : null,
-        file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: FileData) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
-        links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null,
-        images: images && Array.isArray(images) && images.length > 0 ? JSON.stringify(images) : null
+      data: {
+        judul: judul || existingInformasi.judul,
+        klasifikasi: klasifikasi || existingInformasi.klasifikasi,
+        ringkasan_isi_informasi: ringkasan_isi_informasi || existingInformasi.ringkasan_isi_informasi,
+        status: status || existingInformasi.status,
+        updated_at: new Date()
       }
     });
 
-    return NextResponse.json({ message: 'Informasi berhasil diperbarui', data });
+    return NextResponse.json({ success: true, data: updatedInformasi });
   } catch (error) {
     console.error('Update informasi error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
-
-    const { id: idParam } = await params;
-    const id = parseInt(idParam);
-    if (isNaN(id)) {
-      return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
+    const token = authHeader.split(' ')[1];
+    let decoded: JWTPayload;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    await prisma.informasiPublik.delete({
+    const id = parseInt(params.id);
+    const userId = parseInt(decoded.id) || decoded.userId;
+
+    const existingInformasi = await prisma.informasi.findUnique({
       where: { id }
     });
 
-    return NextResponse.json({ message: 'Informasi berhasil dihapus' });
+    if (!existingInformasi) {
+      return NextResponse.json({ error: 'Information not found' }, { status: 404 });
+    }
+
+    // Check permissions: PPID can only delete their own information, admin can delete any
+    if (decoded.role !== 'ADMIN' && existingInformasi.created_by !== userId) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    await prisma.informasi.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true, message: 'Information deleted successfully' });
   } catch (error) {
     console.error('Delete informasi error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

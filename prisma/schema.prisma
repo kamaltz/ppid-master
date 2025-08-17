@@ -175,3 +175,13 @@ model Setting {
 
   @@map("settings")
 }
+
+model Kategori {
+  id          Int      @id @default(autoincrement())
+  nama        String   @unique
+  deskripsi   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  @@map("kategori")
+}

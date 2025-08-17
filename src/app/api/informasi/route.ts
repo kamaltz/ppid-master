@@ -29,6 +29,20 @@ interface LinkData {
 
 export async function GET(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('authorization');
+    let isAdminOrPPID = false;
+    
+    // Check if user is authenticated and is admin/PPID
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        isAdminOrPPID = ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role);
+      } catch (error) {
+        // Token invalid, continue as public user
+      }
+    }
+
     const { searchParams } = new URL(request.url);
     const klasifikasi = searchParams.get('klasifikasi');
     const search = searchParams.get('search');
@@ -40,8 +54,15 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
 
     const where: WhereClause = {};
+    
+    // Public users only see published content
+    if (!isAdminOrPPID) {
+      where.status = 'published';
+    } else if (status) {
+      where.status = status;
+    }
+    
     if (klasifikasi) where.klasifikasi = klasifikasi;
-    if (status) where.status = status;
     if (search) {
       where.OR = [
         { judul: { contains: search, mode: 'insensitive' } },
@@ -82,6 +103,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
+      success: true,
       data,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
@@ -98,34 +120,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
+    const token = authHeader.split(' ')[1];
+    let decoded: any;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Only PPID and Admin can create information
+    if (!['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
 
     const body = await request.json();
     const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links, status, thumbnail, jadwal_publish, images } = body;
     
     console.log('Received data:', { judul, klasifikasi, status, images: images?.length || 0 });
     
-    if (!judul || !klasifikasi || !ringkasan_isi_informasi) {
-      return NextResponse.json({ error: 'Judul, klasifikasi, dan ringkasan wajib diisi' }, { status: 400 });
+    if (!judul || !klasifikasi) {
+      return NextResponse.json({ error: 'Judul dan klasifikasi wajib diisi' }, { status: 400 });
     }
+
+    const userId = parseInt(decoded.id) || decoded.userId;
 
     const data = await prisma.informasiPublik.create({
       data: { 
         judul, 
         klasifikasi, 
-        ringkasan_isi_informasi, 
+        ringkasan_isi_informasi: ringkasan_isi_informasi || '',
         tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : new Date(),
-        pejabat_penguasa_informasi,
+        pejabat_penguasa_informasi: pejabat_penguasa_informasi || null,
         status: status || 'draft',
         thumbnail: thumbnail || null,
         jadwal_publish: jadwal_publish ? new Date(jadwal_publish) : null,
         file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: FileData) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
         links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null,
-        images: images && Array.isArray(images) && images.length > 0 ? JSON.stringify(images) : null
+        images: images && Array.isArray(images) && images.length > 0 ? JSON.stringify(images) : null,
+        // created_by field not in schema, removing
       }
     });
 
-    return NextResponse.json({ message: 'Informasi berhasil ditambahkan', data });
+    return NextResponse.json({ message: 'Informasi berhasil ditambahkan', data }, { status: 201 });
   } catch (error) {
     console.error('Create informasi error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

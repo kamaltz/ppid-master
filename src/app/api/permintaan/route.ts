@@ -3,8 +3,9 @@ import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
+  id: string;
   role: string;
-  userId: number;
+  userId?: number;
 }
 
 interface WhereClause {
@@ -19,10 +20,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Remove duplicate token verification since it's already done above
-
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    let decoded: JWTPayload;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -31,14 +36,15 @@ export async function GET(request: NextRequest) {
 
     // Filter based on user role
     const where: WhereClause = {};
+    const userId = parseInt(decoded.id) || decoded.userId;
     
     // Pemohon only sees their own requests
     if (decoded.role === 'Pemohon') {
-      where.pemohon_id = decoded.userId;
+      where.pemohon_id = userId;
     }
     // PPID Pelaksana only sees requests assigned to them
     else if (decoded.role === 'PPID_PELAKSANA') {
-      where.assigned_to = decoded.userId;
+      where.assigned_to = userId;
     }
     
     // Apply status filter if provided
@@ -49,40 +55,25 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     const [requests, total] = await Promise.all([
-      prisma.request.findMany({
+      prisma.permintaan.findMany({
         where,
+        include: {
+          pemohon: {
+            select: { id: true, nama: true, email: true, nik: true, no_telepon: true }
+          }
+        },
         orderBy: { created_at: 'desc' },
         skip,
         take: limit
       }),
-      prisma.request.count({ where })
+      prisma.permintaan.count({ where })
     ]);
 
-    // Get all unique pemohon IDs
-    const pemohonIds = [...new Set(requests.map(r => r.pemohon_id).filter(Boolean))];
-    
-    // Fetch all pemohon data in one query
-    const pemohons = await prisma.pemohon.findMany({
-      where: { id: { in: pemohonIds } },
-      select: { id: true, nama: true, email: true, nik: true, no_telepon: true }
-    });
-    
-    // Create a map for quick lookup
-    const pemohonMap = new Map(pemohons.map(p => [p.id, p]));
-    
-    // Join the data
-    const requestsWithPemohon = requests.map(request => ({
-      ...request,
-      created_at: request.created_at.toISOString(), // Ensure proper ISO string format
-      updated_at: request.updated_at.toISOString(),
-      pemohon: pemohonMap.get(request.pemohon_id) || { nama: 'Unknown', email: 'Unknown', nik: null }
-    }));
-
-    console.log('API Response sample:', requestsWithPemohon[0]);
+    console.log('API Response sample:', requests && requests.length > 0 ? requests[0] : 'No requests found');
 
     return NextResponse.json({ 
       success: true,
-      data: requestsWithPemohon,
+      data: requests,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
   } catch (error) {
@@ -99,37 +90,57 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    let decoded: JWTPayload;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
 
-    const { judul, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan } = await request.json();
+    // Only pemohon can create requests
+    if (decoded.role !== 'Pemohon') {
+      return NextResponse.json({ error: 'Only pemohon can create requests' }, { status: 403 });
+    }
 
+    const { judul, deskripsi, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan, kategori_id, cara_memperoleh } = await request.json();
+
+    // Validate required fields
     if (!rincian_informasi || !tujuan_penggunaan) {
       return NextResponse.json({ error: 'Rincian informasi dan tujuan penggunaan wajib diisi' }, { status: 400 });
     }
 
-    const newRequest = await prisma.request.create({
+    const userId = parseInt(decoded.id) || decoded.userId;
+
+    const newRequest = await prisma.permintaan.create({
       data: {
-        pemohon_id: decoded.userId,
-        judul: judul || null,
+        pemohon_id: userId,
+        judul: judul || 'Permintaan Informasi',
         rincian_informasi,
         tujuan_penggunaan,
-        cara_memperoleh_informasi: cara_memperoleh_informasi || 'Email',
-        cara_mendapat_salinan: cara_mendapat_salinan || 'Email'
+        cara_memperoleh_informasi: cara_memperoleh_informasi || cara_memperoleh || 'Email',
+        cara_mendapat_salinan: cara_mendapat_salinan || 'Email',
+        kategori_id: kategori_id || null,
+        status: 'Diajukan'
       }
     });
 
     // Log activity
-    await prisma.activityLog.create({
-      data: {
-        action: 'CREATE_REQUEST',
-        details: `Created request: ${newRequest.judul || 'Untitled'}`,
-        user_id: decoded.userId?.toString(),
-        user_role: decoded.role,
-        ip_address: request.headers.get('x-forwarded-for') || 'unknown'
-      }
-    });
+    try {
+      await prisma.activityLog.create({
+        data: {
+          action: 'CREATE_REQUEST',
+          details: `Created request: ${newRequest?.judul || 'Unknown'}`,
+          user_id: userId.toString(),
+          user_role: decoded.role,
+          ip_address: request.headers.get('x-forwarded-for') || 'unknown'
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log activity:', logError);
+    }
 
-    return NextResponse.json({ success: true, message: 'Permintaan berhasil dibuat', data: newRequest });
+    return NextResponse.json({ success: true, message: 'Permintaan berhasil dibuat', data: newRequest }, { status: 201 });
   } catch (error) {
     console.error('Create permintaan error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
