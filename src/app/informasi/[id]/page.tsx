@@ -12,6 +12,8 @@ interface InformasiDetail {
   ringkasan_isi_informasi: string;
   tanggal_posting: string;
   pejabat_penguasa_informasi: string;
+  thumbnail?: string;
+  images?: string[];
   links?: { title: string; url: string }[];
   file_attachments?: { name: string; url: string; size?: number }[];
   created_at: string;
@@ -21,6 +23,9 @@ export default function InformasiDetailPage() {
   const params = useParams();
   const [informasi, setInformasi] = useState<InformasiDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showFullImage, setShowFullImage] = useState(false);
+  const [fullImageSrc, setFullImageSrc] = useState('');
 
   const fetchInformasi = useCallback(async () => {
     try {
@@ -125,6 +130,83 @@ export default function InformasiDetailPage() {
             </div>
           </div>
 
+          {/* Thumbnail */}
+          {informasi.thumbnail && (
+            <div className="px-8 pt-6">
+              <img 
+                src={informasi.thumbnail} 
+                alt={informasi.judul}
+                className="w-full h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => {
+                  setFullImageSrc(informasi.thumbnail!);
+                  setShowFullImage(true);
+                }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+
+          {/* Image Gallery */}
+          {informasi.images && informasi.images.length > 0 && (
+            <div className="px-8 pt-6">
+              <div className="relative">
+                <img 
+                  src={informasi.images[currentImageIndex]} 
+                  alt={`Gallery ${currentImageIndex + 1}`}
+                  className="w-full h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    setFullImageSrc(informasi.images![currentImageIndex]);
+                    setShowFullImage(true);
+                  }}
+                />
+                {informasi.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentImageIndex(prev => prev === 0 ? informasi.images!.length - 1 : prev - 1)}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={() => setCurrentImageIndex(prev => prev === informasi.images!.length - 1 ? 0 : prev + 1)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75"
+                    >
+                      ›
+                    </button>
+                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                      {informasi.images.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentImageIndex(index)}
+                          className={`w-2 h-2 rounded-full ${
+                            index === currentImageIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+              {informasi.images.length > 1 && (
+                <div className="flex space-x-2 mt-4 overflow-x-auto">
+                  {informasi.images.map((img, index) => (
+                    <img
+                      key={index}
+                      src={img}
+                      alt={`Thumbnail ${index + 1}`}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`w-16 h-16 object-cover rounded cursor-pointer ${
+                        index === currentImageIndex ? 'ring-2 ring-blue-500' : ''
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Article Content */}
           <div className="p-8">
             <div 
@@ -200,6 +282,25 @@ export default function InformasiDetailPage() {
           </Link>
         </div>
       </div>
+
+      {/* Full Image Modal */}
+      {showFullImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-full max-h-full">
+            <img 
+              src={fullImageSrc} 
+              alt="Full size image"
+              className="max-w-full max-h-full object-contain"
+            />
+            <button
+              onClick={() => setShowFullImage(false)}
+              className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 text-xl"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

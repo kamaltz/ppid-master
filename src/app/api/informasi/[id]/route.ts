@@ -37,11 +37,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }, { status: 404 });
     }
     
-    // Parse links and file_attachments if they exist
+    // Parse links, file_attachments, and images if they exist
     const processedInformasi = {
       ...informasi,
       links: informasi.links ? JSON.parse(informasi.links) : [],
-      file_attachments: informasi.file_attachments ? JSON.parse(informasi.file_attachments) : []
+      file_attachments: informasi.file_attachments ? JSON.parse(informasi.file_attachments) : [],
+      images: informasi.images ? JSON.parse(informasi.images) : []
     };
     
     return NextResponse.json({ success: true, data: processedInformasi });
@@ -69,7 +70,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
-    const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links } = await request.json();
+    const body = await request.json();
+    const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links, status, thumbnail, jadwal_publish, images } = body;
+    
+    console.log('Update data:', { judul, klasifikasi, status, images: images?.length || 0 });
     
     if (!judul || !klasifikasi || !ringkasan_isi_informasi) {
       return NextResponse.json({ error: 'Judul, klasifikasi, dan ringkasan wajib diisi' }, { status: 400 });
@@ -83,8 +87,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ringkasan_isi_informasi, 
         tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : undefined,
         pejabat_penguasa_informasi,
+        status: status || undefined,
+        thumbnail: thumbnail !== undefined ? thumbnail : undefined,
+        jadwal_publish: jadwal_publish ? new Date(jadwal_publish) : null,
         file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: FileData) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
-        links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null
+        links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null,
+        images: images && Array.isArray(images) && images.length > 0 ? JSON.stringify(images) : null
       }
     });
 

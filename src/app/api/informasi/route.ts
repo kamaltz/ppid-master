@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 
 interface WhereClause {
   klasifikasi?: string;
+  status?: string;
   tanggal_posting?: {
     gte?: Date;
     lte?: Date;
@@ -34,11 +35,13 @@ export async function GET(request: NextRequest) {
     const tahun = searchParams.get('tahun');
     const tanggalMulai = searchParams.get('tanggalMulai');
     const tanggalSelesai = searchParams.get('tanggalSelesai');
+    const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
     const where: WhereClause = {};
     if (klasifikasi) where.klasifikasi = klasifikasi;
+    if (status) where.status = status;
     if (search) {
       where.OR = [
         { judul: { contains: search, mode: 'insensitive' } },
@@ -97,7 +100,10 @@ export async function POST(request: NextRequest) {
 
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET!);
 
-    const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links } = await request.json();
+    const body = await request.json();
+    const { judul, klasifikasi, ringkasan_isi_informasi, tanggal_posting, pejabat_penguasa_informasi, files, links, status, thumbnail, jadwal_publish, images } = body;
+    
+    console.log('Received data:', { judul, klasifikasi, status, images: images?.length || 0 });
     
     if (!judul || !klasifikasi || !ringkasan_isi_informasi) {
       return NextResponse.json({ error: 'Judul, klasifikasi, dan ringkasan wajib diisi' }, { status: 400 });
@@ -110,8 +116,12 @@ export async function POST(request: NextRequest) {
         ringkasan_isi_informasi, 
         tanggal_posting: tanggal_posting ? new Date(tanggal_posting) : new Date(),
         pejabat_penguasa_informasi,
+        status: status || 'draft',
+        thumbnail: thumbnail || null,
+        jadwal_publish: jadwal_publish ? new Date(jadwal_publish) : null,
         file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: FileData) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
-        links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null
+        links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null,
+        images: images && Array.isArray(images) && images.length > 0 ? JSON.stringify(images) : null
       }
     });
 

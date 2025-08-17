@@ -83,6 +83,10 @@ model InformasiPublik {
   links                      String?  @db.Text
   tanggal_posting            DateTime @default(now())
   pejabat_penguasa_informasi String?
+  status                     String   @default("draft")
+  thumbnail                  String?
+  jadwal_publish             DateTime?
+  images                     String?  @db.Text
   created_at                 DateTime @default(now())
   updated_at                 DateTime @default(now()) @updatedAt
 

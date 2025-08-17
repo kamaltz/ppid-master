@@ -19,6 +19,9 @@ interface InformasiItem {
   klasifikasi: string;
   ringkasan_isi_informasi: string;
   tanggal_posting?: string;
+  thumbnail?: string;
+  status?: 'draft' | 'published' | 'scheduled';
+  jadwal_publish?: string;
   pejabat_penguasa_informasi?: string;
   created_at: string;
   links?: string | { title: string; url: string }[];
@@ -26,7 +29,6 @@ interface InformasiItem {
 }
 
 export default function AdminInformasiPage() {
-  const { informasi, isLoading, createInformasi, updateInformasi, deleteInformasi } = useInformasiData();
   const { getUserRole } = useAuth();
   
   const [showForm, setShowForm] = useState(false);
@@ -36,18 +38,34 @@ export default function AdminInformasiPage() {
     klasifikasi: '', 
     ringkasan_isi_informasi: '',
     tanggal_posting: new Date().toISOString().split('T')[0],
+    thumbnail: '',
+    status: 'draft' as 'draft' | 'published' | 'scheduled',
+    jadwal_publish: '',
     files: [] as File[],
     existingFiles: [] as { name: string; url: string; size?: number }[],
-    links: [{ title: '', url: '' }] as { title: string; url: string }[]
+    links: [{ title: '', url: '' }] as { title: string; url: string }[],
+    images: [] as string[]
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [filters, setFilters] = useState({
     kategori: '',
     tahun: '',
     tanggalMulai: '',
-    tanggalSelesai: ''
+    tanggalSelesai: '',
+    statusFilter: 'published'
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [allInformasi, setAllInformasi] = useState<InformasiItem[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [availableImages, setAvailableImages] = useState<string[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  
+  const { informasi, isLoading, createInformasi, updateInformasi, deleteInformasi, loadData } = useInformasiData(itemsPerPage, currentPage, setTotalPages, setTotalItems, filters);
   
   const fetchCategories = useCallback(async () => {
     try {
@@ -64,23 +82,87 @@ export default function AdminInformasiPage() {
     }
   }, [formData.klasifikasi]);
 
+  const fetchAllInformasi = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const response = await fetch('/api/informasi?limit=1000', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success || data.data) {
+        setAllInformasi(data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch all informasi:', error);
+    }
+  }, []);
+
+  const fetchAvailableImages = useCallback(async () => {
+    try {
+      const response = await fetch('/api/uploads/images');
+      const data = await response.json();
+      if (data.success) {
+        setAvailableImages(data.images || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch available images:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
+    fetchAllInformasi();
+    fetchAvailableImages();
+  }, [fetchCategories, fetchAllInformasi, fetchAvailableImages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  useEffect(() => {
+    if (loadData) loadData();
+  }, [itemsPerPage, loadData]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
+    console.log('Form submitted with data:', formData);
+    
+    // Validate required fields
+    if (!formData.judul.trim()) {
+      alert('❌ Judul harus diisi');
+      return;
+    }
+    if (!formData.klasifikasi) {
+      alert('❌ Kategori harus dipilih');
+      return;
+    }
+    if (!formData.ringkasan_isi_informasi.trim()) {
+      alert('❌ Isi informasi harus diisi');
+      return;
+    }
+    if (formData.status === 'scheduled' && !formData.jadwal_publish) {
+      alert('❌ Jadwal publish harus diisi untuk status terjadwal');
+      return;
+    }
+    
+    setIsSubmitting(true);
     try {
       // Upload files first
       const uploadedFiles = [];
       for (const file of formData.files) {
-        const formData = new FormData();
-        formData.append('file', file);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
         
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
-          body: formData
+          body: uploadFormData
         });
         
         const uploadResult = await uploadResponse.json();
@@ -108,18 +190,27 @@ export default function AdminInformasiPage() {
         klasifikasi: formData.klasifikasi,
         ringkasan_isi_informasi: formData.ringkasan_isi_informasi,
         tanggal_posting: formData.tanggal_posting,
+        thumbnail: formData.thumbnail,
+        status: formData.status,
+        jadwal_publish: formData.jadwal_publish,
         pejabat_penguasa_informasi: getRoleDisplayName(getUserRole()) || 'PPID Diskominfo',
         files: allFiles,
-        links: formData.links.filter(link => link.title.trim() !== '' && link.url.trim() !== '')
+        links: formData.links.filter(link => link.title.trim() !== '' && link.url.trim() !== ''),
+        images: formData.images
       };
       
       if (editId) {
         await updateInformasi(editId, submitData);
-        alert('Informasi berhasil diperbarui');
       } else {
         await createInformasi(submitData);
-        alert('Informasi berhasil ditambahkan');
       }
+      
+      await fetchAllInformasi();
+      
+      // Success feedback
+      const statusText = formData.status === 'draft' ? 'draft' : formData.status === 'scheduled' ? 'terjadwal' : 'published';
+      alert(`✅ Informasi berhasil ${editId ? 'diperbarui' : 'disimpan'} sebagai ${statusText}`);
+      
       setShowForm(false);
       setEditId(null);
       setFormData({ 
@@ -127,13 +218,19 @@ export default function AdminInformasiPage() {
         klasifikasi: categories.length > 0 ? categories[0].slug : '', 
         ringkasan_isi_informasi: '',
         tanggal_posting: new Date().toISOString().split('T')[0],
+        thumbnail: '',
+        status: 'draft' as 'draft' | 'published' | 'scheduled',
+        jadwal_publish: '',
         files: [],
         existingFiles: [],
-        links: [{ title: '', url: '' }]
+        links: [{ title: '', url: '' }],
+        images: []
       });
     } catch (error) {
-      console.error('Error:', error);
-      alert('Gagal menyimpan informasi');
+      console.error('Error submitting form:', error);
+      alert(`❌ Gagal menyimpan informasi: ${error instanceof Error ? error.message : 'Silakan coba lagi'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -164,14 +261,29 @@ export default function AdminInformasiPage() {
       }
     }
     
+    // Parse images
+    let images = [];
+    if ((item as any).images) {
+      try {
+        images = typeof (item as any).images === 'string' ? JSON.parse((item as any).images) : (item as any).images;
+        if (!Array.isArray(images)) images = [];
+      } catch {
+        images = [];
+      }
+    }
+    
     setFormData({ 
       judul: item.judul, 
       klasifikasi: item.klasifikasi, 
       ringkasan_isi_informasi: item.ringkasan_isi_informasi,
       tanggal_posting: item.tanggal_posting ? new Date(item.tanggal_posting).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      thumbnail: (item as any).thumbnail || '',
+      status: (item as any).status || 'published',
+      jadwal_publish: (item as any).jadwal_publish ? new Date((item as any).jadwal_publish).toISOString().slice(0, 16) : '',
       files: [],
       existingFiles: existingFiles,
-      links: parsedLinks
+      links: parsedLinks,
+      images: images
     });
     setEditId(item.id);
     setShowForm(true);
@@ -213,68 +325,69 @@ export default function AdminInformasiPage() {
       try {
         await deleteInformasi(id);
         alert('Informasi berhasil dihapus');
+        await fetchAllInformasi(); // Refresh all data for filters
       } catch {
         alert('Gagal menghapus informasi');
       }
     }
   };
 
-  const filteredInformasi = useMemo(() => {
-    return informasi.filter(item => {
-      const itemDate = new Date(item.tanggal_posting || item.created_at);
-      const itemYear = itemDate.getFullYear().toString();
-      
-      // Filter kategori
-      if (filters.kategori && item.klasifikasi !== filters.kategori) {
-        return false;
-      }
-      
-      // Filter tahun
-      if (filters.tahun && itemYear !== filters.tahun) {
-        return false;
-      }
-      
-      // Filter rentang tanggal
-      if (filters.tanggalMulai) {
-        const startDate = new Date(filters.tanggalMulai);
-        if (itemDate < startDate) {
-          return false;
-        }
-      }
-      
-      if (filters.tanggalSelesai) {
-        const endDate = new Date(filters.tanggalSelesai);
-        if (itemDate > endDate) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-  }, [informasi, filters]);
-
   const resetFilters = () => {
     setFilters({
       kategori: '',
       tahun: '',
       tanggalMulai: '',
-      tanggalSelesai: ''
+      tanggalSelesai: '',
+      statusFilter: 'published'
     });
+    setCurrentPage(1);
   };
 
   const availableYears = useMemo(() => {
-    const years = informasi.map(item => {
+    if (!allInformasi || allInformasi.length === 0) return [];
+    const years = allInformasi.map(item => {
       const date = new Date(item.tanggal_posting || item.created_at);
       return date.getFullYear();
-    });
+    }).filter(year => !isNaN(year));
     return [...new Set(years)].sort((a, b) => b - a);
-  }, [informasi]);
+  }, [allInformasi]);
 
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Kelola Informasi</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Status:</label>
+            <select
+              value={filters.statusFilter}
+              onChange={(e) => {
+                setFilters({...filters, statusFilter: e.target.value});
+                setCurrentPage(1);
+              }}
+              className="border rounded px-3 py-2 text-sm"
+            >
+              <option value="published">✅ Published</option>
+              <option value="draft">📝 Draft</option>
+              <option value="scheduled">⏰ Terjadwal</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Per halaman:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
@@ -296,7 +409,21 @@ export default function AdminInformasiPage() {
       {showFilters && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h3 className="text-lg font-semibold mb-4">Filter Informasi</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                value={filters.statusFilter}
+                onChange={(e) => setFilters({...filters, statusFilter: e.target.value})}
+                className="w-full border rounded px-3 py-2"
+              >
+                <option value="">Semua Status</option>
+                <option value="draft">📝 Draft</option>
+                <option value="published">✅ Published</option>
+                <option value="scheduled">⏰ Terjadwal</option>
+              </select>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium mb-1">Kategori</label>
               <select
@@ -350,15 +477,33 @@ export default function AdminInformasiPage() {
             </div>
           </div>
           
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={resetFilters}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-            >
-              Reset Filter
-            </button>
-            <div className="text-sm text-gray-600 flex items-center">
-              Menampilkan {filteredInformasi.length} dari {informasi.length} informasi
+          <div className="flex justify-between items-center mt-4">
+            <div className="flex gap-2">
+              <button
+                onClick={resetFilters}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+              >
+                Reset Filter
+              </button>
+              <div className="text-sm text-gray-600 flex items-center">
+                Menampilkan {informasi.length} dari {totalItems} informasi (Halaman {currentPage} dari {totalPages})
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Per halaman:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
             </div>
           </div>
         </div>
@@ -409,6 +554,130 @@ export default function AdminInformasiPage() {
                 ))}
               </select>
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Gambar Thumbnail (Opsional)</label>
+              <div className="space-y-3">
+                <input 
+                  type="url" 
+                  value={formData.thumbnail}
+                  onChange={(e) => setFormData(prev => ({ ...prev, thumbnail: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://example.com/thumbnail.jpg"
+                />
+                <div className="text-xs text-gray-500 bg-yellow-50 p-3 rounded-lg">
+                  <p className="font-semibold mb-1">📷 Rekomendasi Thumbnail:</p>
+                  <ul className="space-y-1">
+                    <li>• Masukkan URL gambar dari internet</li>
+                    <li>• Format: JPG, PNG, WebP</li>
+                    <li>• Ukuran: 800x600 pixels (4:3 rasio)</li>
+                    <li>• Gambar berkualitas tinggi dan relevan dengan informasi</li>
+                  </ul>
+                </div>
+                {formData.thumbnail && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Preview Thumbnail:</p>
+                    <img src={formData.thumbnail} alt="Thumbnail Preview" className="w-32 h-24 object-cover border rounded-lg" onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }} />
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Galeri Gambar (Opsional)</label>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      for (const file of files) {
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('file', file);
+                        try {
+                          const token = localStorage.getItem('auth_token');
+                          const response = await fetch('/api/upload/image', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            body: uploadFormData
+                          });
+                          const result = await response.json();
+                          if (result.success) {
+                            setFormData(prev => ({ ...prev, images: [...prev.images, result.url] }));
+                          }
+                        } catch (error) {
+                          console.error('Upload failed:', error);
+                        }
+                      }
+                      if (imageInputRef.current) imageInputRef.current.value = '';
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  >
+                    Upload Gambar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowImageGallery(true)}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                  >
+                    Pilih dari Storage
+                  </button>
+                </div>
+                
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {formData.images.map((img, index) => (
+                      <div key={index} className="relative">
+                        <img src={img} alt={`Gallery ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }))}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {showImageGallery && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg max-w-4xl max-h-96 overflow-y-auto">
+                  <h3 className="text-lg font-semibold mb-4">Pilih Gambar dari Storage</h3>
+                  <div className="grid grid-cols-6 gap-2 mb-4">
+                    {availableImages.map((img, index) => (
+                      <div key={index} className="cursor-pointer" onClick={() => {
+                        if (!formData.images.includes(img)) {
+                          setFormData(prev => ({ ...prev, images: [...prev.images, img] }));
+                        }
+                      }}>
+                        <img src={img} alt={`Storage ${index + 1}`} className="w-full h-16 object-cover rounded border hover:border-blue-500" />
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowImageGallery(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            )}
             
             <div>
               <label className="block text-sm font-medium mb-2">Isi Informasi</label>
@@ -548,6 +817,70 @@ export default function AdminInformasiPage() {
               </div>
             </div>
             
+            <div>
+              <label className="block text-sm font-medium mb-2">Status Publikasi</label>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="status"
+                      value="draft"
+                      checked={formData.status === 'draft'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'draft' | 'published' | 'scheduled' }))}
+                      className="mr-2"
+                    />
+                    Draft (Simpan ke Drive)
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="status"
+                      value="published"
+                      checked={formData.status === 'published'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'draft' | 'published' | 'scheduled' }))}
+                      className="mr-2"
+                    />
+                    Publish Sekarang
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="status"
+                      value="scheduled"
+                      checked={formData.status === 'scheduled'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'draft' | 'published' | 'scheduled' }))}
+                      className="mr-2"
+                    />
+                    Jadwalkan Publish
+                  </label>
+                </div>
+                
+                {formData.status === 'scheduled' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Jadwal Publish</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.jadwal_publish}
+                      onChange={(e) => setFormData(prev => ({ ...prev, jadwal_publish: e.target.value }))}
+                      min={new Date().toISOString().slice(0, 16)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required={formData.status === 'scheduled'}
+                    />
+                  </div>
+                )}
+                
+                <div className="text-xs text-gray-500 bg-green-50 p-3 rounded-lg">
+                  <p className="font-semibold mb-1">📝 Keterangan Status:</p>
+                  <ul className="space-y-1">
+                    <li>• <strong>Draft:</strong> Disimpan otomatis, dapat dilanjutkan kapan saja</li>
+                    <li>• <strong>Publish Sekarang:</strong> Langsung tampil di website publik</li>
+                    <li>• <strong>Jadwalkan:</strong> Otomatis publish pada waktu yang ditentukan</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
             <div className="bg-blue-50 p-3 rounded">
               <p className="text-sm text-blue-700">
                 <strong>Pejabat Penguasa Informasi:</strong> {getRoleDisplayName(getUserRole()) || 'PPID Diskominfo'}
@@ -555,8 +888,27 @@ export default function AdminInformasiPage() {
             </div>
             
             <div className="flex space-x-2">
-              <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                {editId ? 'Update' : 'Simpan'}
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                onClick={(e) => {
+                  console.log('Submit button clicked');
+                  // Let the form handle the submission
+                }}
+                className={`px-6 py-2 rounded font-medium flex items-center gap-2 ${
+                  isSubmitting 
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Menyimpan...
+                  </>
+                ) : (
+                  editId ? 'Update' : 'Simpan'
+                )}
               </button>
               <button 
                 type="button" 
@@ -568,9 +920,13 @@ export default function AdminInformasiPage() {
                     klasifikasi: categories.length > 0 ? categories[0].slug : '', 
                     ringkasan_isi_informasi: '',
                     tanggal_posting: new Date().toISOString().split('T')[0],
+                    thumbnail: '',
+                    status: 'draft' as 'draft' | 'published' | 'scheduled',
+                    jadwal_publish: '',
                     files: [],
                     existingFiles: [],
-                    links: [{ title: '', url: '' }]
+                    links: [{ title: '', url: '' }],
+                    images: []
                   });
                 }}
                 className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600"
@@ -588,6 +944,7 @@ export default function AdminInformasiPage() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Klasifikasi</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pejabat</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -596,21 +953,34 @@ export default function AdminInformasiPage() {
           <tbody className="divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
-            ) : filteredInformasi.length === 0 ? (
+            ) : informasi.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                   {informasi.length === 0 ? 'Belum ada informasi publik' : 'Tidak ada informasi yang sesuai dengan filter'}
                 </td>
               </tr>
             ) : (
-              filteredInformasi.map((item) => (
+              informasi.map((item) => (
                 <tr key={item.id}>
                   <td className="px-6 py-4 text-sm text-gray-900">{item.judul}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.klasifikasi}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      item.status === 'draft' 
+                        ? 'bg-orange-100 text-orange-800'
+                        : item.status === 'scheduled'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {item.status === 'draft' ? '📝 Draft' : 
+                       item.status === 'scheduled' ? '⏰ Terjadwal' : 
+                       '✅ Published'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {item.pejabat_penguasa_informasi || 'N/A'}
                   </td>
@@ -640,6 +1010,56 @@ export default function AdminInformasiPage() {
             )}
           </tbody>
         </table>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4 p-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sebelumnya
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                      currentPage === pageNum
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
