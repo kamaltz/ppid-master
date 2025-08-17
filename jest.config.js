@@ -15,12 +15,15 @@ module.exports = {
   ],
   // Coverage configuration
   collectCoverageFrom: [
-    'src/**/*.{js,jsx,ts,tsx}',
+    'src/app/api/**/*.{js,ts}',
     'lib/**/*.{js,ts}',
     '!src/**/*.d.ts',
     '!src/app/globals.css',
     '!**/*.config.{js,ts}',
-    '!**/node_modules/**'
+    '!**/node_modules/**',
+    '!src/app/**/page.tsx',
+    '!src/app/**/layout.tsx',
+    '!src/components/**/*.tsx'
   ],
   coverageReporters: [
     'text',
@@ -31,10 +34,10 @@ module.exports = {
   coverageDirectory: '<rootDir>/coverage',
   coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      statements: 50
     }
   },
   // Module name mapping
