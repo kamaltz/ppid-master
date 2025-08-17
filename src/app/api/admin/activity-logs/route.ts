@@ -10,7 +10,17 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET) as { role: string; id: string };
+    } catch {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
 
     if (decoded.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
@@ -36,7 +46,7 @@ export async function GET(request: NextRequest) {
             ip_address: '127.0.0.1'
           },
           {
-            action: 'CREATE_REQUEST',
+            action: 'CREATE_REQUEST', 
             details: 'Created request: Sample Request',
             user_id: '2',
             user_role: 'Pemohon',
@@ -44,7 +54,7 @@ export async function GET(request: NextRequest) {
           },
           {
             action: 'UPDATE_STATUS',
-            details: 'Updated request status to Diproses',
+            details: 'Updated request status to Diproses', 
             user_id: '1',
             user_role: 'PPID_UTAMA',
             ip_address: '127.0.0.1'
@@ -62,9 +72,23 @@ export async function GET(request: NextRequest) {
       prisma.activityLog.count()
     ]);
 
+    const sanitizedLogs = logs.map(log => ({
+      ...log,
+      details: log.details?.replace(/[<>"'&]/g, (match) => {
+        const escapeMap: { [key: string]: string } = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return escapeMap[match];
+      })
+    }));
+
     return NextResponse.json({ 
       success: true, 
-      data: logs,
+      data: sanitizedLogs,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
   } catch (error) {

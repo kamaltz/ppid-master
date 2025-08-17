@@ -122,22 +122,20 @@ export default function AdminAkunPage() {
     }
 
     try {
-      // Extract numeric ID and table from prefixed ID (e.g., "admin_123" -> "123")
-      const numericId = id.split('_')[1];
-      const table = id.split('_')[0];
-      
-      const response = await fetch(`/api/accounts/${table}/${numericId}`, {
+      const response = await fetch('/api/accounts/delete', {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ accountId: id })
       });
 
       const data = await response.json();
       
       if (data.success) {
         alert('Akun berhasil dihapus');
-        fetchAccounts(); // Refresh the accounts list
+        fetchAccounts();
       } else {
         alert(data.error || 'Gagal menghapus akun');
       }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Search, Download, Trash2, Eye, File, Image, FileText } from "lucide-react";
+import { Search, Download, Trash2, Eye, File, Image as ImageIcon, FileText } from "lucide-react";
 
 interface MediaFile {
   name: string;
@@ -12,6 +12,9 @@ interface MediaFile {
   uploader: string;
 }
 
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+const DOCUMENT_EXTENSIONS = new Set(['.doc', '.docx', '.xls', '.xlsx']);
+
 export default function MediaManagementPage() {
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [filteredFiles, setFilteredFiles] = useState<MediaFile[]>([]);
@@ -20,22 +23,32 @@ export default function MediaManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/media", {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       if (data.success) {
         setFiles(data.data);
         setFilteredFiles(data.data);
+      } else {
+        throw new Error(data.error || 'API request failed');
       }
     } catch (error) {
       console.error("Failed to fetch files:", error);
+      alert('Gagal memuat daftar file. Silakan coba lagi.');
+      setFiles([]);
+      setFilteredFiles([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   const deleteFile = async (filename: string) => {
     if (!confirm(`Yakin ingin menghapus file ${filename}?`)) return;
@@ -51,24 +64,29 @@ export default function MediaManagementPage() {
       });
       
       if (response.ok) {
+        alert('File berhasil dihapus');
         fetchFiles();
+      } else {
+        const errorData = await response.json();
+        alert(`Gagal menghapus file: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error("Failed to delete file:", error);
+      alert('Terjadi kesalahan saat menghapus file');
     }
   };
 
   useEffect(() => {
     fetchFiles();
-  }, [token]);
+  }, [fetchFiles]);
 
   useEffect(() => {
-    let filtered = files.filter(file => {
+    const filtered = files.filter(file => {
       const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === "all" || 
-        (typeFilter === "image" && ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(file.type)) ||
+        (typeFilter === "image" && IMAGE_EXTENSIONS.has(file.type)) ||
         (typeFilter === "pdf" && file.type === '.pdf') ||
-        (typeFilter === "document" && ['.doc', '.docx', '.xls', '.xlsx'].includes(file.type));
+        (typeFilter === "document" && DOCUMENT_EXTENSIONS.has(file.type));
       
       return matchesSearch && matchesType;
     });
@@ -85,12 +103,12 @@ export default function MediaManagementPage() {
   };
 
   const getFileIcon = (type: string) => {
-    if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(type)) {
-      return <Image className="w-5 h-5 text-green-600" />;
+    if (IMAGE_EXTENSIONS.has(type)) {
+      return <ImageIcon className="w-5 h-5 text-green-600" aria-hidden="true" />;
     } else if (type === '.pdf') {
-      return <FileText className="w-5 h-5 text-red-600" />;
+      return <FileText className="w-5 h-5 text-red-600" aria-hidden="true" />;
     } else {
-      return <File className="w-5 h-5 text-blue-600" />;
+      return <File className="w-5 h-5 text-blue-600" aria-hidden="true" />;
     }
   };
 

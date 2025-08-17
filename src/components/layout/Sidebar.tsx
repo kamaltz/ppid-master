@@ -91,6 +91,13 @@ const menuItems = [
     category: "user"
   },
   {
+    href: "/admin/roles",
+    icon: Users,
+    label: "Manajemen Role",
+    roles: [ROLES.ADMIN],
+    category: "user"
+  },
+  {
     href: "/admin/permissions",
     icon: Shield,
     label: "Kelola Akses",

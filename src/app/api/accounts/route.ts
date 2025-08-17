@@ -156,6 +156,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Role tidak valid untuk kelola akses' }, { status: 400 });
     }
 
+    // Log activity
+    try {
+      await prisma.activityLog.create({
+        data: {
+          action: 'CREATE_ACCOUNT',
+          details: `Created ${role} account: ${nama} (${email})`,
+          user_id: decoded.id,
+          user_role: decoded.role,
+          ip_address: request.headers.get('x-forwarded-for') || 'unknown'
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log activity:', logError);
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: 'Akun berhasil dibuat',

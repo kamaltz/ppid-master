@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Search, Calendar, User, Activity } from "lucide-react";
 
@@ -16,36 +16,43 @@ interface ActivityLog {
 
 export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<ActivityLog[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/activity-logs", {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       if (data.success) {
         setLogs(data.data);
-        setFilteredLogs(data.data);
+      } else {
+        throw new Error(data.error || 'API request failed');
       }
     } catch (error) {
       console.error("Failed to fetch logs:", error);
+      alert('Gagal memuat log aktivitas. Silakan coba lagi.');
+      setLogs([]);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchLogs();
   }, [token]);
 
   useEffect(() => {
-    let filtered = logs.filter(log => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
       const matchesSearch = 
         log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -56,11 +63,9 @@ export default function ActivityLogsPage() {
       
       return matchesSearch && matchesRole && matchesAction;
     });
-    
-    setFilteredLogs(filtered);
   }, [logs, searchTerm, roleFilter, actionFilter]);
 
-  const getActionColor = (action: string) => {
+  const getActionColor = useCallback((action: string) => {
     const colors = {
       'LOGIN': 'bg-green-100 text-green-800',
       'LOGOUT': 'bg-gray-100 text-gray-800',
@@ -72,7 +77,7 @@ export default function ActivityLogsPage() {
       'DELETE_MEDIA': 'bg-red-100 text-red-800'
     };
     return colors[action as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
+  }, []);
 
   return (
     <div className="p-8">

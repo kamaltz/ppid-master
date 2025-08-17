@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Search, Shield, Users, Settings } from "lucide-react";
+import { Search, Shield, Users } from "lucide-react";
 
 interface User {
   id: number;
@@ -36,7 +36,7 @@ export default function PermissionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       // Fetch all users in one call
       const response = await fetch('/api/admin/users', { 
@@ -54,7 +54,7 @@ export default function PermissionsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   const updatePermissions = async (userId: number, newPermissions: Permission) => {
     try {
@@ -112,10 +112,10 @@ export default function PermissionsPage() {
     // Auto refresh every 30 seconds for real-time data
     const interval = setInterval(fetchUsers, 30000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [fetchUsers]);
 
   useEffect(() => {
-    let filtered = users.filter(user => {
+    const filtered = users.filter(user => {
       const matchesSearch = 
         user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -128,23 +128,23 @@ export default function PermissionsPage() {
     setFilteredUsers(filtered);
   }, [users, searchTerm, roleFilter]);
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = useCallback((role: string) => {
     const colors = {
       'PPID_UTAMA': 'bg-blue-100 text-blue-800',
       'PPID_PELAKSANA': 'bg-green-100 text-green-800',
       'ATASAN_PPID': 'bg-purple-100 text-purple-800'
     };
     return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
+  }, []);
 
-  const getRoleDisplayName = (role: string) => {
+  const getRoleDisplayName = useCallback((role: string) => {
     const displayNames = {
       'PPID_UTAMA': 'PPID Utama',
       'PPID_PELAKSANA': 'PPID Pelaksana', 
       'ATASAN_PPID': 'Atasan PPID'
     };
     return displayNames[role as keyof typeof displayNames] || role;
-  };
+  }, []);
 
   return (
     <div className="p-8">
