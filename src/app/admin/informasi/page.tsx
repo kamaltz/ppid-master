@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useInformasiData } from "@/hooks/useInformasiData";
 import { useAuth } from "@/context/AuthContext";
-import { X, Upload, Link as LinkIcon, FileText } from "lucide-react";
+import { X, Upload, Link as LinkIcon, FileText, Filter } from "lucide-react";
 
 interface Category {
   id: number;
@@ -41,6 +41,13 @@ export default function AdminInformasiPage() {
     links: [{ title: '', url: '' }] as { title: string; url: string }[]
   });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [filters, setFilters] = useState({
+    kategori: '',
+    tahun: '',
+    tanggalMulai: '',
+    tanggalSelesai: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
   
   const fetchCategories = useCallback(async () => {
     try {
@@ -212,19 +219,150 @@ export default function AdminInformasiPage() {
     }
   };
 
+  const filteredInformasi = useMemo(() => {
+    return informasi.filter(item => {
+      const itemDate = new Date(item.tanggal_posting || item.created_at);
+      const itemYear = itemDate.getFullYear().toString();
+      
+      // Filter kategori
+      if (filters.kategori && item.klasifikasi !== filters.kategori) {
+        return false;
+      }
+      
+      // Filter tahun
+      if (filters.tahun && itemYear !== filters.tahun) {
+        return false;
+      }
+      
+      // Filter rentang tanggal
+      if (filters.tanggalMulai) {
+        const startDate = new Date(filters.tanggalMulai);
+        if (itemDate < startDate) {
+          return false;
+        }
+      }
+      
+      if (filters.tanggalSelesai) {
+        const endDate = new Date(filters.tanggalSelesai);
+        if (itemDate > endDate) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [informasi, filters]);
+
+  const resetFilters = () => {
+    setFilters({
+      kategori: '',
+      tahun: '',
+      tanggalMulai: '',
+      tanggalSelesai: ''
+    });
+  };
+
+  const availableYears = useMemo(() => {
+    const years = informasi.map(item => {
+      const date = new Date(item.tanggal_posting || item.created_at);
+      return date.getFullYear();
+    });
+    return [...new Set(years)].sort((a, b) => b - a);
+  }, [informasi]);
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Kelola Informasi</h1>
-        <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
+        <div className="flex gap-2">
           <button 
-            onClick={() => setShowForm(true)}
-            className="bg-blue-800 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+            onClick={() => setShowFilters(!showFilters)}
+            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
           >
-            Tambah Informasi
+            <Filter className="w-4 h-4" />
+            Filter
           </button>
-        </RoleGuard>
+          <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
+            <button 
+              onClick={() => setShowForm(true)}
+              className="bg-blue-800 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+            >
+              Tambah Informasi
+            </button>
+          </RoleGuard>
+        </div>
       </div>
+
+      {showFilters && (
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h3 className="text-lg font-semibold mb-4">Filter Informasi</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Kategori</label>
+              <select
+                value={filters.kategori}
+                onChange={(e) => setFilters({...filters, kategori: e.target.value})}
+                className="w-full border rounded px-3 py-2"
+              >
+                <option value="">Semua Kategori</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.slug}>
+                    {category.nama}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Tahun</label>
+              <select
+                value={filters.tahun}
+                onChange={(e) => setFilters({...filters, tahun: e.target.value})}
+                className="w-full border rounded px-3 py-2"
+              >
+                <option value="">Semua Tahun</option>
+                {availableYears.map((year) => (
+                  <option key={year} value={year.toString()}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Tanggal Mulai</label>
+              <input
+                type="date"
+                value={filters.tanggalMulai}
+                onChange={(e) => setFilters({...filters, tanggalMulai: e.target.value})}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Tanggal Selesai</label>
+              <input
+                type="date"
+                value={filters.tanggalSelesai}
+                onChange={(e) => setFilters({...filters, tanggalSelesai: e.target.value})}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={resetFilters}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+            >
+              Reset Filter
+            </button>
+            <div className="text-sm text-gray-600 flex items-center">
+              Menampilkan {filteredInformasi.length} dari {informasi.length} informasi
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -462,14 +600,14 @@ export default function AdminInformasiPage() {
                   Loading...
                 </td>
               </tr>
-            ) : informasi.length === 0 ? (
+            ) : filteredInformasi.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                  Belum ada informasi publik
+                  {informasi.length === 0 ? 'Belum ada informasi publik' : 'Tidak ada informasi yang sesuai dengan filter'}
                 </td>
               </tr>
             ) : (
-              informasi.map((item) => (
+              filteredInformasi.map((item) => (
                 <tr key={item.id}>
                   <td className="px-6 py-4 text-sm text-gray-900">{item.judul}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.klasifikasi}</td>
@@ -477,7 +615,7 @@ export default function AdminInformasiPage() {
                     {item.pejabat_penguasa_informasi || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(item.created_at).toLocaleDateString('id-ID')}
+                    {new Date(item.tanggal_posting || item.created_at).toLocaleDateString('id-ID')}
                   </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
