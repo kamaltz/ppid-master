@@ -171,8 +171,7 @@ export default function PemohonDashboardPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Dashboard Pemohon</h1>
-          <p className="text-sm text-gray-600 mt-1">Login sebagai: <span className="font-semibold text-blue-600">Pemohon</span></p>
+          <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
         </div>
         <div className="flex gap-4">
           <Link href="/permohonan">
@@ -185,24 +184,6 @@ export default function PemohonDashboardPage() {
             <button className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg">
               <AlertTriangle className="mr-2 w-5 h-5" />
               Ajukan Keberatan
-            </button>
-          </Link>
-          <Link href="/pemohon/keberatan/riwayat">
-            <button className="flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg">
-              <FileText className="mr-2 w-5 h-5" />
-              Riwayat Keberatan
-            </button>
-          </Link>
-          <Link href="/pemohon/permohonan">
-            <button className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg">
-              <FileText className="mr-2 w-5 h-5" />
-              Riwayat Permohonan
-            </button>
-          </Link>
-          <Link href="/pemohon/profile">
-            <button className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg">
-              <User className="mr-2 w-5 h-5" />
-              Profile
             </button>
           </Link>
         </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { isPemohon } from "@/lib/roleUtils";
 import PemohonHeader from "@/components/layout/PemohonHeader";
+import PemohonSidebar from "@/components/layout/PemohonSidebar";
 
 export default function PemohonLayout({
   children,
@@ -48,10 +49,12 @@ export default function PemohonLayout({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <PemohonHeader />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+      <div className="flex">
+        <PemohonSidebar />
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

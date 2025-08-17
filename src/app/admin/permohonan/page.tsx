@@ -407,6 +407,12 @@ export default function AdminPermohonanPage() {
                   >
                     Detail
                   </button>
+                  <a 
+                    href={`/admin/permohonan/${item.id}`}
+                    className="text-green-600 hover:text-green-900 text-xs mr-2"
+                  >
+                    Respon
+                  </a>
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
                     <button 
                       onClick={() => deletePermohonan(item.id)}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
 import { Download, Paperclip } from "lucide-react";
+import RequestChat from "@/components/RequestChat";
 
 interface PermohonanRequest {
   id: string;
@@ -229,6 +230,10 @@ export default function DetailPermohonanPage() {
             Kembali
           </button>
         </div>
+        
+        <hr className="my-6" />
+        
+        <RequestChat requestId={parseInt(request.id)} currentUserRole="PPID" isAdmin={true} />
       </div>
     </div>
   );

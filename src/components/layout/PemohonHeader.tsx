@@ -23,15 +23,6 @@ const PemohonHeader = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-              {getRoleDisplayName(userRole)}
-            </div>
-            
-            <div className="flex items-center text-sm text-gray-700">
-              <User className="h-4 w-4 mr-2" />
-              <span>{user?.email || "Pemohon"}</span>
-            </div>
-            
             <button
               onClick={handleLogout}
               className="flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -59,8 +59,37 @@ model Request {
   updated_at                DateTime    @default(now()) @updatedAt
   pemohon                   Pemohon     @relation(fields: [pemohon_id], references: [id])
   keberatan                 Keberatan[]
+  responses                 RequestResponse[]
+  chat_session              ChatSession?
 
   @@map("requests")
+}
+
+model RequestResponse {
+  id          Int      @id @default(autoincrement())
+  request_id  Int
+  user_id     String
+  user_role   String
+  user_name   String
+  message     String   @db.Text
+  attachments String?  @db.Text
+  message_type String  @default("text")
+  created_at  DateTime @default(now())
+  request     Request  @relation(fields: [request_id], references: [id])
+
+  @@map("request_responses")
+}
+
+model ChatSession {
+  id          Int      @id @default(autoincrement())
+  request_id  Int      @unique
+  is_active   Boolean  @default(true)
+  ended_by    String?
+  ended_at    DateTime?
+  created_at  DateTime @default(now())
+  request     Request  @relation(fields: [request_id], references: [id])
+
+  @@map("chat_sessions")
 }
 
 model KategoriInformasi {
