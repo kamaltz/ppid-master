@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
+import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 
 interface Slide {
@@ -32,6 +33,7 @@ interface HeroSettings {
 }
 
 export default function AdminPengaturanPage() {
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState({
     namaInstansi: 'PPID Diskominfo Kabupaten Garut',
@@ -64,6 +66,11 @@ export default function AdminPengaturanPage() {
     address: 'Jl. Pembangunan No. 1, Garut, Jawa Barat',
     phone: '(0262) 123456',
     email: 'ppid@garutkab.go.id',
+    serviceHours: {
+      weekdays: 'Senin - Jumat: 08:00 - 16:00 WIB',
+      weekend: 'Sabtu - Minggu: Tutup',
+      holidays: 'Hari Libur Nasional: Tutup'
+    },
     socialMedia: {
       facebook: '',
       twitter: '',
@@ -76,10 +83,18 @@ export default function AdminPengaturanPage() {
       { label: 'DIP', url: '/dip' },
       { label: 'Kontak', url: '/kontak' }
     ],
+    importantLinks: [
+      { label: 'Permohonan Informasi', url: '/permohonan' },
+      { label: 'Keberatan Informasi', url: '/keberatan' },
+      { label: 'Daftar Informasi Publik', url: '/dip' },
+      { label: 'Standar Layanan', url: '/standar-layanan' }
+    ],
     copyrightText: 'PPID Kabupaten Garut. Semua hak dilindungi.',
     showAddress: true,
     showContact: true,
-    showSocialMedia: true
+    showSocialMedia: true,
+    showServiceHours: true,
+    showImportantLinks: true
   });
 
   const [heroSettings, setHeroSettings] = useState<HeroSettings>({
@@ -226,6 +241,8 @@ export default function AdminPengaturanPage() {
   const handleImageUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
+    
+    console.log('Uploading file:', file.name, file.size, file.type);
 
     try {
       const response = await fetch('/api/upload/image', {
@@ -233,14 +250,18 @@ export default function AdminPengaturanPage() {
         body: formData
       });
 
+      console.log('Response status:', response.status);
       const result = await response.json();
+      console.log('Upload result:', result);
+      
       if (result.success) {
         setHeroSettings(prev => ({ ...prev, backgroundImage: result.url }));
         alert('✅ Gambar berhasil diupload!');
       } else {
         alert('❌ Gagal upload gambar: ' + result.error);
       }
-    } catch {
+    } catch (error) {
+      console.error('Upload error:', error);
       alert('❌ Gagal upload gambar');
     }
   };
@@ -262,7 +283,8 @@ export default function AdminPengaturanPage() {
       } else {
         alert('❌ Gagal upload favicon: ' + result.error);
       }
-    } catch {
+    } catch (error) {
+      console.error('Favicon upload error:', error);
       alert('❌ Gagal upload favicon');
     }
   };
@@ -899,6 +921,197 @@ export default function AdminPengaturanPage() {
               </div>
               
               <div>
+                <h3 className="text-lg font-medium mb-3">⏰ Jam Layanan</h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hari Kerja (Senin - Jumat)</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Jam Buka</label>
+                        <input 
+                          type="time" 
+                          value={footerSettings.serviceHours?.weekdayStart || '08:00'}
+                          onChange={(e) => {
+                            const hours = footerSettings.serviceHours || {};
+                            const start = e.target.value;
+                            const end = hours.weekdayEnd || '16:00';
+                            const weekdays = `Senin - Jumat: ${start} - ${end} WIB`;
+                            handleFooterChange('serviceHours', {...hours, weekdayStart: start, weekdays});
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Jam Tutup</label>
+                        <input 
+                          type="time" 
+                          value={footerSettings.serviceHours?.weekdayEnd || '16:00'}
+                          onChange={(e) => {
+                            const hours = footerSettings.serviceHours || {};
+                            const start = hours.weekdayStart || '08:00';
+                            const end = e.target.value;
+                            const weekdays = `Senin - Jumat: ${start} - ${end} WIB`;
+                            handleFooterChange('serviceHours', {...hours, weekdayEnd: end, weekdays});
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <label className="flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={footerSettings.serviceHours?.weekdayClosed || false}
+                            onChange={(e) => {
+                              const hours = footerSettings.serviceHours || {};
+                              const weekdays = e.target.checked ? 'Senin - Jumat: Tutup' : `Senin - Jumat: ${hours.weekdayStart || '08:00'} - ${hours.weekdayEnd || '16:00'} WIB`;
+                              handleFooterChange('serviceHours', {...hours, weekdayClosed: e.target.checked, weekdays});
+                            }}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">Tutup</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-blue-600 font-medium">
+                      Preview: {footerSettings.serviceHours?.weekdays || 'Senin - Jumat: 08:00 - 16:00 WIB'}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Akhir Pekan (Sabtu - Minggu)</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Jam Buka</label>
+                        <input 
+                          type="time" 
+                          value={footerSettings.serviceHours?.weekendStart || '08:00'}
+                          onChange={(e) => {
+                            const hours = footerSettings.serviceHours || {};
+                            const start = e.target.value;
+                            const end = hours.weekendEnd || '12:00';
+                            const weekend = hours.weekendClosed ? 'Sabtu - Minggu: Tutup' : `Sabtu - Minggu: ${start} - ${end} WIB`;
+                            handleFooterChange('serviceHours', {...hours, weekendStart: start, weekend});
+                          }}
+                          disabled={footerSettings.serviceHours?.weekendClosed}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Jam Tutup</label>
+                        <input 
+                          type="time" 
+                          value={footerSettings.serviceHours?.weekendEnd || '12:00'}
+                          onChange={(e) => {
+                            const hours = footerSettings.serviceHours || {};
+                            const start = hours.weekendStart || '08:00';
+                            const end = e.target.value;
+                            const weekend = hours.weekendClosed ? 'Sabtu - Minggu: Tutup' : `Sabtu - Minggu: ${start} - ${end} WIB`;
+                            handleFooterChange('serviceHours', {...hours, weekendEnd: end, weekend});
+                          }}
+                          disabled={footerSettings.serviceHours?.weekendClosed}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <label className="flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={footerSettings.serviceHours?.weekendClosed || true}
+                            onChange={(e) => {
+                              const hours = footerSettings.serviceHours || {};
+                              const weekend = e.target.checked ? 'Sabtu - Minggu: Tutup' : `Sabtu - Minggu: ${hours.weekendStart || '08:00'} - ${hours.weekendEnd || '12:00'} WIB`;
+                              handleFooterChange('serviceHours', {...hours, weekendClosed: e.target.checked, weekend});
+                            }}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">Tutup</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-blue-600 font-medium">
+                      Preview: {footerSettings.serviceHours?.weekend || 'Sabtu - Minggu: Tutup'}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hari Libur Nasional</label>
+                    <select 
+                      value={footerSettings.serviceHours?.holidayStatus || 'closed'}
+                      onChange={(e) => {
+                        const status = e.target.value;
+                        const holidays = status === 'closed' ? 'Hari Libur Nasional: Tutup' : 
+                                       status === 'emergency' ? 'Hari Libur: Layanan Darurat Saja' :
+                                       'Hari Libur: Buka Terbatas';
+                        handleFooterChange('serviceHours', {...(footerSettings.serviceHours || {}), holidayStatus: status, holidays});
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="closed">Tutup</option>
+                      <option value="emergency">Layanan Darurat Saja</option>
+                      <option value="limited">Buka Terbatas</option>
+                    </select>
+                    <div className="mt-2 text-sm text-blue-600 font-medium">
+                      Preview: {footerSettings.serviceHours?.holidays || 'Hari Libur Nasional: Tutup'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium mb-3">🔗 Link Penting Footer</h3>
+                <div className="space-y-3">
+                  {(footerSettings.quickLinks || []).map((link, index) => (
+                    <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                      <div className="grid grid-cols-1 gap-2">
+                        <input 
+                          type="text" 
+                          value={link.label}
+                          onChange={(e) => {
+                            const newLinks = [...(footerSettings.quickLinks || [])];
+                            newLinks[index] = { ...link, label: e.target.value };
+                            handleFooterChange('quickLinks', newLinks);
+                          }}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Label link"
+                        />
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={link.url}
+                            onChange={(e) => {
+                              const newLinks = [...(footerSettings.quickLinks || [])];
+                              newLinks[index] = { ...link, url: e.target.value };
+                              handleFooterChange('quickLinks', newLinks);
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="URL link"
+                          />
+                          <button 
+                            onClick={() => {
+                              const newLinks = (footerSettings.quickLinks || []).filter((_, i) => i !== index);
+                              handleFooterChange('quickLinks', newLinks);
+                            }}
+                            className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button 
+                    onClick={() => {
+                      const newLinks = [...(footerSettings.quickLinks || []), { label: '', url: '' }];
+                      handleFooterChange('quickLinks', newLinks);
+                    }}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    + Tambah Link Baru
+                  </button>
+                </div>
+              </div>
+              
+              <div>
                 <h3 className="text-lg font-medium mb-3">Pengaturan Tampilan</h3>
                 <div className="space-y-3">
                   <label className="flex items-center">
@@ -927,6 +1140,24 @@ export default function AdminPengaturanPage() {
                       className="mr-2"
                     />
                     Tampilkan Social Media
+                  </label>
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      checked={footerSettings.showServiceHours}
+                      onChange={(e) => handleFooterChange('showServiceHours', e.target.checked)}
+                      className="mr-2"
+                    />
+                    Tampilkan Jam Layanan
+                  </label>
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      checked={footerSettings.showQuickLinks !== false}
+                      onChange={(e) => handleFooterChange('showQuickLinks', e.target.checked)}
+                      className="mr-2"
+                    />
+                    Tampilkan Link Penting
                   </label>
                 </div>
               </div>
