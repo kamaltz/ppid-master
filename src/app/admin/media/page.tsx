@@ -10,10 +10,11 @@ interface MediaFile {
   type: string;
   uploadedAt: string;
   uploader: string;
+  path: string;
 }
 
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
-const DOCUMENT_EXTENSIONS = new Set(['.doc', '.docx', '.xls', '.xlsx']);
+const DOCUMENT_EXTENSIONS = new Set(['.doc', '.docx', '.xls', '.xlsx', '.html', '.txt', '.json', '.md']);
 
 export default function MediaManagementPage() {
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -169,10 +170,21 @@ export default function MediaManagementPage() {
                     {getFileIcon(file.type)}
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{file.name}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                        <span>{formatFileSize(file.size)}</span>
-                        <span>Diupload: {new Date(file.uploadedAt).toLocaleDateString('id-ID')}</span>
-                        <span>Oleh: {file.uploader}</span>
+                      <div className="flex flex-col gap-1 text-sm text-gray-500 mt-1">
+                        <div className="flex items-center gap-4">
+                          <span>{formatFileSize(file.size)}</span>
+                          <span>Diupload: {new Date(file.uploadedAt).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</span>
+                          <span>Oleh: {file.uploader}</span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Path: uploads/{file.name}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -188,7 +200,7 @@ export default function MediaManagementPage() {
                     
                     <a
                       href={`/uploads/${file.name}`}
-                      download
+                      download={file.name}
                       className="p-2 text-green-600 hover:text-green-800 rounded-lg hover:bg-green-50"
                       title="Download file"
                     >
