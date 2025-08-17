@@ -53,7 +53,7 @@ export const loginUser = async (email: string, password: string) => {
 };
 
 export const getPublicData = async (endpoint: string) => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`);
+  const response = await fetch(`/api${endpoint}`);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,7 +68,7 @@ export const getAdminData = async (endpoint: string, token: string) => {
   }
 
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
+    `/api${endpoint}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -204,7 +204,7 @@ export const postData = async (
   }
 
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
+    `/api${endpoint}`,
     {
       method: "POST",
       headers,

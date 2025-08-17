@@ -11,6 +11,7 @@ interface JWTPayload {
 
 interface WhereClause {
   pemohon_id?: number;
+  assigned_ppid_id?: number;
   status?: string;
 }
 
@@ -36,12 +37,21 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     // Filter based on user role
-    const where: WhereClause = {};
+    const where: any = {};
     const userId = parseInt(decoded.id) || decoded.userId;
     
-    // Pemohon only sees their own requests
+    // Role-based filtering
     if (decoded.role === 'PEMOHON') {
       where.pemohon_id = userId;
+    } else if (decoded.role === 'PPID_PELAKSANA') {
+      // PPID Pelaksana only sees requests assigned to them
+      where.assigned_ppid_id = userId;
+    } else if (decoded.role === 'PPID_UTAMA') {
+      // PPID Utama sees all requests, or can filter by assignment
+      // No additional filter needed
+    } else if (decoded.role === 'ADMIN') {
+      // Admin sees all requests
+      // No additional filter needed
     }
     
     // Apply status filter if provided
@@ -57,6 +67,9 @@ export async function GET(request: NextRequest) {
         include: {
           pemohon: {
             select: { id: true, nama: true, email: true, nik: true, no_telepon: true }
+          },
+          assigned_ppid: {
+            select: { id: true, nama: true, role: true }
           }
         },
         orderBy: { created_at: 'desc' },

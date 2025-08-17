@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 interface WhereClause {
   klasifikasi?: string;
   status?: string;
+  created_by?: number;
   tanggal_posting?: {
     gte?: Date;
     lte?: Date;
@@ -31,13 +32,17 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     let isAdminOrPPID = false;
+    let userId = null;
+    let userRole = null;
     
     // Check if user is authenticated and is admin/PPID
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-        isAdminOrPPID = ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role);
+        userId = parseInt(decoded.id) || decoded.userId;
+        userRole = decoded.role;
+        isAdminOrPPID = ['ADMIN', 'PPID_UTAMA'].includes(decoded.role);
       } catch (error) {
         // Token invalid, continue as public user
       }
@@ -53,13 +58,19 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    const where: WhereClause = {};
+    const where: any = {};
     
-    // Public users only see published content
-    if (!isAdminOrPPID) {
+    // Role-based filtering
+    if (!authHeader) {
+      // Public users only see published content
       where.status = 'published';
-    } else if (status) {
-      where.status = status;
+    } else if (isAdminOrPPID) {
+      // Admin and PPID_UTAMA see all content
+      if (status) where.status = status;
+    } else if (userId) {
+      // Other roles only see their own content
+      where.created_by = userId;
+      if (status) where.status = status;
     }
     
     if (klasifikasi) where.klasifikasi = klasifikasi;
@@ -159,7 +170,7 @@ export async function POST(request: NextRequest) {
         file_attachments: files && files.length > 0 ? JSON.stringify(files.map((f: FileData) => ({ name: f.originalName || f.name, url: f.url, size: f.size }))) : null,
         links: links && links.length > 0 ? JSON.stringify(links.filter((l: LinkData) => l.title && l.url)) : null,
         images: images && Array.isArray(images) && images.length > 0 ? JSON.stringify(images) : null,
-        // created_by field not in schema, removing
+        created_by: userId || null
       }
     });
 

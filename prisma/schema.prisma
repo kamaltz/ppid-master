@@ -43,6 +43,10 @@ model Ppid {
   role            String   @default("PPID_PELAKSANA")
   permissions     String?  @db.Text
   created_at      DateTime @default(now())
+  assigned_requests Request[]
+  assigned_keberatan Keberatan[]
+  sent_chats      PpidChat[] @relation("SenderPpid")
+  received_chats  PpidChat[] @relation("ReceiverPpid")
 
   @@map("ppid")
 }
@@ -50,6 +54,7 @@ model Ppid {
 model Request {
   id                        Int         @id @default(autoincrement())
   pemohon_id                Int
+  assigned_ppid_id          Int?        // PPID Pelaksana yang ditugaskan
   judul                     String?
   rincian_informasi         String
   tujuan_penggunaan         String
@@ -61,6 +66,7 @@ model Request {
   created_at                DateTime    @default(now())
   updated_at                DateTime    @default(now()) @updatedAt
   pemohon                   Pemohon     @relation(fields: [pemohon_id], references: [id])
+  assigned_ppid             Ppid?       @relation(fields: [assigned_ppid_id], references: [id])
   keberatan                 Keberatan[]
   responses                 RequestResponse[]
   chat_session              ChatSession?
@@ -142,6 +148,7 @@ model Keberatan {
   id             Int      @id @default(autoincrement())
   permintaan_id  Int
   pemohon_id     Int
+  assigned_ppid_id Int?   // PPID Pelaksana yang ditugaskan
   judul          String?
   alasan_keberatan String @db.Text
   status         String   @default("Diajukan")
@@ -150,6 +157,7 @@ model Keberatan {
   updated_at     DateTime @default(now()) @updatedAt
   permintaan     Request  @relation(fields: [permintaan_id], references: [id])
   pemohon        Pemohon  @relation(fields: [pemohon_id], references: [id])
+  assigned_ppid  Ppid?    @relation(fields: [assigned_ppid_id], references: [id])
   responses      KeberatanResponse[]
 
   @@map("keberatan")
@@ -200,4 +208,19 @@ model Kategori {
   updated_at  DateTime @default(now()) @updatedAt
 
   @@map("kategori")
+}
+
+model PpidChat {
+  id          Int      @id @default(autoincrement())
+  sender_id   Int
+  receiver_id Int
+  subject     String?
+  message     String   @db.Text
+  attachments String?  @db.Text
+  is_read     Boolean  @default(false)
+  created_at  DateTime @default(now())
+  sender      Ppid     @relation("SenderPpid", fields: [sender_id], references: [id])
+  receiver    Ppid     @relation("ReceiverPpid", fields: [receiver_id], references: [id])
+
+  @@map("ppid_chats")
 }

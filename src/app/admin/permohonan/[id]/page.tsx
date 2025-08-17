@@ -5,6 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
 import { Download, Paperclip } from "lucide-react";
 import RequestChat from "@/components/RequestChat";
+import RoleGuard from "@/components/auth/RoleGuard";
+import { ROLES } from "@/lib/roleUtils";
 
 interface PermohonanRequest {
   id: string;
@@ -29,16 +31,20 @@ export default function DetailPermohonanPage() {
   const [request, setRequest] = useState<PermohonanRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const { token } = useAuth();
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const { token, getUserRole } = useAuth();
   const params = useParams();
   const router = useRouter();
   const { id } = params;
+  const userRole = getUserRole();
 
   const updateStatus = async (newStatus: string, catatan?: string) => {
     if (!token) return;
     
     setUpdating(true);
     try {
+      console.log('Updating status:', { newStatus, catatan });
       const response = await fetch(`/api/permintaan/${id}`, {
         method: 'PUT',
         headers: {
@@ -53,6 +59,8 @@ export default function DetailPermohonanPage() {
         // Refresh data
         const result = await response.json();
         setRequest(result.data);
+        // Refresh the page to update chat
+        window.location.reload();
       } else {
         alert('Gagal memperbarui status');
       }
@@ -89,7 +97,8 @@ export default function DetailPermohonanPage() {
   if (!request) return <div>Data permohonan tidak ditemukan.</div>;
 
   return (
-    <div className="p-8 bg-white rounded-lg shadow-md">
+    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]}>
+      <div className="p-8 bg-white rounded-lg shadow-md">
       <h1 className="mb-4 text-2xl font-bold">
         Detail Permohonan: #{request.id}
       </h1>
@@ -215,8 +224,8 @@ export default function DetailPermohonanPage() {
           </button>
           <button 
             onClick={() => {
-              const catatan = prompt('Masukkan alasan penolakan:');
-              if (catatan) updateStatus('Ditolak', catatan);
+              console.log('Tolak button clicked!');
+              setShowRejectModal(true);
             }}
             disabled={updating || request.status === 'Ditolak'}
             className="px-4 py-2 font-bold text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:bg-gray-400"
@@ -233,8 +242,54 @@ export default function DetailPermohonanPage() {
         
         <hr className="my-6" />
         
-        <RequestChat requestId={parseInt(request.id)} currentUserRole="PPID" isAdmin={true} />
+        <RequestChat requestId={parseInt(request.id)} currentUserRole={userRole || "PPID"} isAdmin={userRole === 'ADMIN' || userRole === 'PPID_UTAMA'} />
       </div>
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-red-600">Tolak Permohonan</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Berikan alasan penolakan yang akan dikirim ke pemohon:
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 h-32 mb-4"
+              placeholder="Masukkan alasan penolakan..."
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                }}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  if (rejectReason.trim()) {
+                    console.log('Rejecting with reason:', rejectReason);
+                    updateStatus('Ditolak', rejectReason.trim());
+                    setShowRejectModal(false);
+                    setRejectReason('');
+                  } else {
+                    alert('Alasan penolakan wajib diisi');
+                  }
+                }}
+                disabled={!rejectReason.trim()}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                Tolak
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+    </RoleGuard>
   );
 }

@@ -59,11 +59,14 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
           const pemohonMessages = data.data.filter((msg: any) => msg.user_role === 'Pemohon');
           const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
           
-          // Pemohon can only send if: no messages yet OR admin has replied to their last message
-          const canSend = !isEnded && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
+          // Check if request is completed
+          const isCompleted = data.data.some((msg: any) => msg.message_type === 'system' && msg.message.includes('Selesai'));
+          
+          // Pemohon can only send if: not ended, not completed, and (no messages yet OR admin has replied)
+          const canSend = !isEnded && !isCompleted && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
           setCanSendMessage(canSend);
         } else {
-          setCanSendMessage(!isEnded || isAdmin);
+          setCanSendMessage(!isEnded || isAdmin || currentUserRole === 'PPID_PELAKSANA');
         }
       }
     } catch (error) {
@@ -76,7 +79,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
       return;
     }
-    if (!chatSession.is_active && !isAdmin) {
+    if (!chatSession.is_active && !isAdmin && currentUserRole !== 'PPID_PELAKSANA') {
       alert('Chat telah diakhiri.');
       return;
     }
@@ -238,7 +241,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
           {!chatSession.is_active && (
             <span className="text-sm text-red-600 font-medium">Chat Diakhiri</span>
           )}
-          {isAdmin && (
+          {(isAdmin || currentUserRole === 'PPID_PELAKSANA') && (
             <div className="flex gap-2">
               {chatSession.is_active ? (
                 <button
@@ -425,11 +428,11 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                 }
                 className="flex-1 border rounded-lg px-3 py-2"
                 onKeyPress={(e) => e.key === 'Enter' && sendResponse()}
-                disabled={(currentUserRole === 'Pemohon' && (!chatSession.is_active || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatSession.is_active && currentUserRole !== 'Admin')}
+                disabled={(currentUserRole === 'Pemohon' && (!chatSession.is_active || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatSession.is_active && !['Admin', 'PPID_PELAKSANA'].includes(currentUserRole))}
               />
               <button
                 onClick={() => sendResponse()}
-                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatSession.is_active && !isAdmin)}
+                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatSession.is_active && !isAdmin && currentUserRole !== 'PPID_PELAKSANA')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />

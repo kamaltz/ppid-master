@@ -11,6 +11,7 @@ interface JWTPayload {
 
 interface WhereClause {
   pemohon_id?: number;
+  assigned_ppid_id?: number;
   status?: string;
 }
 
@@ -28,14 +29,18 @@ export async function GET(request: NextRequest) {
     const pemohonId = searchParams.get('pemohon_id');
 
     const userId = parseInt(decoded.id) || decoded.userId;
-    const where: WhereClause = {};
-    if (decoded.role === 'Pemohon') {
+    const where: any = {};
+    
+    if (decoded.role === 'PEMOHON') {
       where.pemohon_id = userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
-      // PPID Pelaksana only sees keberatan that are being processed (status = 'Diproses')
-      where.status = 'Diproses';
-    } else if (pemohonId) {
-      where.pemohon_id = parseInt(pemohonId);
+      // PPID Pelaksana only sees keberatan assigned to them
+      where.assigned_ppid_id = userId;
+    } else if (decoded.role === 'PPID_UTAMA' || decoded.role === 'ADMIN') {
+      // PPID Utama and Admin see all keberatan
+      if (pemohonId) {
+        where.pemohon_id = parseInt(pemohonId);
+      }
     }
 
     const keberatan = await prisma.keberatan.findMany({
@@ -51,6 +56,13 @@ export async function GET(request: NextRequest) {
           select: {
             nama: true,
             email: true
+          }
+        },
+        assigned_ppid: {
+          select: {
+            id: true,
+            nama: true,
+            role: true
           }
         }
       },

@@ -49,11 +49,14 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
             const pemohonMessages = data.data.filter((msg: any) => msg.user_role === 'Pemohon');
             const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
             
-            // Pemohon can only send if: no messages yet OR admin has replied to their last message
-            const canSend = !isEnded && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
+            // Check if keberatan is completed
+            const isCompleted = data.data.some((msg: any) => msg.message_type === 'system' && msg.message.includes('Selesai'));
+            
+            // Pemohon can only send if: not ended, not completed, and (no messages yet OR admin has replied)
+            const canSend = !isEnded && !isCompleted && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
             setCanSendMessage(canSend);
           } else {
-            setCanSendMessage(!isEnded || isAdmin);
+            setCanSendMessage(!isEnded || isAdmin || currentUserRole === 'PPID_PELAKSANA');
           }
         }
       }
@@ -67,7 +70,7 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
       alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
       return;
     }
-    if (!chatActive && !isAdmin) {
+    if (!chatActive && !isAdmin && currentUserRole !== 'PPID_PELAKSANA') {
       alert('Chat telah diakhiri.');
       return;
     }
@@ -226,7 +229,7 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
           {!chatActive && (
             <span className="text-sm text-red-600 font-medium">Chat Diakhiri</span>
           )}
-          {isAdmin && (
+          {(isAdmin || currentUserRole === 'PPID_PELAKSANA') && (
             <div className="flex gap-2">
               {chatActive ? (
                 <button
@@ -310,7 +313,7 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
       </div>
       
       <div className="p-4 border-t">
-        {!chatActive && !isAdmin ? (
+        {!chatActive && !isAdmin && currentUserRole !== 'PPID_PELAKSANA' ? (
           <div className="text-center py-4 text-gray-500">
             <p>Chat telah diakhiri. Tidak dapat mengirim pesan baru.</p>
           </div>
@@ -329,66 +332,66 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
               </div>
             )}
         
-        <div className="flex space-x-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
-            onChange={(e) => {
-              if (e.target.files) {
-                setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
-              }
-            }}
-            className="hidden"
-          />
-          <input
-            type="file"
-            ref={imageInputRef}
-            multiple
-            accept="image/*,.png,.jpg,.jpeg,.gif,.webp"
-            onChange={(e) => {
-              if (e.target.files) {
-                setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
-              }
-            }}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 text-gray-500 hover:text-gray-700"
-            title="Lampirkan dokumen"
-          >
-            <Paperclip className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => imageInputRef.current?.click()}
-            className="p-2 text-gray-500 hover:text-gray-700"
-            title="Lampirkan gambar"
-          >
-            <Image className="w-5 h-5" />
-          </button>
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={
-                !chatActive ? "Chat telah diakhiri" :
-                currentUserRole === 'Pemohon' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
-                "Tulis pesan keberatan..."
-              }
-              className="flex-1 border rounded-lg px-3 py-2"
-              onKeyPress={(e) => e.key === 'Enter' && sendResponse()}
-              disabled={(currentUserRole === 'Pemohon' && (!chatActive || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatActive && currentUserRole !== 'Admin')}
-            />
-            <button
-              onClick={sendResponse}
-              disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatActive && !isAdmin)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
+            <div className="flex space-x-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+                  }
+                }}
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={imageInputRef}
+                multiple
+                accept="image/*,.png,.jpg,.jpeg,.gif,.webp"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+                  }
+                }}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 text-gray-500 hover:text-gray-700"
+                title="Lampirkan dokumen"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => imageInputRef.current?.click()}
+                className="p-2 text-gray-500 hover:text-gray-700"
+                title="Lampirkan gambar"
+              >
+                <Image className="w-5 h-5" />
+              </button>
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={
+                  !chatActive ? "Chat telah diakhiri" :
+                  currentUserRole === 'Pemohon' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
+                  "Tulis pesan keberatan..."
+                }
+                className="flex-1 border rounded-lg px-3 py-2"
+                onKeyPress={(e) => e.key === 'Enter' && sendResponse()}
+                disabled={(currentUserRole === 'Pemohon' && (!chatActive || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatActive && !['Admin', 'PPID_PELAKSANA'].includes(currentUserRole))}
+              />
+              <button
+                onClick={sendResponse}
+                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatActive && !isAdmin && currentUserRole !== 'PPID_PELAKSANA')}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </>
         )}
       </div>

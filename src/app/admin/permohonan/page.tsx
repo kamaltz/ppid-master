@@ -36,6 +36,26 @@ export default function AdminPermohonanPage() {
     message: string;
   }>({ isOpen: false, title: '', message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string}[]>([]);
+  const [selectedPpid, setSelectedPpid] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    fetchPpidList();
+  }, []);
+
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      setPpidList([]);
+      fetchPpidList(searchTerm, 1);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
   
   // Convert database data to component format
   const permohonan = permintaan.map(req => {
@@ -73,15 +93,15 @@ export default function AdminPermohonanPage() {
       title = 'Proses Permohonan';
       message = `Apakah Anda yakin ingin memproses permohonan #${id} dari ${currentPermohonan.nama}? Permohonan akan diteruskan ke PPID Pelaksana.`;
       successTitle = 'Berhasil Diproses';
-      successMessage = `Permohonan #${id} berhasil diterima dan sedang diproses oleh PPID Pelaksana.`;
+      successMessage = `Permohonan #${id} berhasil diteruskan ke PPID Pelaksana.`;
       type = 'success';
-    } else if (currentPermohonan.status === 'Diproses' && newStatus === 'Selesai') {
+    } else if (currentPermohonan.status === 'Diteruskan' && newStatus === 'Selesai') {
       title = 'Selesaikan Permohonan';
       message = `Apakah Anda yakin ingin menyelesaikan permohonan #${id}? Pemohon akan mendapatkan notifikasi bahwa permohonan telah selesai.`;
       successTitle = 'Permohonan Selesai';
       successMessage = `Permohonan #${id} berhasil diselesaikan. Pemohon telah diberitahu melalui email.`;
       type = 'success';
-    } else if (currentPermohonan.status === 'Diproses' && newStatus === 'Ditolak') {
+    } else if (currentPermohonan.status === 'Diteruskan' && newStatus === 'Ditolak') {
       title = 'Tolak Permohonan';
       message = `Apakah Anda yakin ingin menolak permohonan #${id}? Tindakan ini tidak dapat dibatalkan dan pemohon akan diberitahu.`;
       successTitle = 'Permohonan Ditolak';
@@ -185,9 +205,9 @@ export default function AdminPermohonanPage() {
     switch (action) {
       case 'terima':
         title = 'Proses Massal';
-        message = `Apakah Anda yakin ingin memproses ${selectedIds.length} permohonan sekaligus? Semua permohonan akan diteruskan ke PPID Pelaksana.`;
+        message = `Apakah Anda yakin ingin meneruskan ${selectedIds.length} permohonan sekaligus? Semua permohonan akan diteruskan ke PPID Pelaksana.`;
         successTitle = 'Berhasil Diproses';
-        successMessage = `${selectedIds.length} permohonan berhasil diterima dan sedang diproses.`;
+        successMessage = `${selectedIds.length} permohonan berhasil diteruskan.`;
         type = 'success';
         break;
       case 'tolak':
@@ -232,7 +252,7 @@ export default function AdminPermohonanPage() {
             }
           } else {
             // Update status for each selected request
-            const newStatus = action === 'terima' ? 'Diproses' : 'Ditolak';
+            const newStatus = action === 'terima' ? 'Diteruskan' : 'Ditolak';
             for (const id of selectedIds) {
               await updatePermintaanStatus(id.toString(), { status: newStatus }, token);
             }
@@ -253,10 +273,90 @@ export default function AdminPermohonanPage() {
     });
   };
 
+  const fetchPpidList = async (search = '', page = 1) => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        if (page === 1) {
+          setPpidList(data.data);
+        } else {
+          setPpidList(prev => [...prev, ...data.data]);
+        }
+        setHasMore(data.pagination.hasMore);
+        setCurrentPage(page);
+      }
+    } catch (error) {
+      console.error('Failed to fetch PPID list:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (hasMore && !loading) {
+      fetchPpidList(searchTerm, currentPage + 1);
+    }
+  };
+
+  const handleBulkAssign = () => {
+    if (selectedIds.length === 0) {
+      alert('Pilih permohonan terlebih dahulu!');
+      return;
+    }
+    fetchPpidList();
+    setShowAssignModal(true);
+  };
+
+  const assignToPpid = async () => {
+    if (!selectedPpid) {
+      alert('Pilih PPID Pelaksana!');
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      for (const id of selectedIds) {
+        const response = await fetch('/api/admin/assign-ppid', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            requestId: id,
+            ppidId: parseInt(selectedPpid),
+            type: 'request'
+          })
+        });
+        if (!response.ok) {
+          throw new Error('Failed to assign request');
+        }
+      }
+      setShowAssignModal(false);
+      setSelectedIds([]);
+      setSelectAll(false);
+      setSelectedPpid('');
+      refreshData();
+    } catch (error) {
+      console.error('Assignment error:', error);
+      alert('Gagal menugaskan permohonan');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Diajukan': return 'bg-yellow-100 text-yellow-800';
-      case 'Diproses': return 'bg-blue-100 text-blue-800';
+      case 'Diteruskan': return 'bg-blue-100 text-blue-800';
       case 'Selesai': return 'bg-green-100 text-green-800';
       case 'Ditolak': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -282,10 +382,10 @@ export default function AdminPermohonanPage() {
               </span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleBulkAction('terima')}
+                  onClick={() => handleBulkAssign()}
                   className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
                 >
-                  Terima Semua
+                  Teruskan Semua
                 </button>
                 <button
                   onClick={() => handleBulkAction('tolak')}
@@ -376,32 +476,8 @@ export default function AdminPermohonanPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                     {item.status === 'Diajukan' ? (
-                      <RoleGuard requiredRoles={[ROLES.PPID_UTAMA]} showAccessDenied={false}>
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              // Assign to PPID Pelaksana
-                              fetch('/api/admin/assign-request', {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                                },
-                                body: JSON.stringify({
-                                  requestId: item.id,
-                                  assignedTo: parseInt(e.target.value)
-                                })
-                              }).then(() => refreshData());
-                            }
-                          }}
-                          className="text-xs border rounded px-2 py-1"
-                        >
-                          <option value="">Teruskan ke...</option>
-                          <option value="1">PPID Pelaksana 1</option>
-                          <option value="2">PPID Pelaksana 2</option>
-                        </select>
-                      </RoleGuard>
-                    ) : item.status === 'Diproses' ? (
+                      <span className="text-xs text-yellow-600">Menunggu</span>
+                    ) : item.status === 'Diteruskan' ? (
                       <div className="flex gap-1">
                         <button 
                           onClick={() => updateStatus(item.id, 'Selesai')}
@@ -426,12 +502,25 @@ export default function AdminPermohonanPage() {
                   >
                     Detail
                   </button>
-                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
+                  {item.status === 'Diajukan' && (
+                    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
+                      <button
+                        onClick={() => {
+                          setSelectedIds([item.id]);
+                          handleBulkAssign();
+                        }}
+                        className="text-green-600 hover:text-green-900 text-xs mr-2"
+                      >
+                        Teruskan
+                      </button>
+                    </RoleGuard>
+                  )}
+                  <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                     <a 
                       href={`/admin/permohonan/${item.id}`}
                       className="text-green-600 hover:text-green-900 text-xs mr-2"
                     >
-                      Respon
+                      {item.status === 'Diteruskan' ? 'Chat' : 'Respon'}
                     </a>
                   </RoleGuard>
                   <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={false}>
@@ -524,6 +613,85 @@ export default function AdminPermohonanPage() {
         title={successModal.title}
         message={successModal.message}
       />
+
+      {/* PPID Assignment Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Teruskan ke PPID Pelaksana</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {selectedIds.length} permohonan akan diteruskan ke PPID Pelaksana yang dipilih
+            </p>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Cari PPID Pelaksana..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2"
+              />
+            </div>
+            <div 
+              className="space-y-2 max-h-60 overflow-y-auto"
+              onScroll={(e) => {
+                const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                if (scrollHeight - scrollTop === clientHeight && hasMore && !loading) {
+                  loadMore();
+                }
+              }}
+            >
+              {ppidList.length === 0 && !loading ? (
+                <p className="text-gray-500 text-center py-4">Tidak ada PPID ditemukan</p>
+              ) : (
+                ppidList.map((ppid) => (
+                  <label key={ppid.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ppid"
+                      value={ppid.id}
+                      checked={selectedPpid === ppid.id.toString()}
+                      onChange={(e) => setSelectedPpid(e.target.value)}
+                      className="mr-3"
+                    />
+                    <div>
+                      <div className="font-medium">{ppid.nama}</div>
+                      <div className="text-sm text-gray-500">{ppid.email}</div>
+                    </div>
+                  </label>
+                ))
+              )}
+              {loading && (
+                <div className="text-center py-2">
+                  <span className="text-gray-500">Loading...</span>
+                </div>
+              )}
+              {!hasMore && ppidList.length > 0 && (
+                <div className="text-center py-2">
+                  <span className="text-gray-400 text-sm">Semua PPID telah dimuat</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowAssignModal(false);
+                  setSelectedPpid('');
+                }}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={assignToPpid}
+                disabled={!selectedPpid || isProcessing}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isProcessing ? 'Memproses...' : 'Teruskan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

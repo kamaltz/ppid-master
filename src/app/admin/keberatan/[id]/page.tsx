@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
 import KeberatanChat from "@/components/KeberatanChat";
+import RoleGuard from "@/components/auth/RoleGuard";
+import { ROLES } from "@/lib/roleUtils";
 
 interface KeberatanDetail {
   id: string;
@@ -23,10 +25,11 @@ interface KeberatanDetail {
 export default function DetailKeberatanPage() {
   const [keberatan, setKeberatan] = useState<KeberatanDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
+  const { token, getUserRole } = useAuth();
   const params = useParams();
   const router = useRouter();
   const { id } = params;
+  const userRole = getUserRole();
 
   useEffect(() => {
     if (token && id) {
@@ -53,7 +56,8 @@ export default function DetailKeberatanPage() {
   if (!keberatan) return <div>Data keberatan tidak ditemukan.</div>;
 
   return (
-    <div className="p-8 bg-white rounded-lg shadow-md">
+    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]}>
+      <div className="p-8 bg-white rounded-lg shadow-md">
       <h1 className="mb-4 text-2xl font-bold text-red-600">
         Detail Keberatan: #{keberatan.id}
       </h1>
@@ -94,7 +98,8 @@ export default function DetailKeberatanPage() {
       
       <hr className="my-6" />
       
-      <KeberatanChat keberatanId={parseInt(keberatan.id)} currentUserRole="PPID" isAdmin={true} />
+      <KeberatanChat keberatanId={parseInt(keberatan.id)} currentUserRole={userRole || "PPID"} isAdmin={userRole === 'ADMIN' || userRole === 'PPID_UTAMA'} />
     </div>
+    </RoleGuard>
   );
 }
