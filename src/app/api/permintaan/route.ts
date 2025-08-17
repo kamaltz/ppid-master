@@ -39,12 +39,8 @@ export async function GET(request: NextRequest) {
     const userId = parseInt(decoded.id) || decoded.userId;
     
     // Pemohon only sees their own requests
-    if (decoded.role === 'Pemohon') {
+    if (decoded.role === 'PEMOHON') {
       where.pemohon_id = userId;
-    }
-    // PPID Pelaksana only sees requests assigned to them
-    else if (decoded.role === 'PPID_PELAKSANA') {
-      where.assigned_to = userId;
     }
     
     // Apply status filter if provided
@@ -55,7 +51,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     const [requests, total] = await Promise.all([
-      prisma.permintaan.findMany({
+      prisma.request.findMany({
         where,
         include: {
           pemohon: {
@@ -66,7 +62,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit
       }),
-      prisma.permintaan.count({ where })
+      prisma.request.count({ where })
     ]);
 
     console.log('API Response sample:', requests && requests.length > 0 ? requests[0] : 'No requests found');
@@ -99,7 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only pemohon can create requests
-    if (decoded.role !== 'Pemohon') {
+    if (decoded.role !== 'PEMOHON') {
       return NextResponse.json({ error: 'Only pemohon can create requests' }, { status: 403 });
     }
 
@@ -112,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     const userId = parseInt(decoded.id) || decoded.userId;
 
-    const newRequest = await prisma.permintaan.create({
+    const newRequest = await prisma.request.create({
       data: {
         pemohon_id: userId,
         judul: judul || 'Permintaan Informasi',
@@ -120,7 +116,6 @@ export async function POST(request: NextRequest) {
         tujuan_penggunaan,
         cara_memperoleh_informasi: cara_memperoleh_informasi || cara_memperoleh || 'Email',
         cara_mendapat_salinan: cara_mendapat_salinan || 'Email',
-        kategori_id: kategori_id || null,
         status: 'Diajukan'
       }
     });

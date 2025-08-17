@@ -4,7 +4,7 @@ export const ROLES = {
   PPID_UTAMA: "PPID_UTAMA",
   PPID_PELAKSANA: "PPID_PELAKSANA",
   ATASAN_PPID: "ATASAN_PPID",
-  PEMOHON: "Pemohon"
+  PEMOHON: "PEMOHON"
 } as const;
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
@@ -48,6 +48,7 @@ export const getRoleDisplayName = (role: string | null): string => {
       return "PPID Pelaksana";
     case "ATASAN_PPID":
       return "Atasan PPID";
+    case "PEMOHON":
     case "Pemohon":
       return "Pemohon";
     default:

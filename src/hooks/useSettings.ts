@@ -13,10 +13,11 @@ interface GeneralSettings {
 }
 
 interface HeaderSettings {
-  menu: Array<{
+  menuItems: Array<{
     label: string;
     url: string;
-    dropdown?: Array<{
+    hasDropdown: boolean;
+    dropdownItems: Array<{
       label: string;
       url: string;
     }>;

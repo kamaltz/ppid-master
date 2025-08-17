@@ -28,11 +28,7 @@ interface MenuItem {
   label: string;
   url: string;
   hasDropdown: boolean;
-  dropdownItems?: DropdownItem[];
-}
-
-interface HeaderWithMenu {
-  menuItems?: MenuItem[];
+  dropdownItems: DropdownItem[];
 }
 
 const Header = () => {
@@ -41,6 +37,9 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { settings } = useSettings();
+  
+  // Debug settings
+  console.log('Header settings:', settings?.header);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +82,7 @@ const Header = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-6">
-          {(settings?.header as HeaderWithMenu)?.menuItems?.map((item: MenuItem, index: number) => (
+          {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
             <div key={index} className="relative group">
               {item.hasDropdown ? (
                 <>
@@ -93,7 +92,7 @@ const Header = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-1">
                       {item.dropdownItems?.map((dropItem: DropdownItem, dropIndex: number) => (
                         <Link
@@ -212,7 +211,7 @@ const Header = () => {
 
             {/* Mobile Navigation */}
             <nav className="space-y-2">
-              {(settings?.header as HeaderWithMenu)?.menuItems?.map((item: MenuItem, index: number) => (
+              {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
                 <div key={index}>
                   {item.hasDropdown ? (
                     <div className="space-y-1">

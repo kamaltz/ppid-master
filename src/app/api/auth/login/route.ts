@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       const isValid = await bcrypt.compare(password, admin.hashed_password);
       if (isValid) {
         const token = jwt.sign(
-          { id: admin.id, email: admin.email, nama: admin.nama, role: 'ADMIN' },
+          { userId: admin.id, id: admin.id, email: admin.email, nama: admin.nama, role: 'ADMIN' },
           process.env.JWT_SECRET || 'fallback-secret',
           { expiresIn: '24h' }
         );
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       const isValid = await bcrypt.compare(password, ppid.hashed_password);
       if (isValid) {
         const token = jwt.sign(
-          { id: ppid.id, email: ppid.email, nama: ppid.nama, role: ppid.role },
+          { userId: ppid.id, id: ppid.id, email: ppid.email, nama: ppid.nama, role: ppid.role },
           process.env.JWT_SECRET || 'fallback-secret',
           { expiresIn: '24h' }
         );
@@ -45,6 +45,24 @@ export async function POST(request: NextRequest) {
           success: true,
           token,
           user: { id: ppid.id, email: ppid.email, nama: ppid.nama, role: ppid.role }
+        });
+      }
+    }
+
+    // Check Pemohon
+    const pemohon = await prisma.pemohon.findUnique({ where: { email } });
+    if (pemohon) {
+      const isValid = await bcrypt.compare(password, pemohon.hashed_password);
+      if (isValid) {
+        const token = jwt.sign(
+          { userId: pemohon.id, id: pemohon.id, email: pemohon.email, nama: pemohon.nama, role: 'PEMOHON' },
+          process.env.JWT_SECRET || 'fallback-secret',
+          { expiresIn: '24h' }
+        );
+        return NextResponse.json({
+          success: true,
+          token,
+          user: { id: pemohon.id, email: pemohon.email, nama: pemohon.nama, role: 'PEMOHON' }
         });
       }
     }
