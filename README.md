@@ -5,24 +5,28 @@
 ## ✨ Fitur Utama
 
 ### 🌐 **Frontend Public**
+
 - **Hero Section Dinamis** - Carousel dengan auto-slide dan CTA customizable
 - **Responsive Design** - Optimal di semua device (mobile, tablet, desktop)
 - **SEO Optimized** - Meta tags dan structured data
 - **Dynamic Content** - Konten dapat dikelola melalui admin panel
 
 ### 🔐 **Sistem Autentikasi**
+
 - **Multi-Role System** - Admin, PPID Utama, PPID Pelaksana, Atasan PPID, Pemohon
 - **JWT Authentication** - Secure token-based authentication
 - **Role-Based Access Control** - Akses menu berdasarkan role
 - **Session Management** - Auto logout dan refresh token
 
 ### 📊 **Dashboard Admin**
+
 - **Real-time Analytics** - Chart interaktif dengan berbagai tipe (pie, line, bar, donut)
 - **Statistics Cards** - Ringkasan data permohonan
 - **Responsive Layout** - Sidebar collapsible dan mobile-friendly
 - **Data Export** - Export laporan dalam berbagai format
 
 ### 📝 **Manajemen Permohonan**
+
 - **Form Permohonan** - Interface user-friendly untuk pemohon
 - **Status Tracking** - Real-time status permohonan
 - **File Upload** - Support multiple file formats
@@ -30,23 +34,27 @@
 - **Chat System** - Real-time communication antara pemohon dan PPID
 
 ### 🚨 **Manajemen Keberatan**
+
 - **Form Keberatan** - Pengajuan keberatan atas permohonan
 - **Multi-level Review** - Alur review bertingkat
 - **Response System** - Chat dan file attachment untuk keberatan
 - **Status Tracking** - Monitoring progress keberatan
 
 ### ⚙️ **Pengaturan Website**
+
 - **Dynamic Settings** - Logo, nama instansi, kontak dapat diubah
 - **Menu Management** - Kelola menu header dengan dropdown
 - **Hero Section Editor** - Upload gambar, edit teks, atur carousel
 - **Footer Customization** - Social media links dan quick links
 
 ### 🖼️ **Media Management**
+
 - **Image Upload** - Auto resize dan crop ke rasio optimal
 - **File Storage** - Organized file structure
 - **Image Optimization** - WebP conversion dan compression
 
 ### 👥 **Account Management**
+
 - **Multi-role User Management** - Admin, PPID, Pemohon
 - **Bulk Import** - Import users dari CSV/Excel
 - **Password Reset** - Reset password untuk semua role
@@ -55,7 +63,8 @@
 ## 🚀 Instalasi
 
 ### Prasyarat
-- Node.js 18+ 
+
+- Node.js 18+
 - npm atau yarn
 - PostgreSQL 14+
 - Git
@@ -63,12 +72,14 @@
 ### Langkah Instalasi
 
 1. **Clone Repository**
+
 ```bash
 git clone https://github.com/your-repo/ppid-master.git
 cd ppid-master
 ```
 
 2. **Install Dependencies**
+
 ```bash
 npm install
 # atau
@@ -76,12 +87,14 @@ yarn install
 ```
 
 3. **Setup Environment Variables**
+
 ```bash
 cp .env.example .env.local
 ```
 
 4. **Konfigurasi Database**
-Edit `.env.local` dan sesuaikan dengan konfigurasi database PostgreSQL Anda:
+   Edit `.env.local` dan sesuaikan dengan konfigurasi database PostgreSQL Anda:
+
 ```env
 DATABASE_URL="postgresql://username:password@localhost:5432/ppid_garut?schema=public"
 JWT_SECRET="your-jwt-secret-key"
@@ -89,6 +102,7 @@ NEXT_PUBLIC_API_URL="http://localhost:3000/api"
 ```
 
 5. **Setup Database**
+
 ```bash
 # Generate Prisma client
 npx prisma generate
@@ -101,6 +115,7 @@ npm run seed
 ```
 
 6. **Jalankan Development Server**
+
 ```bash
 npm run dev
 ```
@@ -112,30 +127,35 @@ Aplikasi akan berjalan di `http://localhost:3000`
 Setelah menjalankan `npm run seed`, akun berikut akan tersedia:
 
 ### 🔑 **Admin**
+
 - **Email**: `admin@garut.go.id`
 - **Password**: `Garut@2025?`
 - **Role**: Administrator
 - **Akses**: Full access ke semua fitur
 
 ### 🏛️ **PPID Utama**
+
 - **Email**: `ppid.utama@garut.go.id`
 - **Password**: `Garut@2025?`
 - **Role**: PPID Utama
 - **Akses**: Manajemen informasi, permohonan, keberatan
 
 ### 👨💼 **PPID Pelaksana**
+
 - **Email**: `ppid.pelaksana@garut.go.id`
 - **Password**: `Garut@2025?`
 - **Role**: PPID Pelaksana
 - **Akses**: Proses permohonan, input informasi
 
 ### 👔 **Atasan PPID**
+
 - **Email**: `atasan.ppid@garut.go.id`
 - **Password**: `Garut@2025?`
 - **Role**: Atasan PPID
 - **Akses**: Approve permohonan, monitoring
 
 ### 👤 **Pemohon Test**
+
 - **Email**: `pemohon@example.com`
 - **Password**: `Garut@2025?`
 - **Role**: Pemohon
@@ -144,16 +164,19 @@ Setelah menjalankan `npm run seed`, akun berikut akan tersedia:
 ## 📖 Cara Penggunaan
 
 ### 🌐 **Akses Public**
+
 1. Buka `http://localhost:3000`
 2. Lihat informasi publik yang tersedia
 3. Daftar akun baru atau login untuk mengajukan permohonan
 
 ### 🔐 **Login Admin**
+
 1. Akses `http://localhost:3000/login`
 2. Gunakan salah satu akun seeder di atas
 3. Akan diarahkan ke dashboard sesuai role
 
 ### ⚙️ **Konfigurasi Website**
+
 1. Login sebagai Admin
 2. Masuk ke menu "Pengaturan"
 3. Edit informasi umum, header, footer, dan hero section
@@ -161,6 +184,7 @@ Setelah menjalankan `npm run seed`, akun berikut akan tersedia:
 5. Simpan perubahan
 
 ### 📝 **Mengelola Permohonan**
+
 1. Login sebagai PPID
 2. Masuk ke menu "Permohonan"
 3. Review permohonan masuk
@@ -238,12 +262,14 @@ npm run lint         # Run ESLint
 ## 🔌 API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/me` - Get current user
 
 ### Permohonan/Permintaan
+
 - `GET /api/permintaan` - Get request list
 - `POST /api/permintaan` - Create new request
 - `GET /api/permintaan/[id]` - Get request detail
@@ -252,6 +278,7 @@ npm run lint         # Run ESLint
 - `POST /api/permintaan/[id]/responses` - Add response to request
 
 ### Keberatan
+
 - `GET /api/keberatan` - Get objection list
 - `POST /api/keberatan` - Create new objection
 - `GET /api/keberatan/[id]` - Get objection detail
@@ -259,6 +286,7 @@ npm run lint         # Run ESLint
 - `POST /api/keberatan/[id]/responses` - Add response to objection
 
 ### Informasi Publik
+
 - `GET /api/informasi` - Get public information list
 - `POST /api/informasi` - Create information (PPID only)
 - `GET /api/informasi/[id]` - Get information detail
@@ -266,6 +294,7 @@ npm run lint         # Run ESLint
 - `DELETE /api/informasi/[id]` - Delete information
 
 ### Admin Management
+
 - `GET /api/admin/stats` - Get dashboard statistics
 - `GET /api/admin/users` - Get users list
 - `POST /api/admin/assign-ppid` - Assign PPID to request
@@ -273,6 +302,7 @@ npm run lint         # Run ESLint
 - `GET /api/admin/role-stats` - Get role statistics
 
 ### Accounts Management
+
 - `GET /api/accounts` - Get all accounts
 - `POST /api/accounts` - Create new account
 - `GET /api/accounts/[id]` - Get account detail
@@ -281,12 +311,14 @@ npm run lint         # Run ESLint
 - `POST /api/accounts/reset-password` - Reset password
 
 ### Categories
+
 - `GET /api/kategori` - Get categories
 - `POST /api/kategori` - Create category
 - `PUT /api/kategori/[id]` - Update category
 - `DELETE /api/kategori/[id]` - Delete category
 
 ### Pages Management
+
 - `GET /api/pages` - Get pages
 - `POST /api/pages` - Create page
 - `GET /api/pages/[id]` - Get page detail
@@ -294,15 +326,18 @@ npm run lint         # Run ESLint
 - `DELETE /api/pages/[id]` - Delete page
 
 ### Settings
+
 - `GET /api/settings` - Get website settings
 - `POST /api/settings` - Update settings (Admin only)
 
 ### Upload & Media
+
 - `POST /api/upload` - Upload files
 - `POST /api/upload/image` - Upload image files
 - `GET /api/admin/media` - Get media files
 
 ### Chat & Communication
+
 - `GET /api/chat/[requestId]` - Get chat messages
 - `POST /api/chat/[requestId]` - Send chat message
 - `POST /api/chat/[requestId]/end` - End chat session
@@ -310,6 +345,7 @@ npm run lint         # Run ESLint
 - `POST /api/ppid-chat` - Send PPID internal message
 
 ### Statistics & Reports
+
 - `GET /api/stats/public` - Get public statistics
 - `GET /api/laporan` - Generate reports
 
@@ -368,14 +404,5 @@ npm run test:utils         # Utility function tests
 - ✅ **Chat System** - Real-time communication
 - ✅ **Comprehensive Testing** - Full test coverage
 - ✅ **PostgreSQL + Prisma** - Modern database stack
-
-## 📞 Support
-
-Untuk bantuan teknis atau pertanyaan:
-- Email: support@garutkab.go.id
-- Documentation: [Link to docs]
-- Issues: [GitHub Issues]
-
----
 
 **Dikembangkan untuk PPID Diskominfo Kabupaten Garut** 🏛️
