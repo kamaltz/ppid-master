@@ -19,6 +19,7 @@ import {
   FolderOpen,
   UserCog,
   UserCircle,
+  MessageCircle,
 } from "lucide-react";
 
 const menuItems = [
@@ -56,6 +57,12 @@ const menuItems = [
     href: "/admin/keberatan",
     icon: AlertTriangle,
     label: "Keberatan",
+    roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
+  },
+  {
+    href: "/admin/chat",
+    icon: MessageCircle,
+    label: "Kelola Chat",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
   },
   {

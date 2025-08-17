@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useKeberatanData } from "@/hooks/useKeberatanData";
-import { X } from "lucide-react";
+import { X, MessageCircle } from "lucide-react";
+import Link from "next/link";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface KeberatanDisplay {
@@ -190,6 +191,13 @@ export default function AdminKeberatanPage() {
                     >
                       Detail
                     </button>
+                    <Link
+                      href={`/admin/permohonan/${item.permintaan_id}`}
+                      className="text-green-600 hover:text-green-900 text-xs mr-2 inline-flex items-center"
+                    >
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      Chat
+                    </Link>
                     <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
                       <button 
                         onClick={() => handleDelete(item.id)}
