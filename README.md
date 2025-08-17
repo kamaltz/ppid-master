@@ -231,13 +231,5 @@ npm run test         # Run tests
 - ✅ **File Management** - Upload dan manajemen file terintegrasi
 - ✅ **Analytics Dashboard** - Monitoring dan reporting
 
-## 📞 Support
-
-Untuk bantuan teknis atau pertanyaan:
-- Email: support@garutkab.go.id
-- Documentation: [Link to docs]
-- Issues: [GitHub Issues]
-
----
 
 **Dikembangkan untuk PPID Diskominfo Kabupaten Garut** 🏛️
