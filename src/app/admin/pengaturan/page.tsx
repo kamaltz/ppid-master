@@ -56,7 +56,7 @@ export default function AdminPengaturanPage() {
         { label: 'Permohonan Informasi', url: '/permohonan' },
         { label: 'Keberatan', url: '/keberatan' }
       ]}
-    ]
+    ] || []
   });
   const [footerSettings, setFooterSettings] = useState({
     companyName: 'PPID Kabupaten Garut',
@@ -198,7 +198,7 @@ export default function AdminPengaturanPage() {
           
           setHeroSettings({
             ...heroData,
-            slides: slidesWithDefaults
+            slides: slidesWithDefaults || []
           });
         }
       }
@@ -708,7 +708,7 @@ export default function AdminPengaturanPage() {
                 </div>
                 
                 <div className="space-y-4">
-                  {headerSettings.menuItems.map((item, index) => (
+                  {(headerSettings.menuItems || []).map((item, index) => (
                     <div key={index} className="border rounded-lg p-4 bg-gray-50">
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div>
@@ -753,7 +753,7 @@ export default function AdminPengaturanPage() {
                       
                       {item.hasDropdown && item.dropdownItems.length > 0 && (
                         <div className="ml-4 space-y-2">
-                          {item.dropdownItems.map((dropItem, dropIndex) => (
+                          {(item.dropdownItems || []).map((dropItem, dropIndex) => (
                             <div key={dropIndex} className="grid grid-cols-2 gap-2">
                               <input 
                                 type="text" 
@@ -863,8 +863,8 @@ export default function AdminPengaturanPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
                     <input 
                       type="url" 
-                      value={footerSettings.socialMedia.facebook}
-                      onChange={(e) => handleFooterChange('socialMedia', {...footerSettings.socialMedia, facebook: e.target.value})}
+                      value={footerSettings.socialMedia?.facebook || ''}
+                      onChange={(e) => handleFooterChange('socialMedia', {...(footerSettings.socialMedia || {}), facebook: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -872,8 +872,8 @@ export default function AdminPengaturanPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
                     <input 
                       type="url" 
-                      value={footerSettings.socialMedia.instagram}
-                      onChange={(e) => handleFooterChange('socialMedia', {...footerSettings.socialMedia, instagram: e.target.value})}
+                      value={footerSettings.socialMedia?.instagram || ''}
+                      onChange={(e) => handleFooterChange('socialMedia', {...(footerSettings.socialMedia || {}), instagram: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -881,8 +881,8 @@ export default function AdminPengaturanPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Twitter</label>
                     <input 
                       type="url" 
-                      value={footerSettings.socialMedia.twitter}
-                      onChange={(e) => handleFooterChange('socialMedia', {...footerSettings.socialMedia, twitter: e.target.value})}
+                      value={footerSettings.socialMedia?.twitter || ''}
+                      onChange={(e) => handleFooterChange('socialMedia', {...(footerSettings.socialMedia || {}), twitter: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -890,8 +890,8 @@ export default function AdminPengaturanPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">YouTube</label>
                     <input 
                       type="url" 
-                      value={footerSettings.socialMedia.youtube}
-                      onChange={(e) => handleFooterChange('socialMedia', {...footerSettings.socialMedia, youtube: e.target.value})}
+                      value={footerSettings.socialMedia?.youtube || ''}
+                      onChange={(e) => handleFooterChange('socialMedia', {...(footerSettings.socialMedia || {}), youtube: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -1109,7 +1109,7 @@ export default function AdminPengaturanPage() {
                         </div>
                         
                         <div className="space-y-4">
-                          {heroSettings.slides.map((slide, index) => (
+                          {(heroSettings.slides || []).map((slide, index) => (
                             <div key={slide.id} className="border rounded-lg p-4 bg-gray-50">
                               <div className="flex justify-between items-center mb-3">
                                 <h5 className="font-medium">Slide {index + 1}</h5>
