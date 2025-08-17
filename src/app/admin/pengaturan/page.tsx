@@ -523,7 +523,7 @@ export default function AdminPengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nama Instansi</label>
                 <input 
                   type="text" 
-                  value={settings.namaInstansi}
+                  value={settings.namaInstansi || ''}
                   onChange={(e) => handleChange('namaInstansi', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                   required
@@ -565,7 +565,7 @@ export default function AdminPengaturanPage() {
                   </div>
                   <input 
                     type="url" 
-                    value={settings.logo}
+                    value={settings.logo || ''}
                     onChange={(e) => handleChange('logo', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="https://example.com/logo.png"
@@ -592,7 +592,7 @@ export default function AdminPengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Judul Website (Title Tag)</label>
                 <input 
                   type="text" 
-                  value={settings.websiteTitle}
+                  value={settings.websiteTitle || ''}
                   onChange={(e) => handleChange('websiteTitle', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Judul yang akan muncul di tab browser"
@@ -604,7 +604,7 @@ export default function AdminPengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi Website (Meta Description)</label>
                 <textarea 
                   rows={3}
-                  value={settings.websiteDescription}
+                  value={settings.websiteDescription || ''}
                   onChange={(e) => handleChange('websiteDescription', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Deskripsi website untuk SEO dan media sosial"
@@ -616,7 +616,7 @@ export default function AdminPengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email Kontak</label>
                 <input 
                   type="email" 
-                  value={settings.email}
+                  value={settings.email || ''}
                   onChange={(e) => handleChange('email', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                   required
@@ -627,7 +627,7 @@ export default function AdminPengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Telepon</label>
                 <input 
                   type="tel" 
-                  value={settings.telepon}
+                  value={settings.telepon || ''}
                   onChange={(e) => handleChange('telepon', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                   required
@@ -638,7 +638,7 @@ export default function AdminPengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
                 <textarea 
                   rows={3}
-                  value={settings.alamat}
+                  value={settings.alamat || ''}
                   onChange={(e) => handleChange('alamat', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
@@ -664,7 +664,7 @@ export default function AdminPengaturanPage() {
                   </div>
                   <input 
                     type="url" 
-                    value={settings.favicon}
+                    value={settings.favicon || ''}
                     onChange={(e) => handleChange('favicon', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="https://example.com/favicon.ico"

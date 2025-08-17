@@ -373,7 +373,7 @@ export default function AdminInformasiPage() {
                 <label className="block text-sm font-medium mb-1">Judul</label>
                 <input
                   type="text"
-                  value={formData.judul}
+                  value={formData.judul || ''}
                   onChange={(e) => setFormData({...formData, judul: e.target.value})}
                   className="w-full border rounded px-3 py-2"
                   required
@@ -383,7 +383,7 @@ export default function AdminInformasiPage() {
                 <label className="block text-sm font-medium mb-1">Tanggal Posting</label>
                 <input
                   type="date"
-                  value={formData.tanggal_posting}
+                  value={formData.tanggal_posting || ''}
                   onChange={(e) => setFormData({...formData, tanggal_posting: e.target.value})}
                   min="2020-01-01"
                   max={new Date().toISOString().split('T')[0]}
@@ -396,7 +396,7 @@ export default function AdminInformasiPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Kategori</label>
               <select
-                value={formData.klasifikasi}
+                value={formData.klasifikasi || ''}
                 onChange={(e) => setFormData({...formData, klasifikasi: e.target.value})}
                 className="w-full border rounded px-3 py-2"
                 required
@@ -413,7 +413,7 @@ export default function AdminInformasiPage() {
             <div>
               <label className="block text-sm font-medium mb-2">Isi Informasi</label>
               <textarea
-                value={formData.ringkasan_isi_informasi}
+                value={formData.ringkasan_isi_informasi || ''}
                 onChange={(e) => setFormData({...formData, ringkasan_isi_informasi: e.target.value})}
                 className="w-full border rounded px-3 py-2 min-h-[200px] resize-y"
                 placeholder="Masukkan isi informasi lengkap..."
@@ -513,14 +513,14 @@ export default function AdminInformasiPage() {
                       <div className="flex-1 space-y-2">
                         <input
                           type="text"
-                          value={link.title}
+                          value={link.title || ''}
                           onChange={(e) => updateLink(index, 'title', e.target.value)}
                           placeholder="Judul link (contoh: Dokumen Pendukung)"
                           className="w-full border rounded px-3 py-2 text-sm"
                         />
                         <input
                           type="url"
-                          value={link.url}
+                          value={link.url || ''}
                           onChange={(e) => updateLink(index, 'url', e.target.value)}
                           placeholder="https://example.com"
                           className="w-full border rounded px-3 py-2 text-sm"

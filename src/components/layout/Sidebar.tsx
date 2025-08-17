@@ -15,6 +15,10 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  Info,
+  FolderOpen,
+  UserCog,
+  UserCircle,
 } from "lucide-react";
 
 const menuItems = [
@@ -38,13 +42,13 @@ const menuItems = [
   },
   {
     href: "/admin/informasi",
-    icon: Users,
+    icon: Info,
     label: "Informasi",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
   },
   {
     href: "/admin/kategori",
-    icon: Users,
+    icon: FolderOpen,
     label: "Kategori Informasi",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA],
   },
@@ -68,13 +72,13 @@ const menuItems = [
   },
   {
     href: "/admin/akun",
-    icon: Users,
+    icon: UserCog,
     label: "Kelola Akun",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA],
   },
   {
     href: "/admin/profile",
-    icon: User,
+    icon: UserCircle,
     label: "Profile",
     roles: [ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA, ROLES.ATASAN_PPID],
   },

@@ -135,7 +135,7 @@ export default function InformasiPage() {
                 <input
                   type="text"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value || "")}
                   placeholder="Cari informasi..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -166,7 +166,7 @@ export default function InformasiPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                   <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => setSelectedCategory(e.target.value || "")}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Semua Kategori</option>
@@ -182,7 +182,7 @@ export default function InformasiPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
                   <select
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
+                    onChange={(e) => setSelectedYear(e.target.value || "")}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Semua Tahun</option>
@@ -199,7 +199,7 @@ export default function InformasiPage() {
                   <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => setStartDate(e.target.value || "")}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -209,7 +209,7 @@ export default function InformasiPage() {
                   <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => setEndDate(e.target.value || "")}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

@@ -8,6 +8,7 @@ interface InformasiData {
   ringkasan_isi_informasi: string;
   pejabat_penguasa_informasi?: string;
   file_url?: string;
+  tanggal_posting?: string;
   created_at: string;
 }
 
