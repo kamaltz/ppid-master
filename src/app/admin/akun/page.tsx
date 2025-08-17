@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { Plus, Edit, Trash2, Eye, X } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, X, Upload, Download } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Account {
@@ -32,6 +32,8 @@ export default function AdminAkunPage() {
     role: 'Pemohon'
   });
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   const fetchAccounts = useCallback(async () => {
     if (!token) return;
@@ -149,6 +151,49 @@ export default function AdminAkunPage() {
     setSelectedAccount(account);
   };
 
+  const handleImportExcel = async () => {
+    if (!importFile || !token) {
+      alert('Pilih file Excel terlebih dahulu');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', importFile);
+
+    try {
+      const response = await fetch('/api/accounts/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`Berhasil mengimpor ${data.imported} akun`);
+        fetchAccounts();
+        setShowImport(false);
+        setImportFile(null);
+      } else {
+        alert(data.error || 'Gagal mengimpor akun');
+      }
+    } catch (error) {
+      console.error('Error importing accounts:', error);
+      alert('Terjadi kesalahan saat mengimpor akun');
+    }
+  };
+
+  const downloadTemplate = () => {
+    const link = document.createElement("a");
+    link.href = "/template_akun.csv";
+    link.download = "template_akun.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'Admin': return 'bg-red-100 text-red-800';
@@ -165,13 +210,22 @@ export default function AdminAkunPage() {
       <div className="p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Kelola Akun</h1>
-          <button 
-            onClick={() => setShowForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah Akun
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowImport(true)}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Import Excel
+            </button>
+            <button 
+              onClick={() => setShowForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Tambah Akun
+            </button>
+          </div>
         </div>
 
         {showForm && (
@@ -239,6 +293,63 @@ export default function AdminAkunPage() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {showImport && (
+          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 className="text-xl font-bold mb-4">Import Akun dari Excel</h2>
+            
+            <div className="space-y-4">
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-yellow-800 mb-2">Format File Excel:</h3>
+                <p className="text-sm text-yellow-700 mb-3">
+                  File harus berformat CSV atau Excel (.xlsx) dengan kolom: <strong>nama, email, role</strong>
+                </p>
+                <button
+                  onClick={downloadTemplate}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                >
+                  <Download className="w-4 h-4" />
+                  Download Template
+                </button>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Pilih File Excel/CSV</label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="text-sm text-blue-700">
+                  <strong>Catatan:</strong> Semua akun akan dibuat dengan password default: <strong>Garut@2025?</strong>
+                </p>
+              </div>
+              
+              <div className="flex space-x-2">
+                <button 
+                  onClick={handleImportExcel}
+                  disabled={!importFile}
+                  className="bg-green-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
+                >
+                  Import Akun
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowImport(false);
+                    setImportFile(null);
+                  }}
+                  className="bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

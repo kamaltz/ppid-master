@@ -36,6 +36,7 @@ export default function AdminPengaturanPage() {
   const [settings, setSettings] = useState({
     namaInstansi: 'PPID Diskominfo Kabupaten Garut',
     logo: '',
+    favicon: '',
     email: 'ppid@garutkab.go.id',
     telepon: '(0262) 123456',
     alamat: 'Jl. Pembangunan No. 1, Garut, Jawa Barat',
@@ -207,7 +208,7 @@ export default function AdminPengaturanPage() {
   };
 
   const handleChange = (field: string, value: string) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
+    setSettings(prev => ({ ...prev, [field]: value || '' }));
   };
 
 
@@ -219,7 +220,7 @@ export default function AdminPengaturanPage() {
 
 
   const handleHeroChange = (field: string, value: string) => {
-    setHeroSettings(prev => ({ ...prev, [field]: value }));
+    setHeroSettings(prev => ({ ...prev, [field]: value || '' }));
   };
 
   const handleImageUpload = async (file: File) => {
@@ -244,6 +245,28 @@ export default function AdminPengaturanPage() {
     }
   };
 
+  const handleFaviconUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setSettings(prev => ({ ...prev, favicon: result.url }));
+        alert('✅ Favicon berhasil diupload!');
+      } else {
+        alert('❌ Gagal upload favicon: ' + result.error);
+      }
+    } catch {
+      alert('❌ Gagal upload favicon');
+    }
+  };
+
   const addSlide = () => {
     const newSlide: Slide = {
       id: Date.now(),
@@ -265,7 +288,7 @@ export default function AdminPengaturanPage() {
     setHeroSettings(prev => ({
       ...prev,
       slides: prev.slides.map((slide, i) => 
-        i === index ? { ...slide, [field]: value } : slide
+        i === index ? { ...slide, [field]: value || '' } : slide
       )
     }));
   };
@@ -620,6 +643,49 @@ export default function AdminPengaturanPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 ></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Favicon Website</label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleFaviconUpload(file);
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <span className="text-xs text-gray-500">atau</span>
+                  </div>
+                  <input 
+                    type="url" 
+                    value={settings.favicon}
+                    onChange={(e) => handleChange('favicon', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/favicon.ico"
+                  />
+                  <div className="text-xs text-gray-500 bg-yellow-50 p-3 rounded-lg">
+                    <p className="font-semibold mb-1">🔖 Rekomendasi Favicon:</p>
+                    <ul className="space-y-1">
+                      <li>• Ukuran: 32x32 pixels (standar favicon)</li>
+                      <li>• Format: ICO, PNG, atau SVG</li>
+                      <li>• Ukuran file: Maksimal 100KB</li>
+                      <li>• Desain sederhana dan mudah dikenali</li>
+                      <li>• Kontras tinggi untuk visibilitas yang baik</li>
+                    </ul>
+                  </div>
+                  {settings.favicon && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Preview Favicon:</p>
+                      <Image src={settings.favicon} alt="Favicon Preview" width={32} height={32} className="h-8 w-8 border rounded" />
+                    </div>
+                  )}
+                </div>
               </div>
               
             </div>
