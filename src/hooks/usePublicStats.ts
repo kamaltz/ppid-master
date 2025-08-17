@@ -22,16 +22,22 @@ export const usePublicStats = () => {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        // Get informasi count
-        const informasiData = await getPublicData('/informasi');
-        const totalInformasi = informasiData.data?.length || 0;
-
-        setStats({
-          totalPermintaan: 0, // Will be 0 since we cleared data
-          permintaanSelesai: 0,
-          rataRataHari: 7,
-          totalInformasi
-        });
+        console.log('Loading stats from hook...');
+        const response = await fetch('/api/stats/public');
+        const data = await response.json();
+        
+        console.log('API response:', data);
+        
+        if (data.success) {
+          const newStats = {
+            totalPermintaan: data.data.totalPermintaan || 0,
+            permintaanSelesai: data.data.permintaanSelesai || 0,
+            rataRataHari: data.data.rataRataHari || 7,
+            totalInformasi: data.data.totalInformasi || 0
+          };
+          console.log('Setting stats:', newStats);
+          setStats(newStats);
+        }
       } catch (error) {
         console.error('Error loading public stats:', error);
       } finally {
@@ -40,6 +46,10 @@ export const usePublicStats = () => {
     };
 
     loadStats();
+    
+    // Refresh stats every 30 seconds
+    const interval = setInterval(loadStats, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return { stats, isLoading };

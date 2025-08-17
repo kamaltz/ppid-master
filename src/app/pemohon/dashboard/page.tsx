@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { PlusCircle, FileText, Clock, CheckCircle, AlertTriangle, X, User, Download, Paperclip } from "lucide-react";
+import { PlusCircle, FileText, Clock, CheckCircle, AlertTriangle, X, Download, Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AccessibilityHelper from "@/components/accessibility/AccessibilityHelper";
 import { usePemohonData } from "@/hooks/usePemohonData";

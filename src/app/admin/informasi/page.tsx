@@ -6,6 +6,7 @@ import RoleGuard from "@/components/auth/RoleGuard";
 import { useInformasiData } from "@/hooks/useInformasiData";
 import { useAuth } from "@/context/AuthContext";
 import { X, Upload, Link as LinkIcon, FileText, Filter } from "lucide-react";
+import Image from "next/image";
 
 interface Category {
   id: number;
@@ -26,6 +27,7 @@ interface InformasiItem {
   created_at: string;
   links?: string | { title: string; url: string }[];
   file_attachments?: string | { name: string; url: string; size?: number }[];
+  images?: string | string[];
 }
 
 export default function AdminInformasiPage() {
@@ -262,10 +264,10 @@ export default function AdminInformasiPage() {
     }
     
     // Parse images
-    let images = [];
-    if ((item as any).images) {
+    let images: string[] = [];
+    if ('images' in item && item.images) {
       try {
-        images = typeof (item as any).images === 'string' ? JSON.parse((item as any).images) : (item as any).images;
+        images = typeof item.images === 'string' ? JSON.parse(item.images) : item.images;
         if (!Array.isArray(images)) images = [];
       } catch {
         images = [];
@@ -277,9 +279,9 @@ export default function AdminInformasiPage() {
       klasifikasi: item.klasifikasi, 
       ringkasan_isi_informasi: item.ringkasan_isi_informasi,
       tanggal_posting: item.tanggal_posting ? new Date(item.tanggal_posting).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      thumbnail: (item as any).thumbnail || '',
-      status: (item as any).status || 'published',
-      jadwal_publish: (item as any).jadwal_publish ? new Date((item as any).jadwal_publish).toISOString().slice(0, 16) : '',
+      thumbnail: ('thumbnail' in item ? item.thumbnail : '') || '',
+      status: ('status' in item ? item.status : 'published') || 'published',
+      jadwal_publish: ('jadwal_publish' in item && item.jadwal_publish) ? new Date(item.jadwal_publish).toISOString().slice(0, 16) : '',
       files: [],
       existingFiles: existingFiles,
       links: parsedLinks,
@@ -577,8 +579,8 @@ export default function AdminInformasiPage() {
                 {formData.thumbnail && (
                   <div className="mt-2">
                     <p className="text-sm font-medium text-gray-700 mb-2">Preview Thumbnail:</p>
-                    <img src={formData.thumbnail} alt="Thumbnail Preview" className="w-32 h-24 object-cover border rounded-lg" onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+                    <Image src={formData.thumbnail} alt="Thumbnail Preview" width={128} height={96} className="object-cover border rounded-lg" onError={() => {
+                      // Handle error silently
                     }} />
                   </div>
                 )}
@@ -638,7 +640,7 @@ export default function AdminInformasiPage() {
                   <div className="grid grid-cols-4 gap-2">
                     {formData.images.map((img, index) => (
                       <div key={index} className="relative">
-                        <img src={img} alt={`Gallery ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                        <Image src={img} alt={`Gallery ${index + 1}`} width={80} height={80} className="w-full h-20 object-cover rounded border" />
                         <button
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }))}
@@ -664,7 +666,7 @@ export default function AdminInformasiPage() {
                           setFormData(prev => ({ ...prev, images: [...prev.images, img] }));
                         }
                       }}>
-                        <img src={img} alt={`Storage ${index + 1}`} className="w-full h-16 object-cover rounded border hover:border-blue-500" />
+                        <Image src={img} alt={`Storage ${index + 1}`} width={64} height={64} className="w-full h-16 object-cover rounded border hover:border-blue-500" />
                       </div>
                     ))}
                   </div>
@@ -891,7 +893,7 @@ export default function AdminInformasiPage() {
               <button 
                 type="submit" 
                 disabled={isSubmitting}
-                onClick={(e) => {
+onClick={() => {
                   console.log('Submit button clicked');
                   // Let the form handle the submission
                 }}
