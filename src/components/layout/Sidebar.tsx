@@ -56,6 +56,7 @@ const menuItems = [
     permission: "chat",
     category: "request"
   },
+
   {
     href: "/admin/informasi",
     icon: Info,

@@ -70,6 +70,17 @@ export async function GET(request: NextRequest) {
           },
           assigned_ppid: {
             select: { id: true, nama: true, role: true }
+          },
+          _count: {
+            select: { responses: true }
+          },
+          responses: {
+            orderBy: { created_at: 'desc' },
+            take: 1,
+            select: {
+              message: true,
+              created_at: true
+            }
           }
         },
         orderBy: { created_at: 'desc' },
@@ -79,11 +90,18 @@ export async function GET(request: NextRequest) {
       prisma.request.count({ where })
     ]);
 
-    console.log('API Response sample:', requests && requests.length > 0 ? requests[0] : 'No requests found');
+    // Transform data to include messageCount and lastMessage
+    const transformedRequests = requests.map(request => ({
+      ...request,
+      messageCount: request._count.responses,
+      lastMessage: request.responses[0] || null
+    }));
+
+    console.log('API Response sample:', transformedRequests && transformedRequests.length > 0 ? transformedRequests[0] : 'No requests found');
 
     return NextResponse.json({ 
       success: true,
-      data: requests,
+      data: transformedRequests,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
   } catch (error) {

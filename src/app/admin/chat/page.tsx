@@ -70,6 +70,11 @@ export default function AdminChatPage() {
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [showPpidChatModal, setShowPpidChatModal] = useState(false);
   const [newMessage, setNewMessage] = useState({ receiverId: '', subject: '', message: '' });
+  const [ppidSearchTerm, setPpidSearchTerm] = useState('');
+  const [ppidCurrentPage, setPpidCurrentPage] = useState(1);
+  const [ppidHasMore, setPpidHasMore] = useState(true);
+  const [ppidLoading, setPpidLoading] = useState(false);
+  const [selectedPpid, setSelectedPpid] = useState<PpidUser | null>(null);
   const { token, getUserRole } = useAuth();
   const userRole = getUserRole();
 
@@ -78,6 +83,9 @@ export default function AdminChatPage() {
       let endpoint = "/api/permintaan";
       if (userRole === 'PPID_PELAKSANA') {
         endpoint += "?status=Diproses";
+      } else if (userRole === 'PPID_UTAMA') {
+        // Get all requests for PPID_UTAMA to filter those with responses
+        endpoint += "";
       } else if (userRole === 'ADMIN') {
         endpoint += "?status=Diproses";
       }
@@ -87,8 +95,14 @@ export default function AdminChatPage() {
       });
       const data = await response.json();
       if (data.success) {
-        setChats(data.data);
-        setFilteredChats(data.data);
+        // Filter chats based on user role
+        let filteredData = data.data;
+        if (userRole === 'PPID_UTAMA') {
+          // Show requests that have been responded to by PPID (have messages)
+          filteredData = data.data.filter((chat: ChatItem) => chat.messageCount > 0);
+        }
+        setChats(filteredData);
+        setFilteredChats(filteredData);
       }
     } catch (error) {
       console.error("Failed to fetch chats:", error);
@@ -111,17 +125,34 @@ export default function AdminChatPage() {
     }
   };
 
-  const fetchPpidList = async () => {
+  const fetchPpidList = async (search = '', page = 1) => {
+    if (ppidLoading) return;
+    setPpidLoading(true);
     try {
-      const response = await fetch("/api/admin/assign-ppid", {
+      const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
       if (data.success) {
-        setPpidList(data.data);
+        if (page === 1) {
+          setPpidList(data.data);
+        } else {
+          setPpidList(prev => [...prev, ...data.data]);
+        }
+        setPpidHasMore(data.pagination.hasMore);
+        setPpidCurrentPage(page);
       }
     } catch (error) {
       console.error("Failed to fetch PPID list:", error);
+    } finally {
+      setPpidLoading(false);
+    }
+  };
+
+  const loadMorePpid = () => {
+    if (ppidHasMore && !ppidLoading) {
+      fetchPpidList(ppidSearchTerm, ppidCurrentPage + 1);
     }
   };
 
@@ -151,17 +182,17 @@ export default function AdminChatPage() {
   };
 
   const sendPpidMessage = async () => {
+    if (!selectedPpid) return;
     try {
-      const response = await fetch("/api/ppid-chat", {
+      const response = await fetch("/api/admin/chat-ppid", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          receiverId: parseInt(newMessage.receiverId),
-          subject: newMessage.subject,
-          message: newMessage.message
+          receiver_id: selectedPpid.id,
+          message: `${newMessage.subject}: ${newMessage.message}`
         })
       });
       
@@ -169,6 +200,9 @@ export default function AdminChatPage() {
         fetchPpidChats();
         setShowPpidChatModal(false);
         setNewMessage({ receiverId: '', subject: '', message: '' });
+        setSelectedPpid(null);
+        setPpidSearchTerm('');
+        setPpidList([]);
       }
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -247,9 +281,25 @@ export default function AdminChatPage() {
     if (token) {
       fetchChats();
       fetchPpidChats();
-      fetchPpidList();
     }
   }, [token, userRole]);
+
+  useEffect(() => {
+    if (showPpidChatModal) {
+      fetchPpidList();
+    }
+  }, [showPpidChatModal]);
+
+  useEffect(() => {
+    if (showPpidChatModal) {
+      const timeoutId = setTimeout(() => {
+        setPpidCurrentPage(1);
+        setPpidList([]);
+        fetchPpidList(ppidSearchTerm, 1);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [ppidSearchTerm, showPpidChatModal]);
 
   useEffect(() => {
     if (chatType === 'requests') {
@@ -286,23 +336,21 @@ export default function AdminChatPage() {
             >
               Chat Permohonan
             </button>
-            {(userRole === 'PPID_UTAMA' || userRole === 'PPID_PELAKSANA') && (
-              <button
-                onClick={() => setChatType('ppid')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  chatType === 'ppid' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Chat PPID
-              </button>
-            )}
+            <button
+              onClick={() => setChatType('ppid')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                chatType === 'ppid' 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Chat PPID
+            </button>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          {chatType === 'ppid' && (userRole === 'PPID_UTAMA' || userRole === 'PPID_PELAKSANA') && (
+          {chatType === 'ppid' && (
             <button
               onClick={() => setShowPpidChatModal(true)}
               className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-2"
@@ -459,25 +507,12 @@ export default function AdminChatPage() {
                       </div>
                       
                       <div className="flex items-center gap-2 mt-4">
-                        <Link href={`/admin/chat/${chat.id}`}>
+                        <Link href={`/admin/permohonan/${chat.id}`}>
                           <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
                             <MessageCircle className="w-4 h-4" />
                             Buka Chat
                           </button>
                         </Link>
-                        
-                        {userRole === 'PPID_UTAMA' && !chat.assigned_ppid_id && (
-                          <button
-                            onClick={() => {
-                              setSelectedRequestId(chat.id);
-                              setShowAssignModal(true);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                          >
-                            <UserPlus className="w-4 h-4" />
-                            Tugaskan
-                          </button>
-                        )}
                         
                         <button
                           onClick={() => toggleHideChat(chat.id)}
@@ -528,6 +563,15 @@ export default function AdminChatPage() {
                         {new Date(chat.created_at).toLocaleString('id-ID')}
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Link href={`/admin/chat-ppid?ppid=${chat.sender.id}`}>
+                        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+                          <MessageCircle className="w-4 h-4" />
+                          Buka Chat
+                        </button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -572,23 +616,69 @@ export default function AdminChatPage() {
       {/* PPID Chat Modal */}
       {showPpidChatModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+          <div className="bg-white p-6 rounded-lg max-w-lg w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Kirim Pesan ke PPID</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Penerima</label>
-                <select
-                  value={newMessage.receiverId}
-                  onChange={(e) => setNewMessage({...newMessage, receiverId: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2"
-                >
-                  <option value="">Pilih PPID</option>
-                  {ppidList.map((ppid) => (
-                    <option key={ppid.id} value={ppid.id}>
-                      {ppid.nama} - {ppid.email}
-                    </option>
-                  ))}
-                </select>
+                {selectedPpid ? (
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50">
+                    <div>
+                      <div className="font-medium">{selectedPpid.nama}</div>
+                      <div className="text-sm text-gray-500">{selectedPpid.email}</div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedPpid(null)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Cari PPID..."
+                      value={ppidSearchTerm}
+                      onChange={(e) => setPpidSearchTerm(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 mb-2"
+                    />
+                    <div 
+                      className="border rounded-lg max-h-40 overflow-y-auto"
+                      onScroll={(e) => {
+                        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                        if (scrollHeight - scrollTop === clientHeight && ppidHasMore && !ppidLoading) {
+                          loadMorePpid();
+                        }
+                      }}
+                    >
+                      {ppidList.length === 0 && !ppidLoading ? (
+                        <p className="text-gray-500 text-center py-4">Tidak ada PPID ditemukan</p>
+                      ) : (
+                        ppidList.map((ppid) => (
+                          <button
+                            key={ppid.id}
+                            onClick={() => setSelectedPpid(ppid)}
+                            className="w-full text-left p-3 border-b hover:bg-gray-50 last:border-b-0"
+                          >
+                            <div className="font-medium">{ppid.nama}</div>
+                            <div className="text-sm text-gray-500">{ppid.email}</div>
+                          </button>
+                        ))
+                      )}
+                      {ppidLoading && (
+                        <div className="text-center py-2">
+                          <span className="text-gray-500">Loading...</span>
+                        </div>
+                      )}
+                      {!ppidHasMore && ppidList.length > 0 && (
+                        <div className="text-center py-2">
+                          <span className="text-gray-400 text-sm">Semua PPID telah dimuat</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div>
@@ -618,6 +708,9 @@ export default function AdminChatPage() {
                 onClick={() => {
                   setShowPpidChatModal(false);
                   setNewMessage({ receiverId: '', subject: '', message: '' });
+                  setSelectedPpid(null);
+                  setPpidSearchTerm('');
+                  setPpidList([]);
                 }}
                 className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
@@ -625,7 +718,7 @@ export default function AdminChatPage() {
               </button>
               <button
                 onClick={sendPpidMessage}
-                disabled={!newMessage.receiverId || !newMessage.message}
+                disabled={!selectedPpid || !newMessage.message}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
                 Kirim

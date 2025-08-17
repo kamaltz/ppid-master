@@ -32,6 +32,12 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const [isLoading, setIsLoading] = useState(false);
   const [chatSession, setChatSession] = useState<ChatSession>({ is_active: true });
   const [canSendMessage, setCanSendMessage] = useState(true);
+  const [showPpidModal, setShowPpidModal] = useState(false);
+  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string}[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingPpid, setLoadingPpid] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -209,6 +215,81 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
     }
   };
 
+  const fetchPpidList = async (search = '', page = 1) => {
+    if (loadingPpid) return;
+    setLoadingPpid(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        if (page === 1) {
+          setPpidList(data.data);
+        } else {
+          setPpidList(prev => [...prev, ...data.data]);
+        }
+        setHasMore(data.pagination.hasMore);
+        setCurrentPage(page);
+      }
+    } catch (error) {
+      console.error('Failed to fetch PPID list:', error);
+    } finally {
+      setLoadingPpid(false);
+    }
+  };
+
+  const loadMorePpid = () => {
+    if (hasMore && !loadingPpid) {
+      fetchPpidList(searchTerm, currentPage + 1);
+    }
+  };
+
+  const forwardToPpid = async (ppidId: number) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/admin/assign-ppid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          requestId: requestId,
+          ppidId: ppidId,
+          type: 'request'
+        })
+      });
+      if (response.ok) {
+        setShowPpidModal(false);
+        alert('Permohonan berhasil diteruskan ke PPID Pelaksana');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Failed to forward request:', error);
+      alert('Gagal meneruskan permohonan');
+    }
+  };
+
+  useEffect(() => {
+    if (showPpidModal) {
+      fetchPpidList();
+    }
+  }, [showPpidModal]);
+
+  useEffect(() => {
+    if (showPpidModal) {
+      const timeoutId = setTimeout(() => {
+        setCurrentPage(1);
+        setPpidList([]);
+        fetchPpidList(searchTerm, 1);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchTerm, showPpidModal]);
+
   useEffect(() => {
     fetchResponses();
     const interval = setInterval(fetchResponses, 2000);
@@ -260,6 +341,12 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                   Lanjutkan Chat
                 </button>
               )}
+              <button
+                onClick={() => setShowPpidModal(true)}
+                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+              >
+                Teruskan ke PPID
+              </button>
             </div>
           )}
         </div>
@@ -441,6 +528,75 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
           </>
         )}
       </div>
+
+      {/* PPID Selection Modal */}
+      {showPpidModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Teruskan ke PPID Pelaksana</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Pilih PPID Pelaksana untuk meneruskan permohonan ini
+            </p>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Cari PPID Pelaksana..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2"
+              />
+            </div>
+            <div 
+              className="space-y-2 max-h-60 overflow-y-auto"
+              onScroll={(e) => {
+                const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                if (scrollHeight - scrollTop === clientHeight && hasMore && !loadingPpid) {
+                  loadMorePpid();
+                }
+              }}
+            >
+              {ppidList.length === 0 && !loadingPpid ? (
+                <p className="text-gray-500 text-center py-4">Tidak ada PPID ditemukan</p>
+              ) : (
+                ppidList.map((ppid) => (
+                  <button
+                    key={ppid.id}
+                    onClick={() => forwardToPpid(ppid.id)}
+                    className="w-full flex items-center p-3 border rounded-lg hover:bg-gray-50 text-left"
+                  >
+                    <div>
+                      <div className="font-medium">{ppid.nama}</div>
+                      <div className="text-sm text-gray-500">{ppid.email}</div>
+                    </div>
+                  </button>
+                ))
+              )}
+              {loadingPpid && (
+                <div className="text-center py-2">
+                  <span className="text-gray-500">Loading...</span>
+                </div>
+              )}
+              {!hasMore && ppidList.length > 0 && (
+                <div className="text-center py-2">
+                  <span className="text-gray-400 text-sm">Semua PPID telah dimuat</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowPpidModal(false);
+                  setSearchTerm('');
+                  setPpidList([]);
+                }}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
