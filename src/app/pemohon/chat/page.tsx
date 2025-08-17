@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { MessageCircle, FileText, AlertTriangle } from "lucide-react";
 import { usePemohonData } from "@/hooks/usePemohonData";
 import RequestChat from "@/components/RequestChat";
+import KeberatanChat from "@/components/KeberatanChat";
 
 interface ChatItem {
   id: number;
@@ -88,11 +89,19 @@ export default function ChatPage() {
             Chat - {selectedChat.title}
           </h1>
         </div>
-        <RequestChat 
-          requestId={selectedChat.id} 
-          currentUserRole="Pemohon" 
-          isAdmin={false} 
-        />
+        {selectedChat.type === 'permohonan' ? (
+          <RequestChat 
+            requestId={selectedChat.id} 
+            currentUserRole="Pemohon" 
+            isAdmin={false} 
+          />
+        ) : (
+          <KeberatanChat 
+            keberatanId={selectedChat.id} 
+            currentUserRole="Pemohon" 
+            isAdmin={false} 
+          />
+        )}
       </div>
     );
   }

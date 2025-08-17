@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 import Link from "next/link";
@@ -18,7 +18,36 @@ export default function PermohonanPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [dailyCount, setDailyCount] = useState(0);
+  const [isLoadingLimit, setIsLoadingLimit] = useState(true);
   
+  const fetchDailyCount = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch('/api/permintaan?limit=100', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        const today = new Date().toDateString();
+        const todayCount = data.data.filter((req: any) => 
+          new Date(req.created_at).toDateString() === today
+        ).length;
+        setDailyCount(todayCount);
+      }
+    } catch (error) {
+      console.error('Failed to fetch daily count:', error);
+    } finally {
+      setIsLoadingLimit(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchDailyCount();
+    }
+  }, [token]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -143,6 +172,29 @@ export default function PermohonanPage() {
       
       <div className="bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-semibold mb-6">Ajukan Permohonan Informasi Publik</h2>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">Informasi Batas Harian</h3>
+              <div className="mt-2 text-sm text-blue-700">
+                <p>• Maksimal 5 permohonan per hari</p>
+                <p>• Setiap permohonan akan diproses sesuai ketentuan yang berlaku</p>
+                {!isLoadingLimit && (
+                  <p className="font-medium mt-1">
+                    Hari ini: {dailyCount}/5 permohonan
+                    {dailyCount >= 5 && <span className="text-red-600 ml-2">(Batas tercapai)</span>}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
         
         {/* Date Display */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">

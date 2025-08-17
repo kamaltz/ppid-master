@@ -13,70 +13,61 @@ interface Response {
   created_at: string;
 }
 
-interface ChatSession {
-  is_active: boolean;
-  ended_by?: string;
-  ended_at?: string;
-}
-
-interface RequestChatProps {
-  requestId: number;
+interface KeberatanChatProps {
+  keberatanId: number;
   currentUserRole: string;
   isAdmin?: boolean;
 }
 
-export default function RequestChat({ requestId, currentUserRole, isAdmin = false }: RequestChatProps) {
+export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = false }: KeberatanChatProps) {
   const [responses, setResponses] = useState<Response[]>([]);
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [chatSession, setChatSession] = useState<ChatSession>({ is_active: true });
+  const [chatActive, setChatActive] = useState(true);
   const [canSendMessage, setCanSendMessage] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchResponses = async () => {
     try {
-      const response = await fetch(`/api/permintaan/${requestId}/responses`);
-      if (!response.ok) {
-        console.error('Response not ok:', response.status);
-        return;
-      }
-      const data = await response.json();
-      if (data.success) {
-        setResponses(data.data);
-        
-        // Check if chat is ended by system message
-        const lastMessage = data.data[data.data.length - 1];
-        const isEnded = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('diakhiri');
-        const isResumed = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('dilanjutkan');
-        
-        setChatSession({ is_active: isResumed || !isEnded });
-        
-        // Check if pemohon can send message
-        if (currentUserRole === 'Pemohon') {
-          const pemohonMessages = data.data.filter((msg: any) => msg.user_role === 'Pemohon');
-          const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
+      const response = await fetch(`/api/keberatan/${keberatanId}/responses`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setResponses(data.data);
           
-          // Pemohon can only send if: no messages yet OR admin has replied to their last message
-          const canSend = !isEnded && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
-          setCanSendMessage(canSend);
-        } else {
-          setCanSendMessage(!isEnded || isAdmin);
+          // Check if chat is ended by system message
+          const lastMessage = data.data[data.data.length - 1];
+          const isEnded = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('diakhiri');
+          const isResumed = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('dilanjutkan');
+          
+          setChatActive(isResumed || !isEnded);
+          
+          // Check if pemohon can send message
+          if (currentUserRole === 'Pemohon') {
+            const pemohonMessages = data.data.filter((msg: any) => msg.user_role === 'Pemohon');
+            const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
+            
+            // Pemohon can only send if: no messages yet OR admin has replied to their last message
+            const canSend = !isEnded && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
+            setCanSendMessage(canSend);
+          } else {
+            setCanSendMessage(!isEnded || isAdmin);
+          }
         }
       }
     } catch (error) {
-      console.error('Failed to fetch responses:', error);
+      console.error('Failed to fetch keberatan responses:', error);
     }
   };
 
-  const sendResponse = async (messageType = 'text') => {
+  const sendResponse = async () => {
     if (currentUserRole === 'Pemohon' && !canSendMessage) {
       alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
       return;
     }
-    if (!chatSession.is_active && !isAdmin) {
+    if (!chatActive && !isAdmin) {
       alert('Chat telah diakhiri.');
       return;
     }
@@ -106,7 +97,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
         }
       }
 
-      const response = await fetch(`/api/permintaan/${requestId}/responses`, {
+      const response = await fetch(`/api/keberatan/${keberatanId}/responses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -125,7 +116,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
         // Send system notification for pemohon after first message
         if (currentUserRole === 'Pemohon') {
           setTimeout(async () => {
-            await fetch(`/api/permintaan/${requestId}/responses`, {
+            await fetch(`/api/keberatan/${keberatanId}/responses`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -143,12 +134,11 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
         
         await fetchResponses();
       } else {
-        const errorData = await response.json();
-        alert('Gagal mengirim pesan: ' + (errorData.error || 'Unknown error'));
+        alert('Gagal mengirim pesan');
       }
     } catch (error) {
       console.error('Failed to send response:', error);
-      alert('Gagal mengirim pesan. Silakan coba lagi.');
+      alert('Gagal mengirim pesan');
     } finally {
       setIsLoading(false);
     }
@@ -157,11 +147,11 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const endChat = async () => {
     if (!confirm('Yakin ingin mengakhiri chat? Pemohon tidak akan bisa mengirim pesan lagi.')) return;
     
-    setChatSession({ is_active: false });
+    setChatActive(false);
     setCanSendMessage(false);
     
     try {
-      await fetch(`/api/permintaan/${requestId}/responses`, {
+      await fetch(`/api/keberatan/${keberatanId}/responses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -183,11 +173,11 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const resumeChat = async () => {
     if (!confirm('Yakin ingin melanjutkan chat? Pemohon akan bisa mengirim pesan lagi.')) return;
     
-    setChatSession({ is_active: true });
+    setChatActive(true);
     setCanSendMessage(true);
     
     try {
-      await fetch(`/api/permintaan/${requestId}/responses`, {
+      await fetch(`/api/keberatan/${keberatanId}/responses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -208,11 +198,9 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
 
   useEffect(() => {
     fetchResponses();
-    const interval = setInterval(fetchResponses, 2000);
+    const interval = setInterval(fetchResponses, 3000);
     return () => clearInterval(interval);
-  }, [requestId]);
-
-  // Auto-scroll disabled - users can scroll manually
+  }, [keberatanId]);
 
   const getRoleColor = (role: string) => {
     const colors = {
@@ -233,14 +221,14 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   return (
     <div className="bg-white rounded-lg shadow-md">
       <div className="p-4 border-b flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Komunikasi & Respon</h3>
+        <h3 className="text-lg font-semibold text-red-600">Chat Keberatan #{keberatanId}</h3>
         <div className="flex items-center gap-2">
-          {!chatSession.is_active && (
+          {!chatActive && (
             <span className="text-sm text-red-600 font-medium">Chat Diakhiri</span>
           )}
           {isAdmin && (
             <div className="flex gap-2">
-              {chatSession.is_active ? (
+              {chatActive ? (
                 <button
                   onClick={endChat}
                   className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 flex items-center gap-1"
@@ -268,7 +256,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
           try {
             attachmentList = resp.attachments ? JSON.parse(resp.attachments) : [];
           } catch (e) {
-            console.log('Error parsing attachments:', e, resp.attachments);
+            console.log('Error parsing attachments:', e);
           }
           const isSystemMessage = resp.message_type === 'system';
           return (
@@ -281,7 +269,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                   {new Date(resp.created_at).toLocaleString('id-ID')}
                 </span>
               </div>
-              <div className={`p-3 rounded-lg ${isSystemMessage ? 'bg-yellow-50 border border-yellow-200 text-center' : 'bg-gray-50'}`}>
+              <div className={`p-3 rounded-lg ${isSystemMessage ? 'bg-red-50 border border-red-200 text-center' : 'bg-gray-50'}`}>
                 {resp.message && <p className="text-gray-800">{resp.message}</p>}
                 {attachmentList.length > 0 && (
                   <div className="mt-2 space-y-2">
@@ -298,36 +286,6 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                             <div className="flex items-center gap-1 text-blue-600">
                               <Image className="w-4 h-4" />
                               <span className="text-xs">{file.name}</span>
-                            </div>
-                          </div>
-                        ) : file.name.toLowerCase().endsWith('.pdf') ? (
-                          <div className="border rounded p-3 bg-red-50 hover:bg-red-100 cursor-pointer" onClick={() => window.open(file.url, '_blank')}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">PDF</div>
-                              <div>
-                                <p className="font-medium text-gray-900">{file.name}</p>
-                                <p className="text-xs text-gray-500">Klik untuk membuka</p>
-                              </div>
-                            </div>
-                          </div>
-                        ) : file.name.toLowerCase().match(/\.(doc|docx)$/) ? (
-                          <div className="border rounded p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer" onClick={() => window.open(file.url, '_blank')}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center text-white text-xs font-bold">DOC</div>
-                              <div>
-                                <p className="font-medium text-gray-900">{file.name}</p>
-                                <p className="text-xs text-gray-500">Klik untuk membuka</p>
-                              </div>
-                            </div>
-                          </div>
-                        ) : file.name.toLowerCase().match(/\.(xls|xlsx)$/) ? (
-                          <div className="border rounded p-3 bg-green-50 hover:bg-green-100 cursor-pointer" onClick={() => window.open(file.url, '_blank')}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">XLS</div>
-                              <div>
-                                <p className="font-medium text-gray-900">{file.name}</p>
-                                <p className="text-xs text-gray-500">Klik untuk membuka</p>
-                              </div>
                             </div>
                           </div>
                         ) : (
@@ -349,23 +307,19 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
             </div>
           );
         })}
-        <div ref={messagesEndRef} />
       </div>
       
       <div className="p-4 border-t">
-        {!chatSession.is_active && !isAdmin ? (
+        {!chatActive && !isAdmin ? (
           <div className="text-center py-4 text-gray-500">
             <p>Chat telah diakhiri. Tidak dapat mengirim pesan baru.</p>
-            {chatSession.ended_by && (
-              <p className="text-sm mt-1">Diakhiri oleh: {chatSession.ended_by}</p>
-            )}
           </div>
         ) : (
           <>
             {attachments.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {attachments.map((file, index) => (
-                  <div key={index} className="flex items-center bg-blue-50 px-2 py-1 rounded text-sm">
+                  <div key={index} className="flex items-center bg-red-50 px-2 py-1 rounded text-sm">
                     <span>{file.name}</span>
                     <button onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))} className="ml-2 text-red-500">
                       <X className="w-3 h-3" />
@@ -374,67 +328,67 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                 ))}
               </div>
             )}
-            
-            <div className="flex space-x-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                multiple
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
-                onChange={(e) => {
-                  if (e.target.files) {
-                    setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
-                  }
-                }}
-                className="hidden"
-              />
-              <input
-                type="file"
-                ref={imageInputRef}
-                multiple
-                accept="image/*,.png,.jpg,.jpeg,.gif,.webp"
-                onChange={(e) => {
-                  if (e.target.files) {
-                    setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
-                  }
-                }}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-gray-500 hover:text-gray-700"
-                title="Lampirkan dokumen (PDF, DOC, XLS, etc.)"
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => imageInputRef.current?.click()}
-                className="p-2 text-gray-500 hover:text-gray-700"
-                title="Lampirkan gambar (PNG, JPG, etc.)"
-              >
-                <Image className="w-5 h-5" />
-              </button>
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={
-                  !chatSession.is_active ? "Chat telah diakhiri" :
-                  currentUserRole === 'Pemohon' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
-                  "Tulis pesan..."
-                }
-                className="flex-1 border rounded-lg px-3 py-2"
-                onKeyPress={(e) => e.key === 'Enter' && sendResponse()}
-                disabled={(currentUserRole === 'Pemohon' && (!chatSession.is_active || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatSession.is_active && currentUserRole !== 'Admin')}
-              />
-              <button
-                onClick={() => sendResponse()}
-                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatSession.is_active && !isAdmin)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
+        
+        <div className="flex space-x-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
+            onChange={(e) => {
+              if (e.target.files) {
+                setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+              }
+            }}
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={imageInputRef}
+            multiple
+            accept="image/*,.png,.jpg,.jpeg,.gif,.webp"
+            onChange={(e) => {
+              if (e.target.files) {
+                setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+              }
+            }}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 text-gray-500 hover:text-gray-700"
+            title="Lampirkan dokumen"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            className="p-2 text-gray-500 hover:text-gray-700"
+            title="Lampirkan gambar"
+          >
+            <Image className="w-5 h-5" />
+          </button>
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={
+                !chatActive ? "Chat telah diakhiri" :
+                currentUserRole === 'Pemohon' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
+                "Tulis pesan keberatan..."
+              }
+              className="flex-1 border rounded-lg px-3 py-2"
+              onKeyPress={(e) => e.key === 'Enter' && sendResponse()}
+              disabled={(currentUserRole === 'Pemohon' && (!chatActive || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatActive && currentUserRole !== 'Admin')}
+            />
+            <button
+              onClick={sendResponse}
+              disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatActive && !isAdmin)}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
           </>
         )}
       </div>

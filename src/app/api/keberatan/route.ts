@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
+import { checkDailyKeberatanLimit, checkKeberatanForRequest } from '@/lib/dailyLimits';
 
 interface JWTPayload {
   id: string;
@@ -76,6 +77,14 @@ export async function POST(request: NextRequest) {
     // Use default user ID for testing
     const userId = 1;
     
+    // Check daily keberatan limit
+    const limitCheck = await checkDailyKeberatanLimit(userId);
+    if (!limitCheck.canSubmit) {
+      return NextResponse.json({ 
+        error: `Batas harian tercapai. Anda sudah mengajukan ${limitCheck.count} keberatan hari ini. Maksimal ${limitCheck.limit} keberatan per hari.` 
+      }, { status: 429 });
+    }
+    
     // Use existing request ID
     let requestId = permintaan_id;
     if (!requestId) {
@@ -90,6 +99,12 @@ export async function POST(request: NextRequest) {
 
       if (!permintaan) {
         return NextResponse.json({ error: 'Permohonan tidak ditemukan' }, { status: 404 });
+      }
+      
+      // Check if keberatan already exists for this request
+      const keberatanCheck = await checkKeberatanForRequest(userId, parseInt(requestId));
+      if (!keberatanCheck.canSubmit) {
+        return NextResponse.json({ error: 'Anda sudah mengajukan keberatan untuk permohonan ini' }, { status: 400 });
       }
     }
 

@@ -41,7 +41,7 @@ export default function AdminKeberatanPage() {
     status: item.status,
     tanggal: (() => {
       try {
-        const date = new Date(item.tanggal_keberatan);
+        const date = new Date(item.created_at);
         return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak valid';
       } catch {
         return 'Tanggal tidak valid';
@@ -192,8 +192,8 @@ export default function AdminKeberatanPage() {
                       Detail
                     </button>
                     <Link
-                      href={`/admin/permohonan/${item.permintaan_id}`}
-                      className="text-green-600 hover:text-green-900 text-xs mr-2 inline-flex items-center"
+                      href={`/admin/keberatan/${item.id}`}
+                      className="text-red-600 hover:text-red-900 text-xs mr-2 inline-flex items-center"
                     >
                       <MessageCircle className="w-3 h-3 mr-1" />
                       Chat
@@ -219,7 +219,7 @@ export default function AdminKeberatanPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Detail Keberatan</h3>
+              <h3 className="text-lg font-semibold text-red-600">Detail Keberatan</h3>
               <button 
                 onClick={() => setSelectedKeberatan(null)}
                 className="text-gray-500 hover:text-gray-700"
@@ -247,7 +247,7 @@ export default function AdminKeberatanPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Alasan Keberatan</label>
-                <p className="text-gray-900">{selectedKeberatan.alasan_keberatan}</p>
+                <p className="text-gray-900 whitespace-pre-wrap">{selectedKeberatan.alasan_keberatan}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Status</label>
@@ -273,7 +273,6 @@ export default function AdminKeberatanPage() {
         </div>
       )}
       
-      {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}

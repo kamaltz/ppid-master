@@ -150,8 +150,24 @@ model Keberatan {
   updated_at     DateTime @default(now()) @updatedAt
   permintaan     Request  @relation(fields: [permintaan_id], references: [id])
   pemohon        Pemohon  @relation(fields: [pemohon_id], references: [id])
+  responses      KeberatanResponse[]
 
   @@map("keberatan")
+}
+
+model KeberatanResponse {
+  id          Int      @id @default(autoincrement())
+  keberatan_id Int
+  user_id     String
+  user_role   String
+  user_name   String
+  message     String   @db.Text
+  attachments String?  @db.Text
+  message_type String  @default("text")
+  created_at  DateTime @default(now())
+  keberatan   Keberatan @relation(fields: [keberatan_id], references: [id])
+
+  @@map("keberatan_responses")
 }
 
 model Page {
