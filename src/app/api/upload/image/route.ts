@@ -16,15 +16,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 });
     }
 
+    console.log('Image file received:', file ? file.name : 'No file', file ? file.type : 'No type');
+
+    if (!file || file.size === 0) {
+      return NextResponse.json({ success: false, error: 'No file uploaded or file is empty' }, { status: 400 });
+    }
+
     // Validate that it's actually an image
     const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
     if (!allowedImageTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Only image files are allowed' }, { status: 400 });
     }
 
-    // Validate file size (2MB max for images)
-    if (file.size > 2 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Image file too large (max 2MB)' }, { status: 400 });
+    // Validate file size (5MB max for images)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ success: false, error: 'Image file too large (max 5MB)' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();

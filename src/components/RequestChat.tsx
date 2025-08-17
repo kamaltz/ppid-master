@@ -38,26 +38,32 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
 
   const fetchResponses = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/permintaan/${requestId}/responses`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(`/api/permintaan/${requestId}/responses`);
+      if (!response.ok) {
+        console.error('Response not ok:', response.status);
+        return;
+      }
       const data = await response.json();
       if (data.success) {
         setResponses(data.data);
-        // Simple chat status - always active unless manually set to false
-        // Don't override if already set by resume function
-        if (chatSession.is_active === undefined) {
-          setChatSession({ is_active: true });
-        }
+        
+        // Check if chat is ended by system message
+        const lastMessage = data.data[data.data.length - 1];
+        const isEnded = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('diakhiri');
+        const isResumed = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('dilanjutkan');
+        
+        setChatSession({ is_active: isResumed || !isEnded });
         
         // Check if pemohon can send message
         if (currentUserRole === 'Pemohon') {
           const pemohonMessages = data.data.filter((msg: any) => msg.user_role === 'Pemohon');
-          const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(msg.user_role));
+          const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
           
-          // Pemohon can send if chat is active AND (no messages yet, or if admin has replied to their last message)
-          setCanSendMessage(chatSession.is_active && (pemohonMessages.length === 0 || adminMessages.length >= pemohonMessages.length));
+          // Pemohon can only send if: no messages yet OR admin has replied to their last message
+          const canSend = !isEnded && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
+          setCanSendMessage(canSend);
+        } else {
+          setCanSendMessage(!isEnded || isAdmin);
         }
       }
     } catch (error) {
@@ -66,12 +72,12 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   };
 
   const sendResponse = async (messageType = 'text') => {
-    if (currentUserRole === 'Pemohon' && !chatSession.is_active) {
-      alert('Chat telah diakhiri');
+    if (currentUserRole === 'Pemohon' && !canSendMessage) {
+      alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
       return;
     }
-    if (currentUserRole === 'Pemohon' && !canSendMessage) {
-      alert('Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
+    if (!chatSession.is_active && !isAdmin) {
+      alert('Chat telah diakhiri.');
       return;
     }
     if (!message.trim() && attachments.length === 0) {
@@ -85,11 +91,9 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       for (const file of attachments) {
         const formData = new FormData();
         formData.append('file', file);
-        const token = localStorage.getItem('auth_token');
         const endpoint = file.type.startsWith('image/') ? '/api/upload/image' : '/api/upload';
         const uploadResponse = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         });
         const result = await uploadResponse.json();
@@ -98,17 +102,15 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
         }
       }
 
-      const token = localStorage.getItem('auth_token');
-
       const response = await fetch(`/api/permintaan/${requestId}/responses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: message.trim(),
-          attachments: uploadedFiles
+          attachments: uploadedFiles,
+          user_role: currentUserRole
         })
       });
 
@@ -116,30 +118,26 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
         setMessage('');
         setAttachments([]);
         
-        fetchResponses();
-        
-        // Send auto-reply for pemohon messages
+        // Send system notification for pemohon after first message
         if (currentUserRole === 'Pemohon') {
           setTimeout(async () => {
-            try {
-              await fetch(`/api/permintaan/${requestId}/responses`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  message: 'Terima kasih atas pesan Anda. Mohon tunggu PPID merespon chat Anda.',
-                  attachments: [],
-                  message_type: 'text'
-                })
-              });
-              fetchResponses();
-            } catch (error) {
-              console.log('Auto-reply failed:', error);
-            }
+            await fetch(`/api/permintaan/${requestId}/responses`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                message: '✅ Pesan Anda telah terkirim. Mohon tunggu balasan dari PPID.',
+                attachments: [],
+                user_role: 'System',
+                message_type: 'system'
+              })
+            });
+            fetchResponses();
           }, 1000);
         }
+        
+        await fetchResponses();
       } else {
         const errorData = await response.json();
         alert('Gagal mengirim pesan: ' + (errorData.error || 'Unknown error'));
@@ -155,22 +153,20 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const endChat = async () => {
     if (!confirm('Yakin ingin mengakhiri chat? Pemohon tidak akan bisa mengirim pesan lagi.')) return;
     
-    // Immediately update UI
     setChatSession({ is_active: false });
     setCanSendMessage(false);
     
     try {
-      const token = localStorage.getItem('auth_token');
       await fetch(`/api/permintaan/${requestId}/responses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: 'Chat telah diakhiri oleh admin.',
           attachments: [],
-          message_type: 'system'
+          message_type: 'system',
+          user_role: 'System'
         })
       });
       
@@ -183,22 +179,20 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const resumeChat = async () => {
     if (!confirm('Yakin ingin melanjutkan chat? Pemohon akan bisa mengirim pesan lagi.')) return;
     
-    // Immediately update UI state
     setChatSession({ is_active: true });
     setCanSendMessage(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
       await fetch(`/api/permintaan/${requestId}/responses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: 'Chat telah dilanjutkan oleh admin.',
           attachments: [],
-          message_type: 'system'
+          message_type: 'system',
+          user_role: 'System'
         })
       });
       
@@ -210,7 +204,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
 
   useEffect(() => {
     fetchResponses();
-    const interval = setInterval(fetchResponses, 2000); // More frequent updates
+    const interval = setInterval(fetchResponses, 2000);
     return () => clearInterval(interval);
   }, [requestId]);
 
@@ -422,7 +416,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={
                   !chatSession.is_active ? "Chat telah diakhiri" :
-                  currentUserRole === 'Pemohon' && !canSendMessage ? "Tunggu balasan PPID..." :
+                  currentUserRole === 'Pemohon' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
                   "Tulis pesan..."
                 }
                 className="flex-1 border rounded-lg px-3 py-2"
@@ -431,7 +425,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
               />
               <button
                 onClick={() => sendResponse()}
-                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && (!chatSession.is_active || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatSession.is_active && currentUserRole !== 'Admin')}
+                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatSession.is_active && !isAdmin)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
