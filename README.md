@@ -1,6 +1,6 @@
-# 🏛️ PPID Garut - Sistem Informasi Publik
+# 🏛️ PPID Master - Sistem Informasi Publik
 
-**Aplikasi PPID (Pejabat Pengelola Informasi dan Dokumentasi) Kabupaten Garut** yang menggabungkan backend dan frontend dalam satu project Next.js untuk kemudahan konfigurasi dan deployment.
+**Aplikasi PPID (Pejabat Pengelola Informasi dan Dokumentasi) Kabupaten Garut** yang menggabungkan backend dan frontend dalam satu project Next.js dengan database PostgreSQL dan Prisma ORM untuk kemudahan konfigurasi dan deployment.
 
 ## ✨ Fitur Utama
 
@@ -27,6 +27,13 @@
 - **Status Tracking** - Real-time status permohonan
 - **File Upload** - Support multiple file formats
 - **Workflow Management** - Alur persetujuan bertingkat
+- **Chat System** - Real-time communication antara pemohon dan PPID
+
+### 🚨 **Manajemen Keberatan**
+- **Form Keberatan** - Pengajuan keberatan atas permohonan
+- **Multi-level Review** - Alur review bertingkat
+- **Response System** - Chat dan file attachment untuk keberatan
+- **Status Tracking** - Monitoring progress keberatan
 
 ### ⚙️ **Pengaturan Website**
 - **Dynamic Settings** - Logo, nama instansi, kontak dapat diubah
@@ -39,19 +46,26 @@
 - **File Storage** - Organized file structure
 - **Image Optimization** - WebP conversion dan compression
 
+### 👥 **Account Management**
+- **Multi-role User Management** - Admin, PPID, Pemohon
+- **Bulk Import** - Import users dari CSV/Excel
+- **Password Reset** - Reset password untuk semua role
+- **Activity Logging** - Log semua aktivitas user
+
 ## 🚀 Instalasi
 
 ### Prasyarat
 - Node.js 18+ 
 - npm atau yarn
-- Database MySQL/PostgreSQL
+- PostgreSQL 14+
+- Git
 
 ### Langkah Instalasi
 
 1. **Clone Repository**
 ```bash
-git clone https://github.com/your-repo/ppid-garut.git
-cd ppid-garut
+git clone https://github.com/your-repo/ppid-master.git
+cd ppid-master
 ```
 
 2. **Install Dependencies**
@@ -63,19 +77,22 @@ yarn install
 
 3. **Setup Environment Variables**
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env.local
 ```
 
 4. **Konfigurasi Database**
-Edit `.env.local` dan sesuaikan dengan konfigurasi database Anda:
+Edit `.env.local` dan sesuaikan dengan konfigurasi database PostgreSQL Anda:
 ```env
-DATABASE_URL="mysql://username:password@localhost:3306/ppid_garut"
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
+DATABASE_URL="postgresql://username:password@localhost:5432/ppid_garut?schema=public"
+JWT_SECRET="your-jwt-secret-key"
+NEXT_PUBLIC_API_URL="http://localhost:3000/api"
 ```
 
 5. **Setup Database**
 ```bash
+# Generate Prisma client
+npx prisma generate
+
 # Migrate database
 npm run db:migrate
 
@@ -95,32 +112,32 @@ Aplikasi akan berjalan di `http://localhost:3000`
 Setelah menjalankan `npm run seed`, akun berikut akan tersedia:
 
 ### 🔑 **Admin**
-- **Email**: `admin@garutkab.go.id`
-- **Password**: `admin123`
+- **Email**: `admin@garut.go.id`
+- **Password**: `Garut@2025?`
 - **Role**: Administrator
 - **Akses**: Full access ke semua fitur
 
 ### 🏛️ **PPID Utama**
-- **Email**: `ppid@garutkab.go.id`
-- **Password**: `ppid123`
+- **Email**: `ppid.utama@garut.go.id`
+- **Password**: `Garut@2025?`
 - **Role**: PPID Utama
 - **Akses**: Manajemen informasi, permohonan, keberatan
 
-### 👨‍💼 **PPID Pelaksana**
-- **Email**: `pelaksana@garutkab.go.id`
-- **Password**: `pelaksana123`
+### 👨💼 **PPID Pelaksana**
+- **Email**: `ppid.pelaksana@garut.go.id`
+- **Password**: `Garut@2025?`
 - **Role**: PPID Pelaksana
 - **Akses**: Proses permohonan, input informasi
 
 ### 👔 **Atasan PPID**
-- **Email**: `atasan@garutkab.go.id`
-- **Password**: `atasan123`
+- **Email**: `atasan.ppid@garut.go.id`
+- **Password**: `Garut@2025?`
 - **Role**: Atasan PPID
 - **Akses**: Approve permohonan, monitoring
 
 ### 👤 **Pemohon Test**
 - **Email**: `pemohon@example.com`
-- **Password**: `pemohon123`
+- **Password**: `Garut@2025?`
 - **Role**: Pemohon
 - **Akses**: Submit permohonan, tracking status
 
@@ -163,10 +180,16 @@ npm run db:migrate   # Run database migrations
 npm run seed         # Seed initial data
 npm run reset-admin  # Reset admin password
 
+# Testing
+npm run test         # Run all tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Run tests with coverage
+npm run test:auth    # Run authentication tests
+npm run test:admin   # Run admin tests
+npm run test:requests # Run request tests
+
 # Code Quality
 npm run lint         # Run ESLint
-npm run type-check   # TypeScript type checking
-npm run test         # Run tests
 ```
 
 ## 🏗️ Struktur Project
@@ -175,23 +198,41 @@ npm run test         # Run tests
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── api/               # API Routes
-│   │   ├── admin/             # Admin pages
+│   │   │   ├── auth/          # Authentication endpoints
+│   │   │   ├── admin/         # Admin management endpoints
+│   │   │   ├── permintaan/    # Request management endpoints
+│   │   │   ├── keberatan/     # Objection management endpoints
+│   │   │   ├── informasi/     # Information management endpoints
+│   │   │   ├── accounts/      # Account management endpoints
+│   │   │   ├── chat/          # Chat system endpoints
+│   │   │   └── upload/        # File upload endpoints
+│   │   ├── admin/             # Admin dashboard pages
+│   │   ├── dashboard/         # User dashboard pages
 │   │   ├── pemohon/           # Pemohon dashboard
-│   │   └── (public)/          # Public pages
+│   │   ├── login/             # Login page
+│   │   ├── register/          # Registration page
+│   │   └── [slug]/            # Dynamic pages
 │   ├── components/            # React components
 │   │   ├── auth/              # Authentication components
 │   │   ├── layout/            # Layout components
-│   │   └── ui/                # UI components
+│   │   ├── ui/                # UI components
+│   │   └── accessibility/     # Accessibility components
 │   ├── context/               # React contexts
 │   ├── hooks/                 # Custom hooks
-│   └── lib/                   # Utilities
+│   └── lib/                   # Frontend utilities
 ├── lib/                       # Backend logic
 │   ├── controllers/           # API controllers
-│   ├── middleware/            # Middleware
-│   ├── scripts/               # Database scripts
+│   ├── middleware/            # Authentication middleware
+│   ├── scripts/               # Database scripts & seeders
+│   ├── frontend/              # Frontend utilities
 │   └── types/                 # TypeScript types
+├── prisma/                    # Database schema & migrations
+│   ├── migrations/            # Database migrations
+│   └── schema.prisma          # Prisma schema
+├── scripts/                   # Utility scripts
 ├── public/                    # Static assets
-└── uploads/                   # User uploaded files
+│   └── uploads/               # User uploaded files
+└── __tests__/                 # Test files
 ```
 
 ## 🔌 API Endpoints
@@ -200,25 +241,119 @@ npm run test         # Run tests
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
 
-### Permohonan
-- `GET /api/permohonan` - Get permohonan list
-- `POST /api/permohonan` - Create new permohonan
-- `PUT /api/permohonan/[id]` - Update permohonan
-- `DELETE /api/permohonan/[id]` - Delete permohonan
+### Permohonan/Permintaan
+- `GET /api/permintaan` - Get request list
+- `POST /api/permintaan` - Create new request
+- `GET /api/permintaan/[id]` - Get request detail
+- `PUT /api/permintaan/[id]` - Update request
+- `DELETE /api/permintaan/[id]` - Delete request
+- `POST /api/permintaan/[id]/responses` - Add response to request
 
-### Informasi
-- `GET /api/informasi` - Get public information
+### Keberatan
+- `GET /api/keberatan` - Get objection list
+- `POST /api/keberatan` - Create new objection
+- `GET /api/keberatan/[id]` - Get objection detail
+- `PUT /api/keberatan/[id]` - Update objection
+- `POST /api/keberatan/[id]/responses` - Add response to objection
+
+### Informasi Publik
+- `GET /api/informasi` - Get public information list
 - `POST /api/informasi` - Create information (PPID only)
+- `GET /api/informasi/[id]` - Get information detail
 - `PUT /api/informasi/[id]` - Update information
+- `DELETE /api/informasi/[id]` - Delete information
+
+### Admin Management
+- `GET /api/admin/stats` - Get dashboard statistics
+- `GET /api/admin/users` - Get users list
+- `POST /api/admin/assign-ppid` - Assign PPID to request
+- `GET /api/admin/activity-logs` - Get activity logs
+- `GET /api/admin/role-stats` - Get role statistics
+
+### Accounts Management
+- `GET /api/accounts` - Get all accounts
+- `POST /api/accounts` - Create new account
+- `GET /api/accounts/[id]` - Get account detail
+- `PUT /api/accounts/[id]` - Update account
+- `DELETE /api/accounts/delete` - Delete account
+- `POST /api/accounts/reset-password` - Reset password
+
+### Categories
+- `GET /api/kategori` - Get categories
+- `POST /api/kategori` - Create category
+- `PUT /api/kategori/[id]` - Update category
+- `DELETE /api/kategori/[id]` - Delete category
+
+### Pages Management
+- `GET /api/pages` - Get pages
+- `POST /api/pages` - Create page
+- `GET /api/pages/[id]` - Get page detail
+- `PUT /api/pages/[id]` - Update page
+- `DELETE /api/pages/[id]` - Delete page
 
 ### Settings
 - `GET /api/settings` - Get website settings
 - `POST /api/settings` - Update settings (Admin only)
 
-### Upload
+### Upload & Media
+- `POST /api/upload` - Upload files
 - `POST /api/upload/image` - Upload image files
-- `POST /api/upload/document` - Upload document files
+- `GET /api/admin/media` - Get media files
+
+### Chat & Communication
+- `GET /api/chat/[requestId]` - Get chat messages
+- `POST /api/chat/[requestId]` - Send chat message
+- `POST /api/chat/[requestId]/end` - End chat session
+- `GET /api/ppid-chat` - Get PPID internal chat
+- `POST /api/ppid-chat` - Send PPID internal message
+
+### Statistics & Reports
+- `GET /api/stats/public` - Get public statistics
+- `GET /api/laporan` - Generate reports
+
+## 🗄️ Database Schema
+
+Aplikasi menggunakan PostgreSQL dengan Prisma ORM. Schema utama:
+
+- **Admin** - Administrator sistem
+- **Pemohon** - Pengguna yang mengajukan permohonan
+- **Ppid** - Petugas PPID (Utama, Pelaksana, Atasan)
+- **Request** - Permohonan informasi publik
+- **Keberatan** - Keberatan atas permohonan
+- **InformasiPublik** - Informasi publik yang dipublikasikan
+- **RequestResponse** - Chat/respon untuk permohonan
+- **KeberatanResponse** - Chat/respon untuk keberatan
+- **ActivityLog** - Log aktivitas sistem
+- **Setting** - Pengaturan website
+- **Page** - Halaman dinamis
+- **Kategori** - Kategori informasi
+
+## 🧪 Testing
+
+Aplikasi dilengkapi dengan comprehensive test suite:
+
+```bash
+# Run specific test suites
+npm run test:auth          # Authentication tests
+npm run test:admin         # Admin functionality tests
+npm run test:requests      # Request management tests
+npm run test:information   # Information management tests
+npm run test:objections    # Objection management tests
+npm run test:categories    # Category management tests
+npm run test:uploads       # File upload tests
+npm run test:settings      # Settings management tests
+npm run test:integration   # Integration tests
+npm run test:utils         # Utility function tests
+```
+
+## 🔧 Development Tools
+
+- **Prisma Studio** - Database GUI: `npx prisma studio`
+- **Database Reset** - Reset & reseed: `npx prisma migrate reset`
+- **Schema Sync** - Sync schema: `npx prisma db push`
+- **Generate Client** - Update Prisma client: `npx prisma generate`
 
 ## 🌟 Keunggulan
 
@@ -230,6 +365,9 @@ npm run test         # Run tests
 - ✅ **Easy Customization** - Interface admin untuk kustomisasi
 - ✅ **File Management** - Upload dan manajemen file terintegrasi
 - ✅ **Analytics Dashboard** - Monitoring dan reporting
+- ✅ **Chat System** - Real-time communication
+- ✅ **Comprehensive Testing** - Full test coverage
+- ✅ **PostgreSQL + Prisma** - Modern database stack
 
 ## 📞 Support
 
