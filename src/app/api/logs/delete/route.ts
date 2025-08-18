@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Remove logs with specified IDs
     if (global.activityLogs) {
-      global.activityLogs = global.activityLogs.filter((log: any) => !ids.includes(log.id));
+      global.activityLogs = global.activityLogs.filter((log: { id: number }) => !ids.includes(log.id));
     }
 
     return NextResponse.json({ 

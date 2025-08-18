@@ -137,7 +137,10 @@ const HeroSection = () => {
   const currentContent = getCurrentContent();
   
   const getBackgroundStyle = () => {
-    if (!currentContent.image) return {};
+    if (!currentContent.image) {
+      // No background image, let CSS gradient show through
+      return {};
+    }
     
     const position = currentContent.backgroundPosition || 'cover';
     let backgroundSize = 'cover';
@@ -164,7 +167,7 @@ const HeroSection = () => {
     return {
       backgroundImage: heroSettings.cleanTemplate 
         ? `url(${currentContent.image})`
-        : `linear-gradient(rgba(30, 64, 175, 0.6), rgba(59, 130, 246, 0.6)), url(${currentContent.image})`,
+        : `linear-gradient(rgba(15, 23, 42, 0.7), rgba(30, 58, 138, 0.7)), url(${currentContent.image})`,
       backgroundSize,
       backgroundPosition,
       backgroundRepeat: 'no-repeat'
@@ -175,8 +178,11 @@ const HeroSection = () => {
 
   return (
     <section 
-      className="bg-gradient-to-r from-blue-800 to-blue-600 text-white relative"
-      style={sectionStyle}
+      className="text-white relative"
+      style={{
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)',
+        ...sectionStyle
+      }}
     >
       <div className="container mx-auto px-4 py-20 md:py-32 text-center min-h-[70vh] flex flex-col justify-center">
         <div className="mb-6">

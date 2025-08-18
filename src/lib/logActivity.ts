@@ -66,7 +66,7 @@ export const logUserAction = async (action: string, message: string, details?: R
           user_role: userRole || user.role
         };
       }
-    } catch (e) {
+    } catch {
       console.warn('Could not parse user data for logging');
     }
   }

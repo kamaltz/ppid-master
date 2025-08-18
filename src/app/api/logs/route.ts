@@ -34,20 +34,20 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (level && level !== 'all') {
-      logs = logs.filter((log: any) => log.level === level);
+      logs = logs.filter((log: { level: string }) => log.level === level);
     }
     if (action && action !== 'all') {
-      logs = logs.filter((log: any) => log.action === action);
+      logs = logs.filter((log: { action: string }) => log.action === action);
     }
     if (startDate) {
-      logs = logs.filter((log: any) => new Date(log.created_at) >= new Date(startDate));
+      logs = logs.filter((log: { created_at: string }) => new Date(log.created_at) >= new Date(startDate));
     }
     if (endDate) {
-      logs = logs.filter((log: any) => new Date(log.created_at) <= new Date(endDate + 'T23:59:59'));
+      logs = logs.filter((log: { created_at: string }) => new Date(log.created_at) <= new Date(endDate + 'T23:59:59'));
     }
 
     // Sort by created_at descending
-    logs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    logs.sort((a: { created_at: string }, b: { created_at: string }) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     // Pagination
     const total = logs.length;

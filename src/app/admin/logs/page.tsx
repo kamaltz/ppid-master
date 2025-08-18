@@ -24,7 +24,7 @@ export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [actionFilter, setActionFilter] = useState("all");
+  const [actionFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -32,6 +32,15 @@ export default function ActivityLogsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedLogs, setSelectedLogs] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
+  const [blacklistedIPs, setBlacklistedIPs] = useState<string[]>([]);
+  const [isManagingBlacklist, setIsManagingBlacklist] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
+  const [securityStats, setSecurityStats] = useState<{
+    rateLimiting: { activeIPs: number; details: Array<{ ip: string; requests: number }> };
+    ddosProtection: { suspiciousIPs: number; details: Array<{ ip: string; recentRequests: number }> };
+    ipBlacklist: { totalBlacklisted: number; blacklistedIPs: string[] };
+  } | null>(null);
   const { token } = useAuth();
 
   const fetchLogs = useCallback(async () => {
@@ -63,6 +72,84 @@ export default function ActivityLogsPage() {
       setIsLoading(false);
     }
   }, [token, levelFilter, actionFilter, startDate, endDate]);
+
+  const fetchBlacklist = useCallback(async () => {
+    try {
+      const response = await fetch('/api/logs/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'getBlacklist' })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.blacklist) {
+          setBlacklistedIPs(data.blacklist);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch blacklist:', error);
+    }
+  }, [token]);
+
+  const unblockIP = useCallback(async (ip: string) => {
+    if (!confirm(`Hapus ${ip} dari blacklist?`)) return;
+    
+    setIsManagingBlacklist(true);
+    try {
+      const response = await fetch('/api/logs/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'unblockIP', ip })
+      });
+      
+      if (response.ok) {
+        fetchBlacklist();
+        alert(`IP ${ip} berhasil dihapus dari blacklist`);
+      } else {
+        alert('Gagal menghapus IP dari blacklist');
+      }
+    } catch (error) {
+      console.error('Failed to unblock IP:', error);
+      alert('Gagal menghapus IP dari blacklist');
+    } finally {
+      setIsManagingBlacklist(false);
+    }
+  }, [token, fetchBlacklist]);
+
+  const clearBlacklist = useCallback(async () => {
+    if (!confirm('Hapus semua IP dari blacklist?')) return;
+    
+    setIsManagingBlacklist(true);
+    try {
+      const response = await fetch('/api/logs/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'clearBlacklist' })
+      });
+      
+      if (response.ok) {
+        fetchBlacklist();
+        alert('Semua IP berhasil dihapus dari blacklist');
+      } else {
+        alert('Gagal menghapus blacklist');
+      }
+    } catch (error) {
+      console.error('Failed to clear blacklist:', error);
+      alert('Gagal menghapus blacklist');
+    } finally {
+      setIsManagingBlacklist(false);
+    }
+  }, [token, fetchBlacklist]);
 
   useEffect(() => {
     fetchLogs();
@@ -224,6 +311,38 @@ export default function ActivityLogsPage() {
             <Download className="w-4 h-4" />
             {isExporting ? 'Mengekspor...' : 'Export TXT'}
           </button>
+          <button
+            onClick={() => {
+              setShowBlacklist(!showBlacklist);
+              if (!showBlacklist) fetchBlacklist();
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+          >
+            <Filter className="w-4 h-4" />
+            IP Blacklist
+          </button>
+          <button
+            onClick={async () => {
+              setShowSecurity(!showSecurity);
+              if (!showSecurity) {
+                try {
+                  const response = await fetch('/api/security/status', {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    setSecurityStats(data.data);
+                  }
+                } catch (error) {
+                  console.error('Failed to fetch security stats:', error);
+                }
+              }
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+          >
+            <Activity className="w-4 h-4" />
+            Security Monitor
+          </button>
         </div>
       </div>
 
@@ -301,6 +420,126 @@ export default function ActivityLogsPage() {
           </div>
         </div>
       </div>
+
+      {/* Security Monitor */}
+      {showSecurity && securityStats && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Security Monitor</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Rate Limiting */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-800 mb-2">Rate Limiting</h4>
+              <p className="text-2xl font-bold text-blue-600">{securityStats.rateLimiting.activeIPs}</p>
+              <p className="text-sm text-blue-700">Active IPs being rate limited</p>
+              {securityStats.rateLimiting.details.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {securityStats.rateLimiting.details.slice(0, 3).map((item, i: number) => (
+                    <div key={i} className="text-xs text-blue-600">
+                      {item.ip}: {item.requests} requests
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* DDoS Protection */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h4 className="font-medium text-orange-800 mb-2">DDoS Protection</h4>
+              <p className="text-2xl font-bold text-orange-600">{securityStats.ddosProtection.suspiciousIPs}</p>
+              <p className="text-sm text-orange-700">Suspicious IPs detected</p>
+              {securityStats.ddosProtection.details.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {securityStats.ddosProtection.details.slice(0, 3).map((item, i: number) => (
+                    <div key={i} className="text-xs text-orange-600">
+                      {item.ip}: {item.recentRequests} req/10s
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* IP Blacklist */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="font-medium text-red-800 mb-2">IP Blacklist</h4>
+              <p className="text-2xl font-bold text-red-600">{securityStats.ipBlacklist.totalBlacklisted}</p>
+              <p className="text-sm text-red-700">Blocked IP addresses</p>
+              {securityStats.ipBlacklist.blacklistedIPs.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {securityStats.ipBlacklist.blacklistedIPs.slice(0, 3).map((ip: string, i: number) => (
+                    <div key={i} className="text-xs text-red-600 font-mono">
+                      {ip}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="font-medium text-green-800 mb-2">Security Headers Status</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+              <div className="text-green-700">✓ XSS Protection: Enabled</div>
+              <div className="text-green-700">✓ Content-Type: nosniff</div>
+              <div className="text-green-700">✓ Frame Options: SAMEORIGIN</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IP Blacklist Management */}
+      {showBlacklist && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">IP Blacklist Management</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={clearBlacklist}
+                disabled={isManagingBlacklist || blacklistedIPs.length === 0}
+                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm"
+              >
+                {isManagingBlacklist ? 'Processing...' : 'Clear All'}
+              </button>
+              <button
+                onClick={fetchBlacklist}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+          
+          {blacklistedIPs.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>Tidak ada IP yang diblacklist</p>
+              <p className="text-sm mt-1">IP akan otomatis diblacklist setelah 5 percobaan login gagal dalam 15 menit</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 mb-4">
+                Total {blacklistedIPs.length} IP diblacklist. IP diblokir otomatis setelah 5 percobaan login gagal dalam 15 menit.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {blacklistedIPs.map((ip) => (
+                  <div key={ip} className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span className="font-mono text-sm">{ip}</span>
+                    </div>
+                    <button
+                      onClick={() => unblockIP(ip)}
+                      disabled={isManagingBlacklist}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-2 py-1 rounded text-xs"
+                    >
+                      Unblock
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {isLoading ? (

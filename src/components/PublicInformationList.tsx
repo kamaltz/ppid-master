@@ -27,15 +27,38 @@ export default function PublicInformationList() {
   const fetchInformasi = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getPublicData(`/informasi?page=${currentPage}&limit=10`);
-      setInformasi(data.data || []);
-      if (data.pagination) {
-        setTotalPages(data.pagination.totalPages);
-        setTotal(data.pagination.total);
+      setError(null);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(`/api/informasi?page=${currentPage}&limit=10`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-    } catch {
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setInformasi(data.data || []);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotal(data.pagination.total);
+        }
+      } else {
+        setInformasi([]);
+        setTotal(0);
+      }
+    } catch (error) {
+      console.error('Error fetching informasi:', error);
       setError('Gagal memuat informasi publik');
       setInformasi([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }

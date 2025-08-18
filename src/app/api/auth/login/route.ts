@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { sanitizeInput, validateEmail, validateInput } from '@/lib/xssProtection';
 
 interface ActivityLog {
   id: number;
@@ -19,9 +20,29 @@ interface ActivityLog {
 
 declare global {
   var activityLogs: ActivityLog[] | undefined;
+  var ipBlacklist: Set<string> | undefined;
+  var loginAttempts: Map<string, number[]> | undefined;
 }
 
+// Simple logging function
+const logActivity = async (logData: Omit<ActivityLog, 'id' | 'created_at'>) => {
+  try {
+    global.activityLogs = global.activityLogs || [];
+    global.activityLogs.unshift({
+      id: Date.now(),
+      ...logData,
+      created_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to log activity:', error);
+  }
+};
+
 const prisma = new PrismaClient();
+
+// Global blacklist and rate limiting
+global.ipBlacklist = global.ipBlacklist || new Set();
+global.loginAttempts = global.loginAttempts || new Map();
 
 // Helper function to get client IP address
 function getClientIP(request: NextRequest): string {
@@ -56,11 +77,61 @@ function getClientIP(request: NextRequest): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
-    console.log('Login attempt:', { email, password: password ? 'provided' : 'missing' });
+    const body = await request.json();
+    const clientIP = getClientIP(request);
+    
+    // Sanitize inputs
+    const email = sanitizeInput(body.email || '');
+    const password = body.password || '';
+    
+    console.log('Login attempt:', { email, ip: clientIP, password: password ? 'provided' : 'missing' });
     
     if (!email || !password) {
       return NextResponse.json({ error: 'Email dan password harus diisi' }, { status: 400 });
+    }
+    
+    // Validate inputs
+    if (!validateEmail(email)) {
+      return NextResponse.json({ error: 'Format email tidak valid' }, { status: 400 });
+    }
+    
+    if (!validateInput(password, 100)) {
+      return NextResponse.json({ error: 'Password mengandung karakter tidak valid' }, { status: 400 });
+    }
+
+    // Check if IP is blacklisted
+    if (global.ipBlacklist?.has(clientIP)) {
+      await logActivity({
+        action: 'LOGIN_BLOCKED',
+        level: 'ERROR',
+        message: `Login diblokir dari IP blacklist: ${clientIP}`,
+        user_email: email,
+        ip_address: clientIP,
+        user_agent: request.headers.get('user-agent') || 'Unknown'
+      });
+      return NextResponse.json({ error: 'IP address diblokir karena terlalu banyak percobaan login gagal' }, { status: 429 });
+    }
+
+    // Check rate limiting (5 attempts in 15 minutes)
+    const now = Date.now();
+    const attempts = global.loginAttempts?.get(clientIP) || [];
+    const recentAttempts = attempts.filter((time: number) => now - time < 15 * 60 * 1000); // 15 minutes
+    
+    if (recentAttempts.length >= 5) {
+      // Add to blacklist after 5 failed attempts
+      global.ipBlacklist?.add(clientIP);
+      
+      await logActivity({
+        action: 'IP_BLACKLISTED',
+        level: 'ERROR',
+        message: `IP ${clientIP} ditambahkan ke blacklist setelah 5 percobaan login gagal`,
+        user_email: email,
+        ip_address: clientIP,
+        user_agent: request.headers.get('user-agent') || 'Unknown',
+        details: { attempts: recentAttempts.length }
+      });
+      
+      return NextResponse.json({ error: 'Terlalu banyak percobaan login. IP address telah diblokir.' }, { status: 429 });
     }
 
     // Check admin
@@ -76,25 +147,20 @@ export async function POST(request: NextRequest) {
           { expiresIn: '24h' }
         );
         
+        // Clear failed attempts on successful login
+        global.loginAttempts?.delete(getClientIP(request));
+        
         // Log successful admin login
-        try {
-          global.activityLogs = global.activityLogs || [];
-          global.activityLogs.unshift({
-            id: Date.now(),
-            action: 'LOGIN',
-            level: 'SUCCESS',
-            message: `Admin ${email} berhasil login ke sistem`,
-            user_id: admin.id.toString(),
-            user_role: 'ADMIN',
-            user_email: email,
-            ip_address: getClientIP(request),
-            user_agent: request.headers.get('user-agent') || 'Unknown',
-            created_at: new Date().toISOString()
-          });
-          console.log('Admin login logged successfully');
-        } catch (logError) {
-          console.error('Failed to log admin login:', logError);
-        }
+        await logActivity({
+          action: 'LOGIN',
+          level: 'SUCCESS',
+          message: `Admin ${email} berhasil login ke sistem`,
+          user_id: admin.id.toString(),
+          user_role: 'ADMIN',
+          user_email: email,
+          ip_address: getClientIP(request),
+          user_agent: request.headers.get('user-agent') || 'Unknown'
+        });
         
         return NextResponse.json({
           success: true,
@@ -117,25 +183,20 @@ export async function POST(request: NextRequest) {
           { expiresIn: '24h' }
         );
         
+        // Clear failed attempts on successful login
+        global.loginAttempts?.delete(getClientIP(request));
+        
         // Log successful PPID login
-        try {
-          global.activityLogs = global.activityLogs || [];
-          global.activityLogs.unshift({
-            id: Date.now(),
-            action: 'LOGIN',
-            level: 'SUCCESS',
-            message: `${ppid.role} ${email} berhasil login ke sistem`,
-            user_id: ppid.id.toString(),
-            user_role: ppid.role,
-            user_email: email,
-            ip_address: getClientIP(request),
-            user_agent: request.headers.get('user-agent') || 'Unknown',
-            created_at: new Date().toISOString()
-          });
-          console.log('PPID login logged successfully');
-        } catch (logError) {
-          console.error('Failed to log PPID login:', logError);
-        }
+        await logActivity({
+          action: 'LOGIN',
+          level: 'SUCCESS',
+          message: `${ppid.role} ${email} berhasil login ke sistem`,
+          user_id: ppid.id.toString(),
+          user_role: ppid.role,
+          user_email: email,
+          ip_address: getClientIP(request),
+          user_agent: request.headers.get('user-agent') || 'Unknown'
+        });
         
         return NextResponse.json({
           success: true,
@@ -156,25 +217,20 @@ export async function POST(request: NextRequest) {
           { expiresIn: '24h' }
         );
         
+        // Clear failed attempts on successful login
+        global.loginAttempts?.delete(getClientIP(request));
+        
         // Log successful Pemohon login
-        try {
-          global.activityLogs = global.activityLogs || [];
-          global.activityLogs.unshift({
-            id: Date.now() + 1,
-            action: 'LOGIN',
-            level: 'SUCCESS',
-            message: `Pemohon ${email} berhasil login ke sistem`,
-            user_id: pemohon.id.toString(),
-            user_role: 'PEMOHON',
-            user_email: email,
-            ip_address: getClientIP(request),
-            user_agent: request.headers.get('user-agent') || 'Unknown',
-            created_at: new Date().toISOString()
-          });
-          console.log('Pemohon login logged successfully');
-        } catch (logError) {
-          console.error('Failed to log Pemohon login:', logError);
-        }
+        await logActivity({
+          action: 'LOGIN',
+          level: 'SUCCESS',
+          message: `Pemohon ${email} berhasil login ke sistem`,
+          user_id: pemohon.id.toString(),
+          user_role: 'PEMOHON',
+          user_email: email,
+          ip_address: getClientIP(request),
+          user_agent: request.headers.get('user-agent') || 'Unknown'
+        });
         
         return NextResponse.json({
           success: true,
@@ -186,20 +242,21 @@ export async function POST(request: NextRequest) {
 
     console.log('No valid user found for email:', email);
     
-    const clientIP = getClientIP(request);
     const userAgent = request.headers.get('user-agent') || 'Unknown';
     
-    // Check for suspicious activity (multiple failed attempts from same IP)
-    const recentFailedAttempts = (global.activityLogs || []).filter(log => 
-      log.action === 'LOGIN_FAILED' && 
-      log.ip_address === clientIP &&
-      new Date(log.created_at).getTime() > Date.now() - (15 * 60 * 1000) // Last 15 minutes
-    ).length;
+    // Record failed attempt
+    const ipAttempts = global.loginAttempts?.get(clientIP) || [];
+    ipAttempts.push(now);
+    global.loginAttempts?.set(clientIP, ipAttempts);
     
-    const level = recentFailedAttempts >= 3 ? 'ERROR' : 'WARN';
-    const message = recentFailedAttempts >= 3 
-      ? `SUSPICIOUS: ${recentFailedAttempts + 1} percobaan login gagal dari IP ${clientIP} untuk ${email}`
-      : `Percobaan login gagal untuk ${email} dari IP ${clientIP}`;
+    // Clean old attempts (older than 15 minutes)
+    const cleanAttempts = ipAttempts.filter((time: number) => now - time < 15 * 60 * 1000);
+    global.loginAttempts?.set(clientIP, cleanAttempts);
+    
+    const level = cleanAttempts.length >= 4 ? 'ERROR' : 'WARN';
+    const message = cleanAttempts.length >= 4
+      ? `CRITICAL: ${cleanAttempts.length} percobaan login gagal dari IP ${clientIP} untuk ${email} - IP akan diblokir pada percobaan berikutnya`
+      : `Percobaan login gagal untuk ${email} dari IP ${clientIP} (${cleanAttempts.length}/5)`;
     
     // Log failed login directly
     try {
@@ -213,8 +270,9 @@ export async function POST(request: NextRequest) {
         ip_address: clientIP,
         user_agent: userAgent,
         details: {
-          failedAttempts: recentFailedAttempts + 1,
-          suspicious: recentFailedAttempts >= 3
+          failedAttempts: cleanAttempts.length,
+          remainingAttempts: 5 - cleanAttempts.length,
+          willBeBlocked: cleanAttempts.length >= 4
         },
         created_at: new Date().toISOString()
       });

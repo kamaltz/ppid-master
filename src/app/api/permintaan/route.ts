@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 import { checkDailyRequestLimit } from '@/lib/dailyLimits';
+import { sanitizeObject, validateInput } from '@/lib/xssProtection';
 
 interface JWTPayload {
   id: string;
@@ -9,25 +10,7 @@ interface JWTPayload {
   userId?: number;
 }
 
-interface ActivityLog {
-  id: number;
-  action: string;
-  level: string;
-  message: string;
-  user_id?: string;
-  user_role?: string;
-  user_email?: string;
-  ip_address?: string;
-  user_agent?: string;
-  resource_id?: string;
-  resource_type?: string;
-  details?: string | object | null;
-  created_at: string;
-}
 
-declare global {
-  var activityLogs: ActivityLog[] | undefined;
-}
 
 // Helper function to get client IP address
 function getClientIP(request: NextRequest): string {
@@ -160,10 +143,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only pemohon can create requests' }, { status: 403 });
     }
 
-    const { judul, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan, cara_memperoleh } = await request.json();
+    const body = await request.json();
+    
+    // Sanitize all inputs
+    const sanitizedData = sanitizeObject(body);
+    const { judul, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan, cara_memperoleh } = sanitizedData;
+    
+    // Validate inputs
+    if (!validateInput(rincian_informasi, 2000) || !validateInput(tujuan_penggunaan, 1000)) {
+      return NextResponse.json({ error: 'Input mengandung karakter tidak valid atau terlalu panjang' }, { status: 400 });
+    }
 
     // Validate required fields
-    if (!rincian_informasi || !tujuan_penggunaan) {
+    if (!rincian_informasi?.trim() || !tujuan_penggunaan?.trim()) {
       return NextResponse.json({ error: 'Rincian informasi dan tujuan penggunaan wajib diisi' }, { status: 400 });
     }
 
@@ -203,11 +195,9 @@ export async function POST(request: NextRequest) {
         message: `Permohonan baru dibuat: ${newRequest.judul}`,
         user_id: userId.toString(),
         user_role: decoded.role,
-        resource_id: newRequest.id.toString(),
-        resource_type: 'PERMOHONAN',
         ip_address: getClientIP(request),
         user_agent: request.headers.get('user-agent') || 'Unknown',
-        details: { judul: newRequest.judul, status: 'Diajukan' },
+        details: { judul: newRequest.judul, status: 'Diajukan', resource_id: newRequest.id.toString(), resource_type: 'PERMOHONAN' },
         created_at: new Date().toISOString()
       });
     } catch (logError) {
