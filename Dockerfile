@@ -1,6 +1,6 @@
 # Base image
 FROM node:18-alpine AS base
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat postgresql-client
 WORKDIR /app
 
 # Dependencies
@@ -31,7 +31,6 @@ COPY --from=builder /app/package.json ./package.json
 
 COPY start.sh ./
 
-# ---- BARIS PERBAIKAN DITAMBAHKAN DI SINI ----
 # Mengubah kepemilikan semua file di /app ke pengguna nextjs
 RUN chown -R nextjs:nodejs /app
 
