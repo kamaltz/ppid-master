@@ -2,9 +2,8 @@
   "name": "ppid-master",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "prisma": {
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.mjs"
   },
   "scripts": {
     "dev": "next dev",
