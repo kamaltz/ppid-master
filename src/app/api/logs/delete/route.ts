@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
-  id: number;
   role: string;
-  email: string;
+  userId: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -17,43 +16,33 @@ export async function POST(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
+    // Only ADMIN can delete logs
     if (decoded.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { ids } = await request.json();
     
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: 'Invalid IDs' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid log IDs' }, { status: 400 });
     }
 
-    global.activityLogs = global.activityLogs || [];
-    global.activityLogs = global.activityLogs.filter(log => !ids.includes(log.id));
-
-    global.activityLogs.unshift({
-      id: Date.now(),
-      action: 'DELETE_LOGS',
-      level: 'WARN',
-      message: `Admin menghapus ${ids.length} log aktivitas`,
-      user_id: decoded.id?.toString(),
-      user_role: decoded.role,
-      user_email: decoded.email,
-      ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
-      user_agent: request.headers.get('user-agent') || 'Unknown',
-      details: { deletedCount: ids.length },
-      created_at: new Date().toISOString()
-    });
+    // Remove logs with specified IDs
+    if (global.activityLogs) {
+      global.activityLogs = global.activityLogs.filter((log: any) => !ids.includes(log.id));
+    }
 
     return NextResponse.json({ 
       success: true, 
-      message: `${ids.length} log berhasil dihapus` 
+      message: `${ids.length} log(s) deleted successfully`,
+      remaining: global.activityLogs?.length || 0
     });
 
   } catch (error) {
-    console.error('Delete logs error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Gagal menghapus log' 
+    console.error('Error deleting logs:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Gagal menghapus log'
     }, { status: 500 });
   }
 }

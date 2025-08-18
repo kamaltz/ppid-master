@@ -58,7 +58,6 @@ export default function ActivityLogsPage() {
       }
     } catch (error) {
       console.error("Failed to fetch logs:", error);
-      alert('Gagal memuat log aktivitas. Silakan coba lagi.');
       setLogs([]);
     } finally {
       setIsLoading(false);
@@ -67,7 +66,6 @@ export default function ActivityLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-    // Auto refresh every 30 seconds for real-time updates
     const interval = setInterval(fetchLogs, 30000);
     return () => clearInterval(interval);
   }, [fetchLogs]);
@@ -235,27 +233,44 @@ export default function ActivityLogsPage() {
           <h3 className="text-lg font-semibold text-gray-800">Filter Log</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Pencarian</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cari</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
+                placeholder="Cari aktivitas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari aktivitas, pesan, email..."
-                className="w-full pl-10 pr-3 py-2 border rounded-lg"
+                className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Level</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Semua Role</option>
+              <option value="ADMIN">Admin</option>
+              <option value="PPID_UTAMA">PPID Utama</option>
+              <option value="PPID_PELAKSANA">PPID Pelaksana</option>
+              <option value="ATASAN_PPID">Atasan PPID</option>
+              <option value="PEMOHON">Pemohon</option>
+              <option value="SYSTEM">System</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
             <select
               value={levelFilter}
               onChange={(e) => setLevelFilter(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Semua Level</option>
               <option value="INFO">Info</option>
@@ -266,73 +281,39 @@ export default function ActivityLogsPage() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Role</label>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="all">Semua Role</option>
-              <option value="ADMIN">Admin</option>
-              <option value="PPID_UTAMA">PPID Utama</option>
-              <option value="PPID_PELAKSANA">PPID Pelaksana</option>
-              <option value="ATASAN_PPID">Atasan PPID</option>
-              <option value="PEMOHON">Pemohon</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Dari Tanggal</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Sampai Tanggal</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-        </div>
-        
-        <div className="mt-4 flex gap-2 items-center">
-          <button
-            onClick={fetchLogs}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
-          >
-            Terapkan Filter
-          </button>
-          <button
-            onClick={() => {
-              setSearchTerm('');
-              setLevelFilter('all');
-              setRoleFilter('all');
-              setActionFilter('all');
-              setStartDate('');
-              setEndDate('');
-            }}
-            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm"
-          >
-            Reset Filter
-          </button>
-          <div className="text-xs text-gray-500 ml-4">
-            🔄 Auto refresh setiap 30 detik
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Memuat log aktivitas...</div>
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat log aktivitas...</p>
+          </div>
         ) : filteredLogs.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">Tidak ada log aktivitas ditemukan</div>
+          <div className="p-8 text-center">
+            <Activity className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg font-medium">Tidak ada log aktivitas</p>
+            <p className="text-gray-400 text-sm mt-1">Log akan muncul setelah ada aktivitas sistem</p>
+          </div>
         ) : (
           <div>
             <div className="p-4 border-b bg-gray-50 flex items-center gap-3">
@@ -381,8 +362,9 @@ export default function ActivityLogsPage() {
                           <User className="w-3 h-3" />
                           {log.user_email || `ID: ${log.user_id}`}
                         </div>
-                        <div>
-                          IP: {log.ip_address}
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span className="font-mono">IP: {log.ip_address || '127.0.0.1'}</span>
                         </div>
                         <div>
                           Resource: {log.resource_type || 'N/A'} {log.resource_id ? `(${log.resource_id})` : ''}

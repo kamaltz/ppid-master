@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
+// Helper function to get client IP address
+function getClientIP(request: NextRequest): string {
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  const xRealIP = request.headers.get('x-real-ip');
+  const xClientIP = request.headers.get('x-client-ip');
+  const cfConnectingIP = request.headers.get('cf-connecting-ip');
+  
+  if (cfConnectingIP) return cfConnectingIP;
+  if (xRealIP) return xRealIP;
+  if (xClientIP) return xClientIP;
+  if (xForwardedFor) return xForwardedFor.split(',')[0].trim();
+  
+  return '127.0.0.1';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -26,7 +41,7 @@ export async function POST(request: NextRequest) {
           user_id: userInfo.id?.toString(),
           user_role: userInfo.role,
           user_email: userInfo.email,
-          ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+          ip_address: getClientIP(request),
           user_agent: request.headers.get('user-agent') || 'Unknown',
           created_at: new Date().toISOString()
         });

@@ -23,6 +23,37 @@ declare global {
 
 const prisma = new PrismaClient();
 
+// Helper function to get client IP address
+function getClientIP(request: NextRequest): string {
+  // Check various headers for real IP
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  const xRealIP = request.headers.get('x-real-ip');
+  const xClientIP = request.headers.get('x-client-ip');
+  const cfConnectingIP = request.headers.get('cf-connecting-ip');
+  const xForwarded = request.headers.get('x-forwarded');
+  const forwardedFor = request.headers.get('forwarded-for');
+  const forwarded = request.headers.get('forwarded');
+  
+  // Priority order for IP detection
+  if (cfConnectingIP) return cfConnectingIP;
+  if (xRealIP) return xRealIP;
+  if (xClientIP) return xClientIP;
+  if (xForwardedFor) {
+    // x-forwarded-for can contain multiple IPs, take the first one
+    return xForwardedFor.split(',')[0].trim();
+  }
+  if (xForwarded) return xForwarded;
+  if (forwardedFor) return forwardedFor;
+  if (forwarded) {
+    // Parse forwarded header: for=192.0.2.60;proto=http;by=203.0.113.43
+    const match = forwarded.match(/for=([^;,\s]+)/);
+    if (match) return match[1];
+  }
+  
+  // Fallback to localhost
+  return '127.0.0.1';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
@@ -56,7 +87,7 @@ export async function POST(request: NextRequest) {
             user_id: admin.id.toString(),
             user_role: 'ADMIN',
             user_email: email,
-            ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+            ip_address: getClientIP(request),
             user_agent: request.headers.get('user-agent') || 'Unknown',
             created_at: new Date().toISOString()
           });
@@ -97,7 +128,7 @@ export async function POST(request: NextRequest) {
             user_id: ppid.id.toString(),
             user_role: ppid.role,
             user_email: email,
-            ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+            ip_address: getClientIP(request),
             user_agent: request.headers.get('user-agent') || 'Unknown',
             created_at: new Date().toISOString()
           });
@@ -136,7 +167,7 @@ export async function POST(request: NextRequest) {
             user_id: pemohon.id.toString(),
             user_role: 'PEMOHON',
             user_email: email,
-            ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
+            ip_address: getClientIP(request),
             user_agent: request.headers.get('user-agent') || 'Unknown',
             created_at: new Date().toISOString()
           });
@@ -155,17 +186,36 @@ export async function POST(request: NextRequest) {
 
     console.log('No valid user found for email:', email);
     
+    const clientIP = getClientIP(request);
+    const userAgent = request.headers.get('user-agent') || 'Unknown';
+    
+    // Check for suspicious activity (multiple failed attempts from same IP)
+    const recentFailedAttempts = (global.activityLogs || []).filter(log => 
+      log.action === 'LOGIN_FAILED' && 
+      log.ip_address === clientIP &&
+      new Date(log.created_at).getTime() > Date.now() - (15 * 60 * 1000) // Last 15 minutes
+    ).length;
+    
+    const level = recentFailedAttempts >= 3 ? 'ERROR' : 'WARN';
+    const message = recentFailedAttempts >= 3 
+      ? `SUSPICIOUS: ${recentFailedAttempts + 1} percobaan login gagal dari IP ${clientIP} untuk ${email}`
+      : `Percobaan login gagal untuk ${email} dari IP ${clientIP}`;
+    
     // Log failed login directly
     try {
       global.activityLogs = global.activityLogs || [];
       global.activityLogs.unshift({
         id: Date.now(),
         action: 'LOGIN_FAILED',
-        level: 'WARN',
-        message: `Percobaan login gagal untuk ${email}`,
+        level,
+        message,
         user_email: email,
-        ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
-        user_agent: request.headers.get('user-agent') || 'Unknown',
+        ip_address: clientIP,
+        user_agent: userAgent,
+        details: {
+          failedAttempts: recentFailedAttempts + 1,
+          suspicious: recentFailedAttempts >= 3
+        },
         created_at: new Date().toISOString()
       });
       console.log('Failed login logged successfully');

@@ -21,17 +21,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Get logs directly from global storage
-    const logs = global.activityLogs || [];
+    const { searchParams } = new URL(request.url);
+    const level = searchParams.get('level');
+    const action = searchParams.get('action');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+
+    // Get logs from global storage
+    let logs = global.activityLogs || [];
+
+    // Apply filters
+    if (level && level !== 'all') {
+      logs = logs.filter((log: any) => log.level === level);
+    }
+    if (action && action !== 'all') {
+      logs = logs.filter((log: any) => log.action === action);
+    }
+    if (startDate) {
+      logs = logs.filter((log: any) => new Date(log.created_at) >= new Date(startDate));
+    }
+    if (endDate) {
+      logs = logs.filter((log: any) => new Date(log.created_at) <= new Date(endDate + 'T23:59:59'));
+    }
+
+    // Sort by created_at descending
+    logs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Pagination
+    const total = logs.length;
+    const totalPages = Math.ceil(total / limit);
+    const skip = (page - 1) * limit;
+    const paginatedLogs = logs.slice(skip, skip + limit);
 
     return NextResponse.json({
       success: true,
-      data: logs,
+      data: paginatedLogs,
       pagination: {
-        page: 1,
-        limit: 50,
-        total: logs.length,
-        pages: 1
+        page,
+        limit,
+        total,
+        totalPages
       }
     });
 

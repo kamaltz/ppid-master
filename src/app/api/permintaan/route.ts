@@ -9,6 +9,41 @@ interface JWTPayload {
   userId?: number;
 }
 
+interface ActivityLog {
+  id: number;
+  action: string;
+  level: string;
+  message: string;
+  user_id?: string;
+  user_role?: string;
+  user_email?: string;
+  ip_address?: string;
+  user_agent?: string;
+  resource_id?: string;
+  resource_type?: string;
+  details?: string | object | null;
+  created_at: string;
+}
+
+declare global {
+  var activityLogs: ActivityLog[] | undefined;
+}
+
+// Helper function to get client IP address
+function getClientIP(request: NextRequest): string {
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  const xRealIP = request.headers.get('x-real-ip');
+  const xClientIP = request.headers.get('x-client-ip');
+  const cfConnectingIP = request.headers.get('cf-connecting-ip');
+  
+  if (cfConnectingIP) return cfConnectingIP;
+  if (xRealIP) return xRealIP;
+  if (xClientIP) return xClientIP;
+  if (xForwardedFor) return xForwardedFor.split(',')[0].trim();
+  
+  return '127.0.0.1';
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -158,16 +193,22 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Log activity
+    // Log activity to global logs
     try {
-      await prisma.activityLog.create({
-        data: {
-          action: 'CREATE_REQUEST',
-          details: `Created request: ${newRequest?.judul || 'Unknown'}`,
-          user_id: userId.toString(),
-          user_role: decoded.role,
-          ip_address: request.headers.get('x-forwarded-for') || 'unknown'
-        }
+      global.activityLogs = global.activityLogs || [];
+      global.activityLogs.unshift({
+        id: Date.now(),
+        action: 'CREATE_PERMOHONAN',
+        level: 'INFO',
+        message: `Permohonan baru dibuat: ${newRequest.judul}`,
+        user_id: userId.toString(),
+        user_role: decoded.role,
+        resource_id: newRequest.id.toString(),
+        resource_type: 'PERMOHONAN',
+        ip_address: getClientIP(request),
+        user_agent: request.headers.get('user-agent') || 'Unknown',
+        details: { judul: newRequest.judul, status: 'Diajukan' },
+        created_at: new Date().toISOString()
       });
     } catch (logError) {
       console.warn('Failed to log activity:', logError);
