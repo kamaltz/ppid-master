@@ -89,7 +89,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user data
-    const updateData: any = { nama, email };
+    const updateData: {
+      nama: string;
+      email: string;
+      hashed_password?: string;
+      nik?: string;
+      no_telepon?: string;
+    } = { nama, email };
     if (newPassword) {
       updateData.hashed_password = await bcrypt.hash(newPassword, 10);
     }
