@@ -3,11 +3,15 @@
 set -e
 
 echo "Waiting for database to be ready..."
-# Loop ini akan menunggu sampai container database benar-benar siap
+# Loop ini menunggu sampai container database benar-benar siap
 until pg_isready -h postgres -p 5432 -U postgres; do
   sleep 2
 done
 echo "Database is ready."
+
+echo "Generating Prisma Client..."
+# TAMBAHKAN BARIS INI: Pastikan client di-generate di lingkungan runtime
+npx prisma generate
 
 echo "Running database migrations..."
 # Perintah yang benar untuk migrasi di production
@@ -18,6 +22,6 @@ echo "Seeding database..."
 node /app/scripts/seed.js
 
 echo "Starting application..."
-# Ganti 'npm start' dengan 'exec node server.js' untuk production
-# Pastikan file server.js ada di output build Next.js Anda (.next/standalone/server.js)
+# 'exec' akan menggantikan proses shell dengan proses node,
+# ini adalah praktik terbaik untuk CMD di Docker.
 exec node server.js
