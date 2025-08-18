@@ -60,7 +60,7 @@ describe('Authentication API Tests', () => {
     });
 
     test('should handle different user roles', () => {
-      const roles = ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'Pemohon'];
+      const roles = ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'PEMOHON'];
       
       roles.forEach(role => {
         const token = jwt.sign({ role, id: '1' }, 'test-secret');

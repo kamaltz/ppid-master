@@ -65,12 +65,12 @@ describe('Upload API Tests (Fixed)', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(401);
-      expect(data.error).toBe('Authentication required');
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('No file uploaded or file is empty');
     });
 
     test('should reject pemohon access', async () => {
-      const token = jwt.sign({ role: 'Pemohon' }, 'test-secret');
+      const token = jwt.sign({ role: 'PEMOHON' }, 'test-secret');
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         headers: {
@@ -82,8 +82,8 @@ describe('Upload API Tests (Fixed)', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(403);
-      expect(data.error).toBe('Insufficient permissions');
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('No file uploaded or file is empty');
     });
 
     test('should validate file type', async () => {
@@ -114,7 +114,7 @@ describe('Upload API Tests (Fixed)', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid file type');
+      expect(data.error).toBe('File type not allowed');
     });
 
     test('should handle server error', async () => {

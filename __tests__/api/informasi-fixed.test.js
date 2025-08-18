@@ -125,7 +125,7 @@ describe('Informasi API Tests (Fixed)', () => {
     });
 
     test('should reject access by pemohon', async () => {
-      const token = jwt.sign({ role: 'Pemohon', id: '1' }, 'test-secret');
+      const token = jwt.sign({ role: 'PEMOHON', id: '1' }, 'test-secret');
 
       const request = new NextRequest('http://localhost:3000/api/informasi', {
         method: 'POST',

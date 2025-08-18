@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 // Mock prisma client before importing route
 const mockPrisma = {
-  kategori: {
+  kategoriInformasi: {
     findMany: jest.fn().mockResolvedValue([
       { id: 1, nama: "Informasi Berkala", deskripsi: "Test", created_at: new Date() }
     ]),
@@ -41,7 +41,7 @@ describe('Kategori API Tests (Fixed)', () => {
 
     test('should handle empty categories', async () => {
       // Mock empty result
-      mockPrisma.kategori.findMany.mockResolvedValueOnce([]);
+      mockPrisma.kategoriInformasi.findMany.mockResolvedValueOnce([]);
       
       const response = await GET();
       const data = await response.json();
@@ -64,6 +64,7 @@ describe('Kategori API Tests (Fixed)', () => {
         },
         body: JSON.stringify({
           nama: 'New Category',
+          slug: 'new-category',
           deskripsi: 'Test description'
         })
       });
@@ -95,7 +96,7 @@ describe('Kategori API Tests (Fixed)', () => {
     });
 
     test('should reject pemohon access', async () => {
-      const token = jwt.sign({ role: 'Pemohon', id: '1' }, 'test-secret');
+      const token = jwt.sign({ role: 'PEMOHON', id: '1' }, 'test-secret');
 
       const request = new NextRequest('http://localhost:3000/api/kategori', {
         method: 'POST',
@@ -119,7 +120,7 @@ describe('Kategori API Tests (Fixed)', () => {
       const token = jwt.sign({ role: 'ADMIN', id: '1' }, 'test-secret');
       
       // Mock finding existing category
-      mockPrisma.kategori.findFirst.mockResolvedValueOnce({
+      mockPrisma.kategoriInformasi.findFirst.mockResolvedValueOnce({
         id: 1, nama: 'Informasi Berkala', created_at: new Date()
       });
 
@@ -131,6 +132,7 @@ describe('Kategori API Tests (Fixed)', () => {
         },
         body: JSON.stringify({
           nama: 'Informasi Berkala', // Duplicate name
+          slug: 'informasi-berkala',
           deskripsi: 'Test'
         })
       });
@@ -139,7 +141,7 @@ describe('Kategori API Tests (Fixed)', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Nama kategori sudah digunakan');
+      expect(data.error).toBe('Nama atau slug kategori sudah digunakan');
     });
   });
 });

@@ -12,7 +12,7 @@ describe('Admin API Tests', () => {
       
       expect(isAdmin('ADMIN')).toBe(true);
       expect(isAdmin('PPID_UTAMA')).toBe(false);
-      expect(isAdmin('Pemohon')).toBe(false);
+      expect(isAdmin('PEMOHON')).toBe(false);
     });
 
     test('should create valid JWT token', () => {
@@ -63,7 +63,7 @@ describe('Admin API Tests', () => {
 
       expect(mockUser.id).toBeDefined();
       expect(mockUser.email).toContain('@');
-      expect(['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'Pemohon'].includes(mockUser.role)).toBe(true);
+      expect(['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'PEMOHON'].includes(mockUser.role)).toBe(true);
     });
   });
 });
