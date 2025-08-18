@@ -1,18 +1,21 @@
 #!/bin/sh
 
-# Wait for database to be ready
-echo "Waiting for database..."
-until npx prisma db push --accept-data-loss; do
-  echo "Database is unavailable - sleeping"
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+echo "Waiting for database to be ready..."
+# This loop waits for the database container to be responsive
+until pg_isready -h postgres -p 5432 -U postgres; do
   sleep 2
 done
+echo "Database is ready."
 
-# Run migrations and seed
 echo "Running database migrations..."
 npx prisma migrate deploy
 
 echo "Seeding database..."
-node scripts/seed.js
+node /app/scripts/seed.js
 
 echo "Starting application..."
-node server.js
+# This is the command that starts the Next.js app
+exec node server.js
