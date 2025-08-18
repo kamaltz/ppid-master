@@ -15,6 +15,8 @@ interface Slide {
   ctaText: string;
   ctaUrl: string;
   backgroundPosition: string;
+  cleanNoCTA?: boolean;
+  cleanImage?: boolean;
 }
 
 interface HeroSettings {
@@ -215,7 +217,9 @@ export default function AdminPengaturanPage() {
               ...slideData,
               ctaText: slideData.ctaText ?? '',
               ctaUrl: slideData.ctaUrl ?? '',
-              backgroundPosition: slideData.backgroundPosition ?? 'cover'
+              backgroundPosition: slideData.backgroundPosition ?? 'cover',
+              cleanNoCTA: slideData.cleanNoCTA ?? false,
+              cleanImage: slideData.cleanImage ?? false
             };
           });
           
@@ -306,7 +310,9 @@ export default function AdminPengaturanPage() {
       description: '',
       ctaText: '',
       ctaUrl: '',
-      backgroundPosition: 'cover'
+      backgroundPosition: 'cover',
+      cleanNoCTA: false,
+      cleanImage: false
     };
     setHeroSettings(prev => ({
       ...prev,
@@ -314,11 +320,11 @@ export default function AdminPengaturanPage() {
     }));
   };
 
-  const updateSlide = (index: number, field: string, value: string) => {
+  const updateSlide = (index: number, field: string, value: string | boolean) => {
     setHeroSettings(prev => ({
       ...prev,
       slides: prev.slides.map((slide, i) => 
-        i === index ? { ...slide, [field]: value || '' } : slide
+        i === index ? { ...slide, [field]: value } : slide
       )
     }));
   };
@@ -1262,6 +1268,24 @@ export default function AdminPengaturanPage() {
                 </div>
               </div>
               
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-medium mb-3">🎨 Mode Tampilan Hero</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      checked={heroSettings.cleanTemplate}
+                      onChange={(e) => setHeroSettings(prev => ({ ...prev, cleanTemplate: e.target.checked }))}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Gambar Clean (Tanpa Overlay Gradient)</span>
+                  </label>
+                  <div className="text-xs text-gray-500">
+                    Menghilangkan overlay gradient pada gambar background untuk tampilan yang lebih bersih
+                  </div>
+                </div>
+              </div>
+              
               {/* Carousel Settings */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-medium mb-4">🎠 Pengaturan Carousel</h3>
@@ -1454,8 +1478,28 @@ export default function AdminPengaturanPage() {
                                     />
                                   </div>
                                 </div>
+                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                  <label className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={slide.cleanNoCTA || false}
+                                      onChange={(e) => updateSlide(index, 'cleanNoCTA', e.target.checked)}
+                                      className="mr-2"
+                                    />
+                                    <span className="text-sm">Mode Clean (Tanpa CTA)</span>
+                                  </label>
+                                  <label className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={slide.cleanImage || false}
+                                      onChange={(e) => updateSlide(index, 'cleanImage', e.target.checked)}
+                                      className="mr-2"
+                                    />
+                                    <span className="text-sm">Gambar Clean (Tanpa Overlay)</span>
+                                  </label>
+                                </div>
                                 <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded">
-                                  💡 <strong>Tips:</strong> Kosongkan kedua field untuk tidak menampilkan tombol CTA pada slide ini
+                                  💡 <strong>Tips:</strong> Mode Clean menghilangkan CTA, Gambar Clean menghilangkan overlay gradient
                                 </div>
                                 
                                 {slide.image && (

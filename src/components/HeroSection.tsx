@@ -13,6 +13,8 @@ interface SlideContent {
   backgroundPosition?: string;
   ctaText?: string;
   ctaUrl?: string;
+  cleanNoCTA?: boolean;
+  cleanImage?: boolean;
 }
 
 interface HeroSettings {
@@ -94,10 +96,6 @@ const HeroSection = () => {
     router.push(heroSettings.ctaUrl || '/permohonan');
   };
 
-  const handleDIP = () => {
-    router.push('/dip');
-  };
-
   // Auto slide effect
   useEffect(() => {
     if (heroSettings.isCarousel && heroSettings.autoSlide && heroSettings.slides?.length > 1) {
@@ -165,7 +163,7 @@ const HeroSection = () => {
     }
     
     return {
-      backgroundImage: heroSettings.cleanTemplate 
+      backgroundImage: (heroSettings.cleanTemplate || currentContent.cleanImage)
         ? `url(${currentContent.image})`
         : `linear-gradient(rgba(15, 23, 42, 0.7), rgba(30, 58, 138, 0.7)), url(${currentContent.image})`,
       backgroundSize,
@@ -185,33 +183,29 @@ const HeroSection = () => {
       }}
     >
       <div className="container mx-auto px-4 py-20 md:py-32 text-center min-h-[70vh] flex flex-col justify-center">
-        <div className="mb-6">
-          <span className="bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium">
-            {currentContent.subtitle}
-          </span>
-        </div>
-        <h1 className={`text-3xl md:text-4xl font-bold mb-4 leading-tight ${
-          heroSettings.cleanTemplate ? 'text-shadow-lg' : ''
-        }`}>
-          {currentContent.title}
-        </h1>
-        <p className={`text-lg mb-8 max-w-2xl mx-auto ${
-          heroSettings.cleanTemplate ? 'text-white text-shadow' : 'text-blue-100'
-        }`}>
-          {currentContent.description}
-        </p>
+        {!currentContent.cleanNoCTA && !currentContent.cleanImage && !heroSettings.cleanTemplate && (
+          <>
+            <div className="mb-6">
+              <span className="bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium">
+                {currentContent.subtitle}
+              </span>
+            </div>
+            <h1 className={`text-3xl md:text-4xl font-bold mb-4 leading-tight`}>
+              {currentContent.title}
+            </h1>
+            <p className={`text-lg mb-8 max-w-2xl mx-auto text-blue-100`}>
+              {currentContent.description}
+            </p>
+          </>
+        )}
         {/* CTA Buttons */}
         {heroSettings.isCarousel ? (
-          // Carousel mode - show CTA if slide has CTA text and URL
-          currentContent.ctaText && currentContent.ctaUrl && (
+          // Carousel mode - show CTA if slide has CTA text and URL, and not in clean modes
+          !currentContent.cleanNoCTA && !currentContent.cleanImage && !heroSettings.cleanTemplate && currentContent.ctaText && currentContent.ctaUrl && (
             <div className="flex justify-center">
               <button 
                 onClick={() => router.push(currentContent.ctaUrl || '/permohonan')}
-                className={`font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center ${
-                  heroSettings.cleanTemplate 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
-                    : 'bg-white text-blue-800 hover:bg-gray-100'
-                }`}
+                className="bg-white text-blue-800 hover:bg-gray-100 font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center"
               >
                 <ArrowRight className="mr-2 h-5 w-5" />
                 {currentContent.ctaText}
@@ -219,22 +213,18 @@ const HeroSection = () => {
             </div>
           )
         ) : (
-          // Static mode - show default CTA buttons
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              onClick={handleCTA}
-              className="bg-white text-blue-800 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-all flex items-center justify-center"
-            >
-              <ArrowRight className="mr-2 h-5 w-5" />
-              {heroSettings.ctaText}
-            </button>
-            <button 
-              onClick={handleDIP}
-              className="border-2 border-white text-white font-semibold py-3 px-6 rounded-lg hover:bg-white hover:text-blue-800 transition-all"
-            >
-              Lihat DIP
-            </button>
-          </div>
+          // Static mode - show single CTA button only if not in clean mode and has CTA text
+          !heroSettings.cleanTemplate && heroSettings.ctaText && (
+            <div className="flex justify-center">
+              <button 
+                onClick={handleCTA}
+                className="bg-white text-blue-800 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-all flex items-center justify-center"
+              >
+                <ArrowRight className="mr-2 h-5 w-5" />
+                {heroSettings.ctaText}
+              </button>
+            </div>
+          )
         )}
         
         {/* Carousel Controls */}
