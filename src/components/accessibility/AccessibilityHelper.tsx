@@ -6,7 +6,7 @@ import { Volume2, VolumeX } from "lucide-react";
 export default function AccessibilityHelper() {
   const [isEnabled, setIsEnabled] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -35,46 +35,27 @@ export default function AccessibilityHelper() {
   const speakText = useCallback(async (text: string) => {
     if (!isEnabled || !text) return;
     
-    // Stop any current audio
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-    }
+    // Stop any current speech
     window.speechSynthesis.cancel();
     
     try {
-      const response = await fetch('/api/elevenlabs/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          text,
-          voice_id: 'pNInz6obpgDQGcFmaJgB',
-          model_id: 'eleven_multilingual_v2'
-        })
-      });
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const indonesianVoice = voices.find(voice => voice.lang.includes('id'));
       
-      if (!response.ok) {
-        throw new Error('ElevenLabs API failed');
+      if (indonesianVoice) {
+        utterance.voice = indonesianVoice;
       }
       
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 0.8;
       
-      setCurrentAudio(audio);
-      
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        setCurrentAudio(null);
-      };
-      
-      await audio.play();
+      window.speechSynthesis.speak(utterance);
     } catch (error) {
-      console.error('ElevenLabs TTS error:', error);
+      console.error('Speech synthesis error:', error);
     }
-  }, [isEnabled, currentAudio]);
+  }, [isEnabled]);
 
   useEffect(() => {
     if (!isEnabled) return;
