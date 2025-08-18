@@ -1,108 +1,190 @@
 #!/bin/bash
 set -e
 
-echo "🚀 PPID Master - Production Deployment"
-echo "========================================"
-echo ""
-echo "Please configure your deployment:"
+# Colors for better UI
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Clear screen and show header
+clear
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                    PPID Master Installer                     ║${NC}"
+echo -e "${CYAN}║                  Production Deployment                       ║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Get domain configuration
-echo "📍 DOMAIN CONFIGURATION:"
-echo "1. Use IP address only (no domain needed)"
-echo "2. Use custom domain"
-echo ""
-while true; do
-    read -p "Choose option (1-2): " DOMAIN_CHOICE
-    if [ "$DOMAIN_CHOICE" = "1" ] || [ "$DOMAIN_CHOICE" = "2" ]; then
-        break
-    fi
-    echo "Please enter 1 or 2"
-done
-
-if [ "$DOMAIN_CHOICE" = "2" ]; then
-    while true; do
-        read -p "Enter your domain (e.g., example.com): " DOMAIN
-        if [ -n "$DOMAIN" ]; then
-            break
-        fi
-        echo "Domain cannot be empty"
+# Function to show menu and get selection
+show_menu() {
+    local title="$1"
+    shift
+    local options=("$@")
+    
+    echo -e "${BLUE}$title${NC}"
+    echo "────────────────────────────────────────"
+    
+    for i in "${!options[@]}"; do
+        echo -e "${YELLOW}$((i+1)).${NC} ${options[$i]}"
     done
+    echo ""
+}
+
+# Function to get valid input
+get_input() {
+    local prompt="$1"
+    local max="$2"
+    local choice
     
     while true; do
-        read -p "Setup SSL certificate for $DOMAIN? (y/n): " SSL_CHOICE
-        if [ "$SSL_CHOICE" = "y" ] || [ "$SSL_CHOICE" = "n" ]; then
-            break
+        echo -ne "${GREEN}$prompt${NC}"
+        read choice
+        
+        if [[ "$choice" =~ ^[1-9][0-9]*$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "$max" ]; then
+            echo "$choice"
+            return
+        else
+            echo -e "${RED}✗ Invalid input. Please enter a number between 1 and $max${NC}"
         fi
-        echo "Please enter y or n"
     done
+}
+
+# Function to get domain input
+get_domain() {
+    local domain
+    while true; do
+        echo -ne "${GREEN}Enter your domain name (e.g., example.com): ${NC}"
+        read domain
+        
+        if [[ "$domain" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$ ]]; then
+            echo "$domain"
+            return
+        else
+            echo -e "${RED}✗ Invalid domain format. Please enter a valid domain (e.g., example.com)${NC}"
+        fi
+    done
+}
+
+# Function to get yes/no input
+get_yes_no() {
+    local prompt="$1"
+    local choice
+    
+    while true; do
+        echo -ne "${GREEN}$prompt (y/n): ${NC}"
+        read choice
+        
+        case "$choice" in
+            [Yy]|[Yy][Ee][Ss]) echo "y"; return ;;
+            [Nn]|[Nn][Oo]) echo "n"; return ;;
+            *) echo -e "${RED}✗ Please enter 'y' for yes or 'n' for no${NC}" ;;
+        esac
+    done
+}
+
+# Step 1: Domain Configuration
+echo -e "${CYAN}Step 1: Domain Configuration${NC}"
+echo ""
+domain_options=(
+    "Use server IP address (no domain required)"
+    "Use custom domain name"
+)
+
+show_menu "How do you want to access your application?" "${domain_options[@]}"
+DOMAIN_CHOICE=$(get_input "Select option: " 2)
+
+if [ "$DOMAIN_CHOICE" = "2" ]; then
+    echo ""
+    DOMAIN=$(get_domain)
+    echo ""
+    SSL_CHOICE=$(get_yes_no "Do you want to setup SSL certificate for $DOMAIN?")
 else
-    DOMAIN="_"
+    DOMAIN="ip"
     SSL_CHOICE="n"
 fi
 
 echo ""
-# Get proxy manager choice
-echo "🔧 PROXY MANAGER:"
-echo "1. Nginx (built-in, recommended for beginners)"
-echo "2. Nginx Proxy Manager (web UI management)"
-echo "3. Traefik (advanced, auto SSL)"
-echo "4. Caddy (simple, auto SSL)"
+
+# Step 2: Proxy Manager Selection
+echo -e "${CYAN}Step 2: Proxy Manager Selection${NC}"
 echo ""
-while true; do
-    read -p "Choose proxy manager (1-4): " PROXY_CHOICE
-    if [ "$PROXY_CHOICE" -ge 1 ] && [ "$PROXY_CHOICE" -le 4 ] 2>/dev/null; then
-        break
-    fi
-    echo "Please enter a number between 1-4"
-done
+proxy_options=(
+    "Nginx (Built-in) - Simple and reliable"
+    "Nginx Proxy Manager - Web UI for easy management"
+    "Traefik - Advanced with automatic SSL"
+    "Caddy - Modern with automatic HTTPS"
+)
+
+show_menu "Choose your reverse proxy manager:" "${proxy_options[@]}"
+PROXY_CHOICE=$(get_input "Select option: " 4)
 
 echo ""
-echo "📋 CONFIGURATION SUMMARY:"
-if [ "$DOMAIN" = "_" ]; then
-    echo "   Domain: IP address only"
+
+# Step 3: Configuration Summary
+echo -e "${CYAN}Step 3: Configuration Summary${NC}"
+echo "────────────────────────────────────────"
+
+if [ "$DOMAIN" = "ip" ]; then
+    echo -e "${YELLOW}Domain:${NC} Server IP address"
 else
-    echo "   Domain: $DOMAIN"
-    echo "   SSL: $SSL_CHOICE"
+    echo -e "${YELLOW}Domain:${NC} $DOMAIN"
+    if [ "$SSL_CHOICE" = "y" ]; then
+        echo -e "${YELLOW}SSL:${NC} Yes (Let's Encrypt)"
+    else
+        echo -e "${YELLOW}SSL:${NC} No"
+    fi
 fi
+
 case $PROXY_CHOICE in
-    1) echo "   Proxy: Nginx (built-in)" ;;
-    2) echo "   Proxy: Nginx Proxy Manager" ;;
-    3) echo "   Proxy: Traefik" ;;
-    4) echo "   Proxy: Caddy" ;;
+    1) echo -e "${YELLOW}Proxy:${NC} Nginx (Built-in)" ;;
+    2) echo -e "${YELLOW}Proxy:${NC} Nginx Proxy Manager" ;;
+    3) echo -e "${YELLOW}Proxy:${NC} Traefik" ;;
+    4) echo -e "${YELLOW}Proxy:${NC} Caddy" ;;
 esac
+
 echo ""
-read -p "Continue with installation? (y/n): " CONFIRM
-if [ "$CONFIRM" != "y" ]; then
-    echo "Installation cancelled."
+CONFIRM=$(get_yes_no "Proceed with installation?")
+
+if [ "$CONFIRM" = "n" ]; then
+    echo -e "${RED}Installation cancelled by user.${NC}"
     exit 0
 fi
 
 echo ""
-echo "🚀 Starting installation..."
+echo -e "${GREEN}🚀 Starting installation...${NC}"
 echo ""
 
 # Install Docker
+echo -e "${BLUE}Installing Docker...${NC}"
 if ! command -v docker &> /dev/null; then
-    echo "Installing Docker..."
     curl -fsSL https://get.docker.com | sh
     sudo usermod -aG docker $USER
+    echo -e "${GREEN}✓ Docker installed${NC}"
+else
+    echo -e "${GREEN}✓ Docker already installed${NC}"
 fi
 
 # Install Docker Compose
+echo -e "${BLUE}Installing Docker Compose...${NC}"
 if ! command -v docker-compose &> /dev/null; then
-    echo "Installing Docker Compose..."
     sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     sudo chmod +x /usr/local/bin/docker-compose
+    echo -e "${GREEN}✓ Docker Compose installed${NC}"
+else
+    echo -e "${GREEN}✓ Docker Compose already installed${NC}"
 fi
 
 # Create app directory
+echo -e "${BLUE}Setting up application directory...${NC}"
 sudo mkdir -p /opt/ppid
 cd /opt/ppid
 
-# Create docker-compose.yml based on proxy choice
+# Create docker-compose.yml
+echo -e "${BLUE}Creating Docker configuration...${NC}"
 if [ "$PROXY_CHOICE" = "1" ]; then
-    # Nginx built-in
+    # Built-in Nginx
     sudo tee docker-compose.yml > /dev/null << 'EOF'
 services:
   postgres:
@@ -140,6 +222,7 @@ volumes:
 EOF
 else
     # External proxy managers
+    docker network create proxy 2>/dev/null || true
     sudo tee docker-compose.yml > /dev/null << 'EOF'
 services:
   postgres:
@@ -159,8 +242,8 @@ services:
 
   app:
     image: kamaltz/ppid-master:latest
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       DATABASE_URL: "postgresql://postgres:postgres123@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "ppid-garut-production-secret-2025"
@@ -183,25 +266,27 @@ networks:
 EOF
 fi
 
-# Create uploads directory
+# Setup uploads directory
+echo -e "${BLUE}Setting up file storage...${NC}"
 sudo mkdir -p /opt/ppid/uploads/images
 sudo chown -R 1001:1001 /opt/ppid/uploads
 sudo chmod -R 755 /opt/ppid/uploads
 
 # Setup proxy manager
-if [ "$PROXY_CHOICE" = "1" ]; then
-    # Built-in Nginx
-    echo "Setting up Nginx..."
-    sudo apt update
-    sudo apt install -y nginx
-    
-    if [ "$DOMAIN" = "_" ]; then
-        SERVER_NAME="_"
-    else
-        SERVER_NAME="$DOMAIN www.$DOMAIN"
-    fi
-    
-    sudo tee /etc/nginx/sites-available/ppid-master << EOF
+echo -e "${BLUE}Setting up proxy manager...${NC}"
+case $PROXY_CHOICE in
+    1)
+        # Built-in Nginx
+        sudo apt update -qq
+        sudo apt install -y nginx
+        
+        if [ "$DOMAIN" = "ip" ]; then
+            SERVER_NAME="_"
+        else
+            SERVER_NAME="$DOMAIN www.$DOMAIN"
+        fi
+        
+        sudo tee /etc/nginx/sites-available/ppid-master << EOF
 server {
     listen 80;
     server_name $SERVER_NAME;
@@ -231,17 +316,14 @@ server {
     }
 }
 EOF
-    
-    sudo rm -f /etc/nginx/sites-enabled/default
-    sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
-    sudo nginx -t && sudo systemctl reload nginx
-    
-elif [ "$PROXY_CHOICE" = "2" ]; then
-    # Nginx Proxy Manager
-    echo "Setting up Nginx Proxy Manager..."
-    docker network create proxy 2>/dev/null || true
-    
-    sudo tee /opt/nginx-proxy-manager.yml > /dev/null << 'EOF'
+        
+        sudo rm -f /etc/nginx/sites-enabled/default
+        sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
+        sudo nginx -t && sudo systemctl reload nginx
+        ;;
+    2)
+        # Nginx Proxy Manager
+        sudo tee /opt/nginx-proxy-manager.yml > /dev/null << 'EOF'
 services:
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
@@ -264,16 +346,12 @@ networks:
   proxy:
     external: true
 EOF
-    
-    sudo docker-compose -f /opt/nginx-proxy-manager.yml up -d
-    
-elif [ "$PROXY_CHOICE" = "3" ]; then
-    # Traefik
-    echo "Setting up Traefik..."
-    docker network create proxy 2>/dev/null || true
-    
-    sudo mkdir -p /opt/traefik
-    sudo tee /opt/traefik/traefik.yml > /dev/null << 'EOF'
+        sudo docker-compose -f /opt/nginx-proxy-manager.yml up -d
+        ;;
+    3)
+        # Traefik
+        sudo mkdir -p /opt/traefik
+        sudo tee /opt/traefik/traefik.yml > /dev/null << 'EOF'
 api:
   dashboard: true
   insecure: true
@@ -296,8 +374,8 @@ certificateResolvers:
       httpChallenge:
         entryPoint: web
 EOF
-    
-    sudo tee /opt/traefik-compose.yml > /dev/null << 'EOF'
+        
+        sudo tee /opt/traefik-compose.yml > /dev/null << 'EOF'
 services:
   traefik:
     image: traefik:v3.0
@@ -320,26 +398,22 @@ networks:
   proxy:
     external: true
 EOF
-    
-    sudo docker-compose -f /opt/traefik-compose.yml up -d
-    
-else
-    # Caddy
-    echo "Setting up Caddy..."
-    docker network create proxy 2>/dev/null || true
-    
-    sudo mkdir -p /opt/caddy
-    if [ "$DOMAIN" = "_" ]; then
-        echo ":80 {
+        sudo docker-compose -f /opt/traefik-compose.yml up -d
+        ;;
+    4)
+        # Caddy
+        sudo mkdir -p /opt/caddy
+        if [ "$DOMAIN" = "ip" ]; then
+            echo ":80 {
     reverse_proxy ppid-app-1:3000
 }" | sudo tee /opt/caddy/Caddyfile > /dev/null
-    else
-        echo "$DOMAIN {
+        else
+            echo "$DOMAIN {
     reverse_proxy ppid-app-1:3000
 }" | sudo tee /opt/caddy/Caddyfile > /dev/null
-    fi
-    
-    sudo tee /opt/caddy-compose.yml > /dev/null << 'EOF'
+        fi
+        
+        sudo tee /opt/caddy-compose.yml > /dev/null << 'EOF'
 services:
   caddy:
     image: caddy:latest
@@ -362,18 +436,20 @@ networks:
   proxy:
     external: true
 EOF
-    
-    sudo docker-compose -f /opt/caddy-compose.yml up -d
-fi
+        sudo docker-compose -f /opt/caddy-compose.yml up -d
+        ;;
+esac
 
-# Start PPID services
-echo "Starting PPID Master..."
+# Start PPID application
+echo -e "${BLUE}Starting PPID Master application...${NC}"
 sudo docker-compose pull
 sudo docker-compose up -d
+
+echo -e "${BLUE}Waiting for services to start...${NC}"
 sleep 45
 
 # Setup database
-echo "Setting up database..."
+echo -e "${BLUE}Setting up database...${NC}"
 sudo docker-compose exec -T app npx prisma generate
 sudo docker-compose exec -T app npx prisma db push --force-reset --accept-data-loss
 sudo docker-compose exec -T app npx prisma db seed
@@ -382,47 +458,71 @@ sleep 15
 
 # Setup SSL for built-in Nginx
 if [ "$PROXY_CHOICE" = "1" ] && [ "$SSL_CHOICE" = "y" ]; then
+    echo -e "${BLUE}Setting up SSL certificate...${NC}"
     sudo apt install -y certbot python3-certbot-nginx
     sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
 fi
 
 # Configure firewall
-sudo ufw allow 22
-sudo ufw allow 80
-sudo ufw allow 443
-if [ "$PROXY_CHOICE" = "2" ]; then
-    sudo ufw allow 81
-elif [ "$PROXY_CHOICE" = "3" ]; then
-    sudo ufw allow 8080
-fi
-echo "y" | sudo ufw enable 2>/dev/null || true
+echo -e "${BLUE}Configuring firewall...${NC}"
+sudo ufw allow 22 >/dev/null 2>&1
+sudo ufw allow 80 >/dev/null 2>&1
+sudo ufw allow 443 >/dev/null 2>&1
 
-PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "YOUR_IP")
+case $PROXY_CHOICE in
+    2) sudo ufw allow 81 >/dev/null 2>&1 ;;
+    3) sudo ufw allow 8080 >/dev/null 2>&1 ;;
+esac
 
+echo "y" | sudo ufw enable >/dev/null 2>&1 || true
+
+# Get public IP
+PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "YOUR_SERVER_IP")
+
+# Installation complete
+clear
+echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║                  Installation Complete!                     ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "✅ Installation Complete!"
-if [ "$PROXY_CHOICE" = "1" ]; then
-    if [ "$DOMAIN" = "_" ]; then
-        echo "🌐 Access: http://$PUBLIC_IP"
-    else
-        if [ "$SSL_CHOICE" = "y" ]; then
-            echo "🌐 Access: https://$DOMAIN"
+
+case $PROXY_CHOICE in
+    1)
+        if [ "$DOMAIN" = "ip" ]; then
+            echo -e "${CYAN}🌐 Application URL:${NC} http://$PUBLIC_IP"
         else
-            echo "🌐 Access: http://$DOMAIN"
+            if [ "$SSL_CHOICE" = "y" ]; then
+                echo -e "${CYAN}🌐 Application URL:${NC} https://$DOMAIN"
+            else
+                echo -e "${CYAN}🌐 Application URL:${NC} http://$DOMAIN"
+            fi
         fi
-    fi
-elif [ "$PROXY_CHOICE" = "2" ]; then
-    echo "🌐 App: Configure at http://$PUBLIC_IP:81"
-    echo "📝 NPM Login: admin@example.com / changeme"
-elif [ "$PROXY_CHOICE" = "3" ]; then
-    echo "🌐 App: Configure at http://$PUBLIC_IP:8080"
-    echo "📝 Add labels to docker-compose.yml for routing"
-else
-    echo "🌐 App: Configure Caddyfile for your domain"
-fi
+        ;;
+    2)
+        echo -e "${CYAN}🌐 Nginx Proxy Manager:${NC} http://$PUBLIC_IP:81"
+        echo -e "${YELLOW}📝 Default Login:${NC} admin@example.com / changeme"
+        echo -e "${YELLOW}📝 Configure proxy host:${NC} ppid-app-1:3000"
+        ;;
+    3)
+        echo -e "${CYAN}🌐 Traefik Dashboard:${NC} http://$PUBLIC_IP:8080"
+        echo -e "${YELLOW}📝 Add labels to docker-compose.yml for routing${NC}"
+        ;;
+    4)
+        echo -e "${CYAN}🌐 Application:${NC} Configured via Caddyfile"
+        if [ "$DOMAIN" != "ip" ]; then
+            echo -e "${CYAN}🌐 URL:${NC} https://$DOMAIN (auto SSL)"
+        fi
+        ;;
+esac
+
 echo ""
-echo "📊 Admin: admin@garut.go.id / Garut@2025?"
+echo -e "${CYAN}📊 Default Admin Account:${NC}"
+echo -e "${YELLOW}   Email:${NC} admin@garut.go.id"
+echo -e "${YELLOW}   Password:${NC} Garut@2025?"
 echo ""
-echo "Management:"
-echo "  sudo docker-compose -f /opt/ppid/docker-compose.yml logs -f"
-echo "  sudo docker-compose -f /opt/ppid/docker-compose.yml restart"
+echo -e "${CYAN}📋 Management Commands:${NC}"
+echo -e "${YELLOW}   View logs:${NC} sudo docker-compose -f /opt/ppid/docker-compose.yml logs -f"
+echo -e "${YELLOW}   Restart:${NC} sudo docker-compose -f /opt/ppid/docker-compose.yml restart"
+echo -e "${YELLOW}   Update:${NC} sudo docker-compose -f /opt/ppid/docker-compose.yml pull && sudo docker-compose -f /opt/ppid/docker-compose.yml up -d"
+echo ""
+echo -e "${GREEN}✅ PPID Master is now running!${NC}"
