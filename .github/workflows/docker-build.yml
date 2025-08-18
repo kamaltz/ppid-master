@@ -40,5 +40,5 @@ jobs:
         
     - name: Create deployment package
       run: |
-        tar -czf ppid-deployment-${{ github.sha }}.tar.gz docker-compose.deploy.yml deploy.sh README-DEPLOYMENT.md
+        tar -czf ppid-deployment-${{ github.sha }}.tar.gz docker-compose.deploy.yml deploy.sh
         echo "✅ Deployment package created for commit ${{ github.sha }}"
