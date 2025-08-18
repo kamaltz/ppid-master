@@ -122,6 +122,78 @@ npm run dev
 
 Aplikasi akan berjalan di `http://localhost:3000`
 
+## 🐳 Docker Deployment
+
+### Quick Deploy (Recommended)
+
+**One-command deployment using Docker Hub:**
+
+```bash
+# Download deployment script
+curl -O https://raw.githubusercontent.com/your-repo/ppid-master/main/deploy.sh
+chmod +x deploy.sh
+
+# Deploy
+./deploy.sh
+```
+
+### Manual Docker Deployment
+
+1. **Download deployment files:**
+```bash
+curl -O https://raw.githubusercontent.com/your-repo/ppid-master/main/docker-compose.deploy.yml
+```
+
+2. **Create environment file:**
+```bash
+cat > .env << 'EOF'
+DOCKERHUB_USERNAME=your-dockerhub-username
+POSTGRES_PASSWORD=postgres123
+JWT_SECRET=your-secure-jwt-secret
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+EOF
+```
+
+3. **Deploy:**
+```bash
+mkdir -p uploads
+docker-compose -f docker-compose.deploy.yml up -d
+```
+
+### Development with Docker
+
+```bash
+# Build and run locally
+docker-compose up --build
+```
+
+### Docker Management Commands
+
+```bash
+# View logs
+docker-compose -f docker-compose.deploy.yml logs -f
+
+# Stop services
+docker-compose -f docker-compose.deploy.yml down
+
+# Update to latest version
+docker-compose -f docker-compose.deploy.yml pull
+docker-compose -f docker-compose.deploy.yml up -d
+
+# Backup database
+docker-compose -f docker-compose.deploy.yml exec postgres pg_dump -U postgres ppid_garut > backup.sql
+```
+
+### What's Included in Docker Deployment
+
+- ✅ **PostgreSQL Database** - Auto-configured with persistent storage
+- ✅ **Auto Migration** - Database schema setup on first run
+- ✅ **Data Seeding** - Default accounts created automatically
+- ✅ **File Storage** - Persistent uploads directory
+- ✅ **Health Checks** - Automatic service monitoring
+- ✅ **Auto Restart** - Services restart on failure
+- ✅ **Production Ready** - Optimized for production use
+
 ## 👥 Akun Default (Seeder)
 
 Setelah menjalankan `npm run seed`, akun berikut akan tersedia:
@@ -391,9 +463,41 @@ npm run test:utils         # Utility function tests
 - **Schema Sync** - Sync schema: `npx prisma db push`
 - **Generate Client** - Update Prisma client: `npx prisma generate`
 
+## 🚀 CI/CD & Deployment
+
+### Automated Deployment
+
+Setiap push ke branch `main` akan otomatis:
+
+1. **Build Docker Image** - Multi-stage optimized build
+2. **Push to Docker Hub** - Tagged dengan `latest` dan commit SHA
+3. **Create Deployment Package** - Ready-to-deploy files
+
+### GitHub Secrets Required
+
+Untuk CI/CD, tambahkan secrets berikut di GitHub repository:
+
+- `DOCKERHUB_USERNAME` - Username Docker Hub Anda
+- `DOCKERHUB_TOKEN` - Access token Docker Hub
+
+### Production Deployment
+
+Setelah CI/CD selesai, deploy ke production server:
+
+```bash
+# Download latest deployment files
+wget https://github.com/your-repo/ppid-master/releases/latest/download/ppid-deployment.tar.gz
+tar -xzf ppid-deployment.tar.gz
+
+# Deploy
+./deploy.sh
+```
+
 ## 🌟 Keunggulan
 
 - ✅ **Single Deployment** - Frontend dan backend dalam satu aplikasi
+- ✅ **Docker Ready** - One-command deployment dengan Docker
+- ✅ **Auto CI/CD** - Automated build dan deployment
 - ✅ **Responsive Design** - Optimal di semua device
 - ✅ **Role-Based Access** - Keamanan berlapis
 - ✅ **Real-time Updates** - Data selalu up-to-date
@@ -404,5 +508,6 @@ npm run test:utils         # Utility function tests
 - ✅ **Chat System** - Real-time communication
 - ✅ **Comprehensive Testing** - Full test coverage
 - ✅ **PostgreSQL + Prisma** - Modern database stack
+- ✅ **Production Ready** - Optimized untuk production deployment
 
 **Dikembangkan untuk PPID Diskominfo Kabupaten Garut** 🏛️
