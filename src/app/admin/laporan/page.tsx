@@ -74,40 +74,87 @@ export default function AdminLaporanPage() {
     
     let content = '';
     let filename = `laporan_${selectedTemplate}_${new Date().toISOString().split('T')[0]}`;
+    let mimeType = 'text/plain';
     
     if (format === 'csv') {
-      if (reportData.details) {
-        const headers = Object.keys(reportData.details[0] || {}).join(',');
+      if (reportData.details && reportData.details.length > 0) {
+        const headers = Object.keys(reportData.details[0]).join(',');
         const rows = reportData.details.map((item: Record<string, unknown>) => 
-          Object.values(item).map(val => `"${val}"`).join(',')
+          Object.values(item).map(val => {
+            const stringVal = String(val || '');
+            if (stringVal.includes(',') || stringVal.includes('"') || stringVal.includes('\n')) {
+              return `"${stringVal.replace(/"/g, '""')}"`;
+            }
+            return stringVal;
+          }).join(',')
         ).join('\n');
         content = headers + '\n' + rows;
+      } else {
+        content = 'No data available';
       }
       filename += '.csv';
+      mimeType = 'text/csv';
     } else if (format === 'json') {
       content = JSON.stringify(reportData, null, 2);
       filename += '.json';
+      mimeType = 'application/json';
     } else if (format === 'txt') {
       content = `${reportData.title}\n`;
-      content += `Periode: ${reportData.period}\n\n`;
+      content += `Periode: ${reportData.period}\n`;
+      content += `Tanggal Export: ${new Date().toLocaleString('id-ID')}\n\n`;
+      
       if (reportData.summary) {
-        content += 'RINGKASAN:\n';
+        content += 'RINGKASAN LAPORAN:\n';
+        content += '='.repeat(50) + '\n';
         Object.entries(reportData.summary).forEach(([key, value]) => {
-          content += `${key}: ${value}\n`;
+          content += `${key.padEnd(20)}: ${value}\n`;
+        });
+        content += '\n';
+      }
+      
+      if (reportData.details && reportData.details.length > 0) {
+        content += 'DETAIL DATA:\n';
+        content += '='.repeat(50) + '\n';
+        reportData.details.forEach((item: Record<string, unknown>, index) => {
+          content += `\n[${index + 1}] `;
+          Object.entries(item).forEach(([key, value]) => {
+            content += `${key}: ${value}\n    `;
+          });
         });
       }
+      
       filename += '.txt';
+    } else if (format === 'excel') {
+      // Generate Excel-compatible CSV with UTF-8 BOM
+      if (reportData.details && reportData.details.length > 0) {
+        const headers = Object.keys(reportData.details[0]).join('\t');
+        const rows = reportData.details.map((item: Record<string, unknown>) => 
+          Object.values(item).map(val => {
+            const stringVal = String(val || '');
+            return stringVal.replace(/\t/g, ' ').replace(/\n/g, ' ');
+          }).join('\t')
+        ).join('\n');
+        content = '\uFEFF' + headers + '\n' + rows; // UTF-8 BOM for Excel
+      } else {
+        content = '\uFEFFNo data available';
+      }
+      filename += '.xls';
+      mimeType = 'application/vnd.ms-excel';
     }
     
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    // Show success message
+    alert(`Laporan berhasil diexport sebagai ${format.toUpperCase()}!`);
   };
 
   return (
@@ -214,13 +261,17 @@ export default function AdminLaporanPage() {
                 <div className="mb-6 p-4 bg-green-50 rounded-lg">
                   <h4 className="font-semibold text-green-800 mb-2">{reportData.title}</h4>
                   <p className="text-sm text-green-700">Periode: {reportData.period}</p>
+                  <p className="text-sm text-green-700">Total Data: {reportData.details?.length || 0} record</p>
                   {reportData.summary && (
-                    <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                      {Object.entries(reportData.summary).map(([key, value]) => (
-                        <div key={key} className="text-green-700">
-                          <strong>{key}:</strong> {value as string}
-                        </div>
-                      ))}
+                    <div className="mt-3">
+                      <p className="text-sm font-medium text-green-800 mb-2">Ringkasan:</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                        {Object.entries(reportData.summary).map(([key, value]) => (
+                          <div key={key} className="text-green-700 bg-white p-2 rounded">
+                            <strong>{key}:</strong> {value as string}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -249,6 +300,15 @@ export default function AdminLaporanPage() {
                     <Download className="w-4 h-4 mr-2" />
                     Export TXT
                   </button>
+                  {selectedTemplate === 'log-aktivitas' && (
+                    <button 
+                      onClick={() => exportReport('excel')}
+                      className="flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export Excel
+                    </button>
+                  )}
                 </div>
               )}
             </div>

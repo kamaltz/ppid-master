@@ -263,31 +263,56 @@ async function generateLogReport(startDate?: string, endDate?: string) {
   const logs = await prisma.activityLog.findMany({
     where: whereClause,
     orderBy: { created_at: 'desc' },
-    take: 1000 // Limit to prevent large exports
+    take: 5000
   });
+
+  const actionCounts = logs.reduce((acc, log) => {
+    const action = log.action || 'UNKNOWN';
+    acc[action] = (acc[action] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const roleCounts = logs.reduce((acc, log) => {
+    const role = log.user_role || 'UNKNOWN';
+    acc[role] = (acc[role] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const summary = {
     'Total Log': logs.length,
-    'Login': logs.filter(l => l.action === 'LOGIN').length,
-    'Create': logs.filter(l => l.action === 'CREATE').length,
-    'Update': logs.filter(l => l.action === 'UPDATE').length,
-    'Delete': logs.filter(l => l.action === 'DELETE').length
+    'Login': actionCounts['LOGIN'] || 0,
+    'Logout': actionCounts['LOGOUT'] || 0,
+    'Create': actionCounts['CREATE'] || actionCounts['CREATE_ACCOUNT'] || 0,
+    'Update': actionCounts['UPDATE'] || actionCounts['UPDATE_PROFILE'] || 0,
+    'Delete': actionCounts['DELETE'] || 0,
+    'View': actionCounts['VIEW'] || 0,
+    'Export': actionCounts['EXPORT'] || 0,
+    'Admin': roleCounts['ADMIN'] || 0,
+    'PPID': (roleCounts['PPID_UTAMA'] || 0) + (roleCounts['PPID_PELAKSANA'] || 0) + (roleCounts['ATASAN_PPID'] || 0),
+    'Pemohon': roleCounts['PEMOHON'] || 0
   };
 
   const details = logs.map(l => ({
     ID: l.id,
-    'User ID': l.user_id,
-    'User Role': l.user_role,
-    Action: l.action,
-    Resource: l.resource,
-    Details: l.details || '-',
+    'User ID': l.user_id || '-',
+    'User Role': l.user_role || '-',
+    Action: l.action || '-',
+    Resource: l.resource || '-',
+    Details: l.details ? (l.details.length > 100 ? l.details.substring(0, 100) + '...' : l.details) : '-',
     'IP Address': l.ip_address || '-',
-    'User Agent': l.user_agent || '-',
-    Timestamp: l.created_at.toLocaleString('id-ID')
+    'User Agent': l.user_agent ? (l.user_agent.length > 50 ? l.user_agent.substring(0, 50) + '...' : l.user_agent) : '-',
+    Timestamp: l.created_at.toLocaleString('id-ID', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
   }));
 
   return {
-    title: 'Laporan Log Aktivitas',
+    title: 'Laporan Log Aktivitas Sistem',
     summary,
     details
   };
