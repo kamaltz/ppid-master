@@ -4,7 +4,7 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package*.json ./
-RUN npm ci
+RUN npm install --frozen-lockfile
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -31,7 +31,7 @@ RUN chmod +x start.sh
 USER nextjs
 
 EXPOSE 3000
-ENV PORT 3000
-ENV NODE_ENV production
+ENV PORT=3000
+ENV NODE_ENV=production
 
 CMD ["./start.sh"]
