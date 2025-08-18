@@ -1,127 +1,87 @@
-import dotenv from "dotenv";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+//
+const dotenv = require("dotenv");
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
+const { permissions, roles } = require("../../src/lib/roleUtils"); //
 
-dotenv.config({ path: ".env.local" });
-
+dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting seed...");
+  console.log("Start seeding ...");
 
-  const defaultPassword = "Garut@2025?";
-  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-
-  try {
-    // Create Admin
-    await prisma.admin.upsert({
-      where: { email: "admin@garut.go.id" },
+  // Create Roles
+  for (const role of Object.values(roles)) {
+    await prisma.role.upsert({
+      where: { name: role.name },
       update: {},
-      create: {
-        email: "admin@garut.go.id",
-        hashed_password: hashedPassword,
-        nama: "Administrator Sistem",
-      },
+      create: { name: role.name },
     });
-
-    // Create PPID Utama
-    await prisma.ppid.upsert({
-      where: { no_pegawai: "PPID001" },
-      update: {
-        email: "ppid.utama@garut.go.id",
-        nama: "PPID Utama Diskominfo",
-        role: "PPID_UTAMA",
-      },
-      create: {
-        no_pegawai: "PPID001",
-        email: "ppid.utama@garut.go.id",
-        hashed_password: hashedPassword,
-        nama: "PPID Utama Diskominfo",
-        role: "PPID_UTAMA",
-      },
-    });
-
-    // Create PPID Pelaksana
-    await prisma.ppid.upsert({
-      where: { no_pegawai: "PPID002" },
-      update: {
-        email: "ppid.pelaksana@garut.go.id",
-        nama: "PPID Pelaksana Diskominfo",
-        role: "PPID_PELAKSANA",
-      },
-      create: {
-        no_pegawai: "PPID002",
-        email: "ppid.pelaksana@garut.go.id",
-        hashed_password: hashedPassword,
-        nama: "PPID Pelaksana Diskominfo",
-        role: "PPID_PELAKSANA",
-      },
-    });
-
-    // Create Atasan PPID
-    await prisma.ppid.upsert({
-      where: { no_pegawai: "PPID003" },
-      update: {
-        email: "atasan.ppid@garut.go.id",
-        nama: "Atasan PPID Diskominfo",
-        role: "ATASAN_PPID",
-      },
-      create: {
-        no_pegawai: "PPID003",
-        email: "atasan.ppid@garut.go.id",
-        hashed_password: hashedPassword,
-        nama: "Atasan PPID Diskominfo",
-        role: "ATASAN_PPID",
-      },
-    });
-
-    // Create Pemohon
-    await prisma.pemohon.upsert({
-      where: { email: "pemohon@example.com" },
-      update: {},
-      create: {
-        email: "pemohon@example.com",
-        hashed_password: hashedPassword,
-        nama: "Pemohon Test",
-        nik: "3205012345678901",
-        no_telepon: "081234567890",
-        alamat: "Jl. Test No. 123, Garut",
-      },
-    });
-
-    console.log("✅ Seed completed successfully!");
-    console.log("\n📋 Default accounts created:");
-    console.log(
-      "┌─────────────────┬─────────────────────────────┬─────────────────┐"
-    );
-    console.log(
-      "│ Role            │ Email                       │ Password        │"
-    );
-    console.log(
-      "├─────────────────┼─────────────────────────────┼─────────────────┤"
-    );
-    console.log(
-      "│ Admin           │ admin@garut.go.id           │ Garut@2025?     │"
-    );
-    console.log(
-      "│ PPID Utama      │ ppid.utama@garut.go.id      │ Garut@2025?     │"
-    );
-    console.log(
-      "│ PPID Pelaksana  │ ppid.pelaksana@garut.go.id  │ Garut@2025?     │"
-    );
-    console.log(
-      "│ Atasan PPID     │ atasan.ppid@garut.go.id     │ Garut@2025?     │"
-    );
-    console.log(
-      "│ Pemohon         │ pemohon@example.com         │ Garut@2025?     │"
-    );
-    console.log(
-      "└─────────────────┴─────────────────────────────┴─────────────────┘"
-    );
-  } catch (error) {
-    console.error("❌ Seed failed:", error);
-    throw error;
   }
+  console.log("Roles seeded.");
+
+  // Create Permissions
+  for (const permission of Object.values(permissions)) {
+    await prisma.permission.upsert({
+      where: { name: permission },
+      update: {},
+      create: { name: permission },
+    });
+  }
+  console.log("Permissions seeded.");
+
+  // Assign all permissions to Admin role
+  const adminRole = await prisma.role.findUnique({ where: { name: "Admin" } });
+  const allPermissions = await prisma.permission.findMany();
+
+  if (adminRole) {
+    for (const permission of allPermissions) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: adminRole.id,
+            permissionId: permission.id,
+          },
+        },
+        update: {},
+        create: {
+          roleId: adminRole.id,
+          permissionId: permission.id,
+        },
+      });
+    }
+    console.log("All permissions assigned to Admin role.");
+  }
+
+  const hashedPassword = await bcrypt.hash("Garut@2025?", 10);
+  const accounts = [
+    { email: "admin@garut.go.id", role: "Admin" },
+    { email: "ppid.utama@garut.go.id", role: "PPID_Utama" },
+    { email: "ppid.pelaksana@garut.go.id", role: "PPID_Pelaksana" },
+    { email: "atasan.ppid@garut.go.id", role: "Atasan_PPID" },
+    { email: "pemohon@example.com", role: "Pemohon" },
+  ];
+
+  for (const account of accounts) {
+    const userRole = await prisma.role.findUnique({
+      where: { name: account.role },
+    });
+    if (userRole) {
+      await prisma.user.upsert({
+        where: { email: account.email },
+        update: {},
+        create: {
+          email: account.email,
+          password: hashedPassword,
+          roleId: userRole.id,
+          name: account.role,
+          isVerified: true,
+        },
+      });
+    }
+  }
+
+  console.log("Seeding finished.");
 }
 
 main()
