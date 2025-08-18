@@ -7,10 +7,14 @@ echo "🚀 PPID Master - Complete Deployment"
 read -p "Enter your domain (or press Enter for IP-only access): " DOMAIN
 if [ -z "$DOMAIN" ]; then
     DOMAIN="_"
-    USE_SSL=false
+    USE_SSL="false"
 else
     read -p "Setup SSL certificate for $DOMAIN? (y/n): " SSL_CHOICE
-    USE_SSL=$([ "$SSL_CHOICE" = "y" ] && echo true || echo false)
+    if [ "$SSL_CHOICE" = "y" ]; then
+        USE_SSL="true"
+    else
+        USE_SSL="false"
+    fi
 fi
 
 # Install Docker
@@ -143,7 +147,7 @@ sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 
 # Setup SSL if requested
-if [ "$USE_SSL" = true ]; then
+if [ "$USE_SSL" = "true" ]; then
     echo "Setting up SSL certificate..."
     sudo apt install -y certbot python3-certbot-nginx
     sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
@@ -165,7 +169,7 @@ echo ""
 if [ "$DOMAIN" = "_" ]; then
     echo "🌐 Access: http://$PUBLIC_IP"
 else
-    if [ "$USE_SSL" = true ]; then
+    if [ "$USE_SSL" = "true" ]; then
         echo "🌐 Access: https://$DOMAIN"
     else
         echo "🌐 Access: http://$DOMAIN"
