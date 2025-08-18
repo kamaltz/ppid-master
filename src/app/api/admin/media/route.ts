@@ -138,7 +138,7 @@ export async function DELETE(request: NextRequest) {
         success: true,
         message: 'File deleted successfully'
       });
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: 'Failed to delete file' },
         { status: 500 }

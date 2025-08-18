@@ -13,8 +13,6 @@ global.activityLogs = global.activityLogs || [
   }
 ];
 
-let logs = global.activityLogs;
-
 export async function POST(request: NextRequest) {
   try {
     const logData = await request.json();
@@ -26,25 +24,25 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString()
     };
     
-    global.activityLogs.unshift(newLog);
+    global.activityLogs?.unshift(newLog);
     
-    if (global.activityLogs.length > 1000) {
+    if (global.activityLogs && global.activityLogs.length > 1000) {
       global.activityLogs = global.activityLogs.slice(0, 1000);
     }
     
-    console.log('Log created successfully, total logs:', global.activityLogs.length);
+    console.log('Log created successfully, total logs:', global.activityLogs?.length || 0);
     return NextResponse.json({ success: true, log: newLog });
   } catch (error) {
     console.error('Error creating log:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
 export async function GET() {
-  console.log('Getting logs, total:', global.activityLogs.length);
+  console.log('Getting logs, total:', global.activityLogs?.length || 0);
   return NextResponse.json({
     success: true,
-    data: global.activityLogs,
-    pagination: { page: 1, limit: 50, total: global.activityLogs.length, pages: 1 }
+    data: global.activityLogs || [],
+    pagination: { page: 1, limit: 50, total: global.activityLogs?.length || 0, pages: 1 }
   });
 }

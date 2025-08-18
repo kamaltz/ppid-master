@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../lib/lib/prismaClient';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if Supabase is configured
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Supabase not configured' 
-      }, { status: 503 });
-    }
-    
-    const { supabase } = await import('../../../../lib/lib/supabaseClient');
     const body = await request.json();
     
     const insertData = {
@@ -22,18 +14,9 @@ export async function POST(request: NextRequest) {
       status: 'Diajukan'
     };
 
-    const { data, error } = await supabase
-      .from('requests')
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ 
-        success: false, 
-        error: error.message 
-      }, { status: 500 });
-    }
+    const data = await prisma.request.create({
+      data: insertData
+    });
 
     return NextResponse.json({ 
       success: true, 

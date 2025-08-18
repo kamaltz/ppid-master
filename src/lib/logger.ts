@@ -58,16 +58,13 @@ export enum LogAction {
 
 interface LogData {
   action: LogAction;
-  level: LogLevel;
   message: string;
   userId?: string;
   userRole?: string;
-  userEmail?: string;
   ipAddress?: string;
   userAgent?: string;
-  details?: any;
-  resourceId?: string;
-  resourceType?: string;
+  details?: string | object | null;
+  resource?: string;
 }
 
 export class Logger {
@@ -76,17 +73,12 @@ export class Logger {
       await prisma.activityLog.create({
         data: {
           action: data.action,
-          level: data.level,
-          message: data.message,
+          resource: data.resource || null,
+          details: data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details)) : null,
           user_id: data.userId || null,
           user_role: data.userRole || null,
-          user_email: data.userEmail || null,
           ip_address: data.ipAddress || null,
-          user_agent: data.userAgent || null,
-          details: data.details ? JSON.stringify(data.details) : null,
-          resource_id: data.resourceId || null,
-          resource_type: data.resourceType || null,
-          created_at: new Date()
+          user_agent: data.userAgent || null
         }
       });
     } catch (error) {
@@ -94,35 +86,30 @@ export class Logger {
     }
   }
 
-  static async logAuth(action: LogAction, email: string, success: boolean, ipAddress?: string, userAgent?: string, details?: any) {
+  static async logAuth(action: LogAction, email: string, success: boolean, ipAddress?: string, userAgent?: string, details?: string | object) {
     await this.log({
       action,
-      level: success ? LogLevel.SUCCESS : LogLevel.WARN,
       message: success ? `${action} successful for ${email}` : `${action} failed for ${email}`,
-      userEmail: email,
       ipAddress,
       userAgent,
       details
     });
   }
 
-  static async logUserAction(action: LogAction, userId: string, userRole: string, userEmail: string, message: string, ipAddress?: string, details?: any) {
+  static async logUserAction(action: LogAction, userId: string, userRole: string, message: string, ipAddress?: string, details?: string | object) {
     await this.log({
       action,
-      level: LogLevel.INFO,
       message,
       userId,
       userRole,
-      userEmail,
       ipAddress,
       details
     });
   }
 
-  static async logSystemAction(action: LogAction, message: string, userId?: string, userRole?: string, details?: any) {
+  static async logSystemAction(action: LogAction, message: string, userId?: string, userRole?: string, details?: string | object) {
     await this.log({
       action,
-      level: LogLevel.INFO,
       message,
       userId,
       userRole,
@@ -130,10 +117,9 @@ export class Logger {
     });
   }
 
-  static async logSecurity(action: LogAction, message: string, ipAddress?: string, userAgent?: string, details?: any) {
+  static async logSecurity(action: LogAction, message: string, ipAddress?: string, userAgent?: string, details?: string | object) {
     await this.log({
       action,
-      level: LogLevel.WARN,
       message,
       ipAddress,
       userAgent,
@@ -141,10 +127,9 @@ export class Logger {
     });
   }
 
-  static async logError(action: LogAction, message: string, error: any, userId?: string, userRole?: string) {
+  static async logError(action: LogAction, message: string, error: Error, userId?: string, userRole?: string) {
     await this.log({
       action,
-      level: LogLevel.ERROR,
       message,
       userId,
       userRole,

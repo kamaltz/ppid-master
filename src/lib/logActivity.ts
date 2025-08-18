@@ -7,7 +7,7 @@ export const logActivity = async (logData: {
   user_role?: string;
   user_email?: string;
   ip_address?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }) => {
   try {
     const response = await fetch('/api/logs/create', {

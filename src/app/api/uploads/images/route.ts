@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         success: true, 
         images: imageFiles 
       });
-    } catch (error) {
+    } catch {
       // Directory might not exist
       return NextResponse.json({ 
         success: true, 

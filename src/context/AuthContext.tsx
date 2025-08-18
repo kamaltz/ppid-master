@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/api";
 import { isAdminRole, isPemohon } from "@/lib/roleUtils";
@@ -29,14 +29,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_data");
     localStorage.removeItem("user_role");
     router.push("/login");
-  };
+  }, [router]);
 
   useEffect(() => {
     const checkTokenExpiration = () => {
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return false;
           }
           return true;
-        } catch (error) {
+        } catch {
           // Invalid token, logout user
           logout();
           return false;
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const interval = setInterval(checkTokenExpiration, 60000);
     
     return () => clearInterval(interval);
-  }, [router]);
+  }, [router, logout]);
 
   const login = async (email: string, password: string) => {
     try {

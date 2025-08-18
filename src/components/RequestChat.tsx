@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Download, X, Image, StopCircle } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Send, Paperclip, X, Image as ImageIcon, StopCircle } from 'lucide-react';
+import Image from 'next/image';
 
 interface Response {
   id: number;
@@ -42,7 +43,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchResponses = async () => {
+  const fetchResponses = useCallback(async () => {
     try {
       const response = await fetch(`/api/permintaan/${requestId}/responses`);
       if (!response.ok) {
@@ -62,11 +63,11 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
         
         // Check if pemohon can send message
         if (currentUserRole === 'Pemohon') {
-          const pemohonMessages = data.data.filter((msg: any) => msg.user_role === 'Pemohon');
-          const adminMessages = data.data.filter((msg: any) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
+          const pemohonMessages = data.data.filter((msg: Response) => msg.user_role === 'Pemohon');
+          const adminMessages = data.data.filter((msg: Response) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
           
           // Check if request is completed
-          const isCompleted = data.data.some((msg: any) => msg.message_type === 'system' && msg.message.includes('Selesai'));
+          const isCompleted = data.data.some((msg: Response) => msg.message_type === 'system' && msg.message.includes('Selesai'));
           
           // Pemohon can only send if: not ended, not completed, and (no messages yet OR admin has replied)
           const canSend = !isEnded && !isCompleted && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
@@ -78,9 +79,9 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
     } catch (error) {
       console.error('Failed to fetch responses:', error);
     }
-  };
+  }, [requestId, currentUserRole, isAdmin]);
 
-  const sendResponse = async (messageType = 'text') => {
+  const sendResponse = async () => {
     if (currentUserRole === 'Pemohon' && !canSendMessage) {
       alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
       return;
@@ -215,7 +216,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
     }
   };
 
-  const fetchPpidList = async (search = '', page = 1) => {
+  const fetchPpidList = useCallback(async (search = '', page = 1) => {
     if (loadingPpid) return;
     setLoadingPpid(true);
     try {
@@ -239,7 +240,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
     } finally {
       setLoadingPpid(false);
     }
-  };
+  }, [loadingPpid]);
 
   const loadMorePpid = () => {
     if (hasMore && !loadingPpid) {
@@ -277,7 +278,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
     if (showPpidModal) {
       fetchPpidList();
     }
-  }, [showPpidModal]);
+  }, [showPpidModal, fetchPpidList]);
 
   useEffect(() => {
     if (showPpidModal) {
@@ -288,13 +289,13 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       }, 300);
       return () => clearTimeout(timeoutId);
     }
-  }, [searchTerm, showPpidModal]);
+  }, [searchTerm, showPpidModal, fetchPpidList]);
 
   useEffect(() => {
     fetchResponses();
     const interval = setInterval(fetchResponses, 2000);
     return () => clearInterval(interval);
-  }, [requestId]);
+  }, [requestId, fetchResponses]);
 
   // Auto-scroll disabled - users can scroll manually
 
@@ -375,18 +376,20 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                 {resp.message && <p className="text-gray-800">{resp.message}</p>}
                 {attachmentList.length > 0 && (
                   <div className="mt-2 space-y-2">
-                    {attachmentList.map((file: any, index: number) => (
+                    {attachmentList.map((file: { name: string; url: string; size?: number }, index: number) => (
                       <div key={index} className="text-sm">
                         {isImageFile(file.url) ? (
                           <div className="space-y-2">
-                            <img 
+                            <Image 
                               src={file.url} 
-                              alt={file.name} 
+                              alt={file.name || 'Attachment image'} 
+                              width={300}
+                              height={200}
                               className="max-w-xs rounded border cursor-pointer hover:opacity-90" 
                               onClick={() => window.open(file.url, '_blank')}
                             />
                             <div className="flex items-center gap-1 text-blue-600">
-                              <Image className="w-4 h-4" />
+                              <ImageIcon className="w-4 h-4" />
                               <span className="text-xs">{file.name}</span>
                             </div>
                           </div>
@@ -502,7 +505,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                 className="p-2 text-gray-500 hover:text-gray-700"
                 title="Lampirkan gambar (PNG, JPG, etc.)"
               >
-                <Image className="w-5 h-5" />
+                <ImageIcon className="w-5 h-5" />
               </button>
               <input
                 type="text"

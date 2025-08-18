@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient";
+// import { supabase } from "../lib/supabaseClient"; // Disabled for Prisma migration
 
 // Define Request and Response types for Next.js API routes
 interface Request {
@@ -11,42 +11,12 @@ interface Response {
   json: (data: unknown) => void;
 }
 
-interface ErrorWithMessage extends Error {
-  message: string;
-}
+
 
 /**
- * Menambahkan tanggapan atas keberatan.
+ * Menambahkan tanggapan atas keberatan - DISABLED FOR PRISMA MIGRATION
  * (Atasan PPID Only)
  */
 export const createTanggapan = async (req: Request, res: Response) => {
-  const { no_registrasi_keberatan } = req.params;
-  const { tanggapan } = req.body;
-
-  if (!tanggapan) {
-    return res.status(400).json({ error: "Tanggapan tidak boleh kosong." });
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("keberatan") // Kita update tabel 'keberatan'
-      .update({
-        tanggapan_atasan_ppid: tanggapan,
-        tanggal_tanggapan_diberikan: new Date().toISOString(),
-      })
-      .eq("no_registrasi_keberatan", no_registrasi_keberatan)
-      .select()
-      .single();
-
-    if (error) throw error;
-    if (!data)
-      return res.status(404).json({ error: "Data keberatan tidak ditemukan." });
-
-    res
-      .status(200)
-      .json({ message: "Tanggapan atas keberatan berhasil disimpan", data });
-  } catch (err: unknown) {
-    const error = err as ErrorWithMessage;
-    res.status(500).json({ error: error.message });
-  }
+  res.status(501).json({ error: "Function disabled during Prisma migration" });
 };

@@ -37,7 +37,7 @@ interface InformasiFormData {
   }>;
 }
 
-export const useInformasiData = (limit = 10, page = 1, setTotalPages?: (pages: number) => void, setTotalItems?: (items: number) => void, filters?: any) => {
+export const useInformasiData = (limit = 10, page = 1, setTotalPages?: (pages: number) => void, setTotalItems?: (items: number) => void, filters?: Record<string, string>) => {
   const [informasi, setInformasi] = useState<InformasiData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,7 +71,7 @@ export const useInformasiData = (limit = 10, page = 1, setTotalPages?: (pages: n
     } finally {
       setIsLoading(false);
     }
-  }, [limit, page, filters]);
+  }, [limit, page, filters, setTotalPages, setTotalItems]);
 
   useEffect(() => {
     loadData();

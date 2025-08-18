@@ -9,12 +9,6 @@ interface JWTPayload {
   userId?: number;
 }
 
-interface WhereClause {
-  pemohon_id?: number;
-  assigned_ppid_id?: number;
-  status?: string;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -29,7 +23,7 @@ export async function GET(request: NextRequest) {
     const pemohonId = searchParams.get('pemohon_id');
 
     const userId = parseInt(decoded.id) || decoded.userId;
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     
     if (decoded.role === 'PEMOHON') {
       where.pemohon_id = userId;
@@ -98,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Use existing request ID
-    let requestId = permintaan_id;
+    const requestId = permintaan_id;
     if (!requestId) {
       return NextResponse.json({ error: 'Permintaan ID diperlukan' }, { status: 400 });
     } else {

@@ -25,11 +25,15 @@ export async function POST(request: NextRequest) {
     const { receiver_id, message } = await request.json();
     const senderId = parseInt(decoded.id) || decoded.userId;
 
+    if (!senderId) {
+      return NextResponse.json({ error: 'Invalid sender ID' }, { status: 400 });
+    }
+
     const chatMessage = await prisma.ppidChat.create({
       data: {
         sender_id: senderId,
-        receiver_id: receiver_id,
-        message: message
+        receiver_id: parseInt(receiver_id),
+        message: String(message)
       }
     });
 

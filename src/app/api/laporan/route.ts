@@ -187,15 +187,15 @@ async function generateInformasiReport() {
 
   const summary = {
     'Total Informasi': informasi.length,
-    'Informasi Berkala': informasi.filter(i => i.jenis === 'Berkala').length,
-    'Informasi Serta Merta': informasi.filter(i => i.jenis === 'Serta Merta').length,
-    'Informasi Setiap Saat': informasi.filter(i => i.jenis === 'Setiap Saat').length
+    'Informasi Berkala': informasi.filter(i => i.klasifikasi === 'Berkala').length,
+    'Informasi Serta Merta': informasi.filter(i => i.klasifikasi === 'Serta Merta').length,
+    'Informasi Setiap Saat': informasi.filter(i => i.klasifikasi === 'Setiap Saat').length
   };
 
   const details = informasi.map(i => ({
     ID: i.id,
     Judul: i.judul,
-    Jenis: i.jenis,
+    Klasifikasi: i.klasifikasi,
     'Tanggal Dibuat': i.created_at.toLocaleDateString('id-ID'),
     'Tanggal Update': i.updated_at.toLocaleDateString('id-ID')
   }));

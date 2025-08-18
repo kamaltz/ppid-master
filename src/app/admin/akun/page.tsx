@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { Plus, Edit, Trash2, Eye, X, Upload, Download, Key } from "lucide-react";
+import { Plus, Edit, Trash2, Key } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Account {
@@ -31,11 +31,9 @@ export default function AdminAkunPage() {
     email: '',
     role: 'PEMOHON'
   });
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [showImport, setShowImport] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<{type: 'delete' | 'reset' | 'save' | 'bulk-delete' | 'bulk-reset', data?: any}>({type: 'delete'});
+  const [confirmAction, setConfirmAction] = useState<{type: 'delete' | 'reset' | 'save' | 'bulk-delete' | 'bulk-reset', data?: string | string[] | {nama: string; email: string; role: string}}>({type: 'delete'});
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
 
   const fetchAccounts = useCallback(async () => {
@@ -64,7 +62,7 @@ export default function AdminAkunPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setConfirmAction({type: 'save', data: formData});
+    setConfirmAction({type: 'save', data: {...formData}});
     setShowConfirmModal(true);
   };
 
@@ -225,8 +223,8 @@ export default function AdminAkunPage() {
   };
 
   const confirmBulkDelete = async () => {
-    const ids = confirmAction.data;
-    if (!token) {
+    const ids = confirmAction.data as string[];
+    if (!token || !ids) {
       alert('Token tidak ditemukan');
       return;
     }
@@ -243,7 +241,7 @@ export default function AdminAkunPage() {
         });
       }
       
-      alert(`${ids.length} akun berhasil dihapus`);
+      alert(`${ids?.length || 0} akun berhasil dihapus`);
       fetchAccounts();
       setSelectedAccounts([]);
     } catch (error) {
@@ -254,8 +252,8 @@ export default function AdminAkunPage() {
   };
 
   const confirmBulkResetPassword = async () => {
-    const ids = confirmAction.data;
-    if (!token) {
+    const ids = confirmAction.data as string[];
+    if (!token || !ids) {
       alert('Token tidak ditemukan');
       return;
     }
@@ -272,7 +270,7 @@ export default function AdminAkunPage() {
         });
       }
       
-      alert(`Password ${ids.length} akun berhasil direset ke: Garut@2025?`);
+      alert(`Password ${ids?.length || 0} akun berhasil direset ke: Garut@2025?`);
       setSelectedAccounts([]);
     } catch (error) {
       console.error('Error bulk resetting passwords:', error);
@@ -297,52 +295,9 @@ export default function AdminAkunPage() {
     }
   };
 
-  const handleViewDetail = (account: Account) => {
-    setSelectedAccount(account);
-  };
 
-  const handleImportExcel = async () => {
-    if (!importFile || !token) {
-      alert('Pilih file Excel terlebih dahulu');
-      return;
-    }
 
-    const formData = new FormData();
-    formData.append('file', importFile);
 
-    try {
-      const response = await fetch('/api/accounts/import', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        alert(`Berhasil mengimpor ${data.imported} akun`);
-        fetchAccounts();
-        setShowImport(false);
-        setImportFile(null);
-      } else {
-        alert(data.error || 'Gagal mengimpor akun');
-      }
-    } catch (error) {
-      console.error('Error importing accounts:', error);
-      alert('Terjadi kesalahan saat mengimpor akun');
-    }
-  };
-
-  const downloadTemplate = () => {
-    const link = document.createElement("a");
-    link.href = "/template_akun.csv";
-    link.download = "template_akun.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -360,13 +315,7 @@ export default function AdminAkunPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Kelola Akun</h1>
           <div className="flex gap-2">
-            <button 
-              onClick={() => setShowImport(true)}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Import Excel
-            </button>
+
             <button 
               onClick={() => setShowForm(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
@@ -565,8 +514,8 @@ export default function AdminAkunPage() {
                 {confirmAction.type === 'delete' && `Yakin ingin menghapus akun "${accounts.find(a => a.id === confirmAction.data)?.nama}"? Tindakan ini tidak dapat dibatalkan.`}
                 {confirmAction.type === 'reset' && `Yakin ingin reset password akun "${accounts.find(a => a.id === confirmAction.data)?.nama}" ke password default?`}
                 {confirmAction.type === 'save' && `Yakin ingin ${editId ? 'memperbarui' : 'menyimpan'} akun ini?`}
-                {confirmAction.type === 'bulk-delete' && `Yakin ingin menghapus ${confirmAction.data?.length} akun yang dipilih? Tindakan ini tidak dapat dibatalkan.`}
-                {confirmAction.type === 'bulk-reset' && `Yakin ingin reset password ${confirmAction.data?.length} akun yang dipilih ke password default?`}
+                {confirmAction.type === 'bulk-delete' && `Yakin ingin menghapus ${Array.isArray(confirmAction.data) ? confirmAction.data.length : 0} akun yang dipilih? Tindakan ini tidak dapat dibatalkan.`}
+                {confirmAction.type === 'bulk-reset' && `Yakin ingin reset password ${Array.isArray(confirmAction.data) ? confirmAction.data.length : 0} akun yang dipilih ke password default?`}
               </p>
               <div className="flex space-x-3 justify-end">
                 <button

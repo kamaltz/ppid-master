@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { role: string; nama: string; };
     
     // Only admin roles can end chat
     if (!['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA'].includes(decoded.role)) {

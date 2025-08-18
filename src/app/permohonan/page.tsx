@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 import Link from "next/link";
@@ -21,7 +21,7 @@ export default function PermohonanPage() {
   const [dailyCount, setDailyCount] = useState(0);
   const [isLoadingLimit, setIsLoadingLimit] = useState(true);
   
-  const fetchDailyCount = async () => {
+  const fetchDailyCount = useCallback(async () => {
     if (!token) return;
     try {
       const response = await fetch('/api/permintaan?limit=100', {
@@ -30,7 +30,7 @@ export default function PermohonanPage() {
       const data = await response.json();
       if (data.success) {
         const today = new Date().toDateString();
-        const todayCount = data.data.filter((req: any) => 
+        const todayCount = data.data.filter((req: { created_at: string }) => 
           new Date(req.created_at).toDateString() === today
         ).length;
         setDailyCount(todayCount);
@@ -40,13 +40,13 @@ export default function PermohonanPage() {
     } finally {
       setIsLoadingLimit(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) {
       fetchDailyCount();
     }
-  }, [token]);
+  }, [token, fetchDailyCount]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

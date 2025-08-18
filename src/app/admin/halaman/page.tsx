@@ -13,6 +13,7 @@ interface PageContent {
   slug: string;
   content: string;
   files: FileItem[];
+  sections?: unknown[];
   lastUpdated: string;
 }
 
@@ -35,7 +36,8 @@ export default function AdminHalamanPage() {
     title: "",
     slug: "",
     content: "",
-    files: [] as FileItem[]
+    files: [] as FileItem[],
+    sections: [] as unknown[]
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -268,16 +270,17 @@ export default function AdminHalamanPage() {
     setAutoSaveStatus('unsaved');
   };
 
-  const handleFileUpload = (files: FileList) => {
-    const newFiles: FileItem[] = Array.from(files).map(file => ({
+  const handleFileUpload = async (file: File): Promise<string> => {
+    const newFile: FileItem = {
       id: Date.now() + Math.random().toString(),
       name: file.name,
       size: file.size,
       type: file.type,
       url: URL.createObjectURL(file)
-    }));
+    };
     
-    setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
+    setFormData(prev => ({ ...prev, files: [...prev.files, newFile] }));
+    return newFile.url || '';
   };
 
   if (loading) {

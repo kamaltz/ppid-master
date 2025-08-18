@@ -5,7 +5,7 @@ import { AlertCircle, Clock, Calendar } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SuccessModal from "@/components/SuccessModal";
 import { useRouter, useSearchParams } from "next/navigation";
-import { calculateWorkingDays, canFileObjection } from "@/lib/workingDays";
+import { canFileObjection } from "@/lib/workingDays";
 
 export default function KeberatanPage() {
   const [formData, setFormData] = useState({
@@ -188,7 +188,7 @@ export default function KeberatanPage() {
                   <ul className="text-sm text-blue-700 space-y-1">
                     <li>• Keberatan hanya dapat diajukan setelah 17 hari kerja sejak permohonan diajukan</li>
                     <li>• Perhitungan hari kerja tidak termasuk Sabtu, Minggu, dan hari libur nasional</li>
-                    <li>• Permohonan yang belum memenuhi syarat akan ditandai "Belum 17 hari"</li>
+                    <li>• Permohonan yang belum memenuhi syarat akan ditandai &quot;Belum 17 hari&quot;</li>
                   </ul>
                 </div>
               </div>

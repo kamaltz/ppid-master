@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.split(' ')[1];
     console.log('Token extracted:', !!token);
-    let decoded: any;
+    let decoded: { role: string };
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
       console.log('Token decoded, role:', decoded.role);
     } catch (error) {
       console.log('JWT verify failed:', error);

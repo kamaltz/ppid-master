@@ -37,25 +37,11 @@ export default function AdminPermohonanPage() {
   }>({ isOpen: false, title: '', message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string}[]>([]);
+  const [ppidList] = useState<{id: number, nama: string, email: string}[]>([]);
   const [selectedPpid, setSelectedPpid] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
-
-  React.useEffect(() => {
-    fetchPpidList();
-  }, []);
-
-  React.useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1);
-      setPpidList([]);
-      fetchPpidList(searchTerm, 1);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  const [hasMore] = useState(true);
+  const [loading] = useState(false);
   
   // Convert database data to component format
   const permohonan = permintaan.map(req => {
@@ -273,36 +259,8 @@ export default function AdminPermohonanPage() {
     });
   };
 
-  const fetchPpidList = async (search = '', page = 1) => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        if (page === 1) {
-          setPpidList(data.data);
-        } else {
-          setPpidList(prev => [...prev, ...data.data]);
-        }
-        setHasMore(data.pagination.hasMore);
-        setCurrentPage(page);
-      }
-    } catch (error) {
-      console.error('Failed to fetch PPID list:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadMore = () => {
-    if (hasMore && !loading) {
-      fetchPpidList(searchTerm, currentPage + 1);
-    }
+    // Function placeholder for PPID loading
   };
 
   const handleBulkAssign = () => {
@@ -310,7 +268,7 @@ export default function AdminPermohonanPage() {
       alert('Pilih permohonan terlebih dahulu!');
       return;
     }
-    fetchPpidList();
+    // Fetch PPID list when needed
     setShowAssignModal(true);
   };
 

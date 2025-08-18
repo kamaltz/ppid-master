@@ -30,7 +30,7 @@ export const getAllInformasi = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string, 10) || 10;
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     
     if (klasifikasi) {
       where.klasifikasi = klasifikasi;
@@ -46,7 +46,7 @@ export const getAllInformasi = async (req: Request, res: Response) => {
     const [data, count] = await Promise.all([
       prisma.informasiPublik.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         skip,
         take: limitNum
       }),
@@ -101,11 +101,11 @@ export const createInformasi = async (req: Request, res: Response) => {
   try {
     const data = await prisma.informasiPublik.create({
       data: {
-        judul,
-        klasifikasi,
-        ringkasanIsiInformasi: ringkasan_isi_informasi,
-        fileUrl: file_url,
-        pejabatPenguasaInformasi: pejabat_penguasa_informasi
+        judul: judul as string,
+        klasifikasi: klasifikasi as string,
+        ringkasan_isi_informasi: ringkasan_isi_informasi as string,
+        file_attachments: file_url as string,
+        pejabat_penguasa_informasi: pejabat_penguasa_informasi as string
       }
     });
 
@@ -128,12 +128,12 @@ export const updateInformasi = async (req: Request, res: Response) => {
     const data = await prisma.informasiPublik.update({
       where: { id: parseInt(id) },
       data: {
-        judul,
-        klasifikasi,
-        ringkasanIsiInformasi: ringkasan_isi_informasi,
-        fileUrl: file_url,
-        pejabatPenguasaInformasi: pejabat_penguasa_informasi,
-        updatedAt: new Date()
+        judul: judul as string,
+        klasifikasi: klasifikasi as string,
+        ringkasan_isi_informasi: ringkasan_isi_informasi as string,
+        file_attachments: file_url as string,
+        pejabat_penguasa_informasi: pejabat_penguasa_informasi as string,
+        updated_at: new Date()
       }
     });
 

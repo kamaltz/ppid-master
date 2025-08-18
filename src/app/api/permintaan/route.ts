@@ -9,12 +9,6 @@ interface JWTPayload {
   userId?: number;
 }
 
-interface WhereClause {
-  pemohon_id?: number;
-  assigned_ppid_id?: number;
-  status?: string;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -27,7 +21,7 @@ export async function GET(request: NextRequest) {
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -37,7 +31,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     // Filter based on user role
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     const userId = parseInt(decoded.id) || decoded.userId;
     
     // Role-based filtering
@@ -122,7 +116,7 @@ export async function POST(request: NextRequest) {
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -131,7 +125,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only pemohon can create requests' }, { status: 403 });
     }
 
-    const { judul, deskripsi, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan, kategori_id, cara_memperoleh } = await request.json();
+    const { judul, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan, cara_memperoleh } = await request.json();
 
     // Validate required fields
     if (!rincian_informasi || !tujuan_penggunaan) {
@@ -139,6 +133,10 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = parseInt(decoded.id) || decoded.userId;
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
+    }
 
     // Check daily limit
     const limitCheck = await checkDailyRequestLimit(userId);

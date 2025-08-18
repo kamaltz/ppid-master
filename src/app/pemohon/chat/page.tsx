@@ -15,11 +15,19 @@ interface ChatItem {
   hasMessages: boolean;
 }
 
+interface KeberatanData {
+  id: number;
+  judul?: string;
+  alasan_keberatan?: string;
+  status?: string;
+  created_at: string;
+}
+
 export default function ChatPage() {
   const { permintaan, isLoading } = usePemohonData();
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
-  const [keberatan, setKeberatan] = useState<any[]>([]);
+  const [keberatan, setKeberatan] = useState<KeberatanData[]>([]);
 
   useEffect(() => {
     const fetchKeberatan = async () => {
@@ -47,7 +55,7 @@ export default function ChatPage() {
       ...permintaan.map(req => ({
         id: req.id,
         type: 'permohonan' as const,
-        title: req.judul || req.rincian_informasi.substring(0, 50) + '...',
+        title: req.rincian_informasi.substring(0, 50) + '...',
         status: req.status,
         created_at: req.created_at,
         hasMessages: true

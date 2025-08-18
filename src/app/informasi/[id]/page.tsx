@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Calendar, User, Tag, FileText, ExternalLink, ArrowLeft } from "lucide-react";
 
 interface InformasiDetail {
@@ -142,9 +143,11 @@ export default function InformasiDetailPage() {
           {/* Thumbnail */}
           {informasi.thumbnail && (
             <div className="px-8 pt-6">
-              <img 
+              <Image 
                 src={informasi.thumbnail} 
                 alt={informasi.judul}
+                width={800}
+                height={384}
                 className="w-full h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => {
                   setFullImageSrc(informasi.thumbnail!);
@@ -161,9 +164,11 @@ export default function InformasiDetailPage() {
           {informasi.images && informasi.images.length > 0 && (
             <div className="px-8 pt-6">
               <div className="relative">
-                <img 
+                <Image 
                   src={informasi.images[currentImageIndex]} 
                   alt={`Gallery ${currentImageIndex + 1}`}
+                  width={800}
+                  height={384}
                   className="w-full h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => {
                     setFullImageSrc(informasi.images![currentImageIndex]);
@@ -201,10 +206,12 @@ export default function InformasiDetailPage() {
               {informasi.images.length > 1 && (
                 <div className="flex space-x-2 mt-4 overflow-x-auto">
                   {informasi.images.map((img, index) => (
-                    <img
+                    <Image
                       key={index}
                       src={img}
                       alt={`Thumbnail ${index + 1}`}
+                      width={64}
+                      height={64}
                       onClick={() => setCurrentImageIndex(index)}
                       className={`w-16 h-16 object-cover rounded cursor-pointer ${
                         index === currentImageIndex ? 'ring-2 ring-blue-500' : ''
@@ -296,9 +303,11 @@ export default function InformasiDetailPage() {
       {showFullImage && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
           <div className="relative max-w-full max-h-full">
-            <img 
+            <Image 
               src={fullImageSrc} 
               alt="Full size image"
+              width={1200}
+              height={800}
               className="max-w-full max-h-full object-contain"
             />
             <button

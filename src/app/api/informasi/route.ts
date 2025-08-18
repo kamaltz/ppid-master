@@ -2,20 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-interface WhereClause {
-  klasifikasi?: string;
-  status?: string;
-  created_by?: number;
-  tanggal_posting?: {
-    gte?: Date;
-    lte?: Date;
-  };
-  OR?: Array<{
-    judul?: { contains: string; mode: 'insensitive' };
-    ringkasan_isi_informasi?: { contains: string; mode: 'insensitive' };
-  }>;
-}
-
 interface FileData {
   originalName?: string;
   name: string;
@@ -33,17 +19,15 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     let isAdminOrPPID = false;
     let userId = null;
-    let userRole = null;
     
     // Check if user is authenticated and is admin/PPID
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-        userId = parseInt(decoded.id) || decoded.userId;
-        userRole = decoded.role;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id?: number; userId?: number; role: string };
+        userId = parseInt(decoded.id?.toString() || '') || decoded.userId;
         isAdminOrPPID = ['ADMIN', 'PPID_UTAMA'].includes(decoded.role);
-      } catch (error) {
+      } catch {
         // Token invalid, continue as public user
       }
     }
@@ -58,7 +42,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     
     // Role-based filtering
     if (!authHeader) {
@@ -93,13 +77,14 @@ export async function GET(request: NextRequest) {
     
     // Date range filter (overrides year filter if both provided)
     if (tanggalMulai || tanggalSelesai) {
-      where.tanggal_posting = {};
+      const dateFilter: { gte?: Date; lte?: Date } = {};
       if (tanggalMulai) {
-        where.tanggal_posting.gte = new Date(tanggalMulai);
+        dateFilter.gte = new Date(tanggalMulai);
       }
       if (tanggalSelesai) {
-        where.tanggal_posting.lte = new Date(`${tanggalSelesai}T23:59:59`);
+        dateFilter.lte = new Date(`${tanggalSelesai}T23:59:59`);
       }
+      where.tanggal_posting = dateFilter;
     }
 
     const skip = (page - 1) * limit;
@@ -132,11 +117,11 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    let decoded: any;
+    let decoded: { id?: number; userId?: number; role: string };
     
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    } catch (error) {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id?: number; userId?: number; role: string };
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -155,7 +140,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Judul dan klasifikasi wajib diisi' }, { status: 400 });
     }
 
-    const userId = parseInt(decoded.id) || decoded.userId;
+    const userId = decoded.id ? parseInt(decoded.id.toString()) : decoded.userId;
 
     const data = await prisma.informasiPublik.create({
       data: { 
@@ -175,8 +160,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ message: 'Informasi berhasil ditambahkan', data }, { status: 201 });
-  } catch (error) {
-    console.error('Create informasi error:', error);
+  } catch (err) {
+    console.error('Create informasi error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

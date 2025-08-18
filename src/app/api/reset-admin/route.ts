@@ -7,7 +7,7 @@ export async function POST() {
     const defaultPassword = 'admin123';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    const admin = await prisma.admin.upsert({
+    await prisma.admin.upsert({
       where: { email: 'admin@garutkab.go.id' },
       update: { hashed_password: hashedPassword },
       create: {

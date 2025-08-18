@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  id: string;
+  role: string;
+  nama: string;
+  userId?: number;
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ requestId: string }> }) {
   try {
     const { requestId } = await params;
@@ -33,7 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     console.error('Get chat error:', error);
-    return NextResponse.json({ error: 'Server error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -45,7 +52,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
     const { requestId } = await params;
     const id = parseInt(requestId);
@@ -74,6 +81,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ success: true, data: response });
   } catch (error) {
     console.error('Send message error:', error);
-    return NextResponse.json({ error: 'Server error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

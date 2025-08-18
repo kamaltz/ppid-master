@@ -113,7 +113,7 @@ export default function AdminInformasiPage() {
       });
       const data = await response.json();
       if (data.success) {
-        const imageUrls = data.images?.map((img: any) => img.url || img) || [];
+        const imageUrls = data.images?.map((img: string | { url: string }) => typeof img === 'string' ? img : img.url) || [];
         setAvailableImages(imageUrls);
       }
     } catch (error) {

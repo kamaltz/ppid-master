@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ROLES } from '@/lib/roleUtils';
 import RoleGuard from '@/components/auth/RoleGuard';
 
@@ -30,7 +30,7 @@ export default function ChatPpidPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
 
-  const fetchPpidList = async (search = '', page = 1) => {
+  const fetchPpidList = useCallback(async (search = '', page = 1) => {
     if (loading) return;
     setLoading(true);
     try {
@@ -54,7 +54,7 @@ export default function ChatPpidPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading]);
 
   const loadMore = () => {
     if (hasMore && !loading) {
@@ -127,7 +127,7 @@ export default function ChatPpidPage() {
       fetchPpidList(searchTerm, 1);
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, fetchPpidList]);
 
   useEffect(() => {
     if (selectedPpid) {

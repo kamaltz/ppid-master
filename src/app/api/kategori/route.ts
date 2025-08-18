@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-export async function GET(request?: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const authHeader = request?.headers?.get('authorization');
-    let isAdmin = false;
-    
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-        isAdmin = ['ADMIN', 'PPID_UTAMA'].includes(decoded.role);
-      } catch (error) {
+        jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
+      } catch {
         // Token invalid, continue as public user
       }
     }
@@ -36,11 +33,11 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    let decoded: any;
+    let decoded: { role: string };
     
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    } catch (error) {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -82,8 +79,8 @@ export async function POST(request: NextRequest) {
       message: 'Kategori berhasil dibuat', 
       data: kategori 
     }, { status: 201 });
-  } catch (error) {
-    console.error('Create kategori error:', error);
+  } catch (err) {
+    console.error('Create kategori error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

@@ -2,18 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/lib/prismaClient';
 // import jwt from 'jsonwebtoken'; // Temporarily disabled
 
-interface JWTPayload {
-  id: string;
-  role: string;
-  userId?: number;
-}
-
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // TODO: Re-enable authentication after testing
     console.log('Responses GET API called - auth temporarily disabled');
 
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     const requestData = await prisma.request.findUnique({
       where: { id },
@@ -38,12 +33,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // TODO: Re-enable authentication after testing
     console.log('Responses POST API called - auth temporarily disabled');
 
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
     const userId = '1'; // Default user ID for testing
 
     const requestData = await prisma.request.findUnique({

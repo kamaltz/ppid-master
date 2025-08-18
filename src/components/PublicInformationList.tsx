@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getPublicData } from "@/lib/api";
 import { Card, CardHeader } from "./ui/Card";
-import { FileText, ChevronLeft, ChevronRight, Search, Filter, Eye } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import Link from "next/link";
 
 // Definisikan tipe data untuk konsistensi

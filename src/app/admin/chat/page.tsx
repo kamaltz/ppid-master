@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, MessageCircle, Eye, EyeOff, Trash2, StopCircle, EyeOffIcon, UserPlus, Send } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, MessageCircle, Eye, EyeOff, Trash2, StopCircle, EyeOffIcon, Send } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
@@ -78,7 +78,7 @@ export default function AdminChatPage() {
   const { token, getUserRole } = useAuth();
   const userRole = getUserRole();
 
-  const fetchChats = async () => {
+  const fetchChats = useCallback(async () => {
     try {
       let endpoint = "/api/permintaan";
       if (userRole === 'PPID_PELAKSANA') {
@@ -109,9 +109,9 @@ export default function AdminChatPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token, userRole]);
 
-  const fetchPpidChats = async () => {
+  const fetchPpidChats = useCallback(async () => {
     try {
       const response = await fetch("/api/ppid-chat", {
         headers: { Authorization: `Bearer ${token}` }
@@ -123,9 +123,9 @@ export default function AdminChatPage() {
     } catch (error) {
       console.error("Failed to fetch PPID chats:", error);
     }
-  };
+  }, [token]);
 
-  const fetchPpidList = async (search = '', page = 1) => {
+  const fetchPpidList = useCallback(async (search = '', page = 1) => {
     if (ppidLoading) return;
     setPpidLoading(true);
     try {
@@ -148,7 +148,7 @@ export default function AdminChatPage() {
     } finally {
       setPpidLoading(false);
     }
-  };
+  }, [token, ppidLoading]);
 
   const loadMorePpid = () => {
     if (ppidHasMore && !ppidLoading) {
@@ -282,13 +282,13 @@ export default function AdminChatPage() {
       fetchChats();
       fetchPpidChats();
     }
-  }, [token, userRole]);
+  }, [token, userRole, fetchChats, fetchPpidChats]);
 
   useEffect(() => {
     if (showPpidChatModal) {
       fetchPpidList();
     }
-  }, [showPpidChatModal]);
+  }, [showPpidChatModal, fetchPpidList]);
 
   useEffect(() => {
     if (showPpidChatModal) {
@@ -299,11 +299,11 @@ export default function AdminChatPage() {
       }, 300);
       return () => clearTimeout(timeoutId);
     }
-  }, [ppidSearchTerm, showPpidChatModal]);
+  }, [ppidSearchTerm, showPpidChatModal, fetchPpidList]);
 
   useEffect(() => {
     if (chatType === 'requests') {
-      let filtered = chats.filter(chat => {
+      const filtered = chats.filter(chat => {
         const matchesSearch = 
           chat.judul?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           chat.pemohon?.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||

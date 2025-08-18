@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
-import { Bold, Italic, Underline, List, ListOrdered, Link, Image } from 'lucide-react';
+import { Bold, Italic, Underline, List, ListOrdered, Link, Image as ImageIcon } from 'lucide-react';
 
 interface RichTextEditorProps {
   value: string;
@@ -111,7 +111,7 @@ export default function RichTextEditor({ value, onChange, onFileUpload }: RichTe
           <Link className="w-4 h-4" />
         </button>
         <label className="p-2 hover:bg-gray-200 rounded cursor-pointer" title="Insert Image">
-          <Image className="w-4 h-4" />
+          <ImageIcon className="w-4 h-4" />
           <input
             type="file"
             accept="image/*"

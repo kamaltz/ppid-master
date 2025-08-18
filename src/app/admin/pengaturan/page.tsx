@@ -33,7 +33,7 @@ interface HeroSettings {
 }
 
 export default function AdminPengaturanPage() {
-  const { token } = useAuth();
+  const { } = useAuth();
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState({
     namaInstansi: 'PPID Diskominfo Kabupaten Garut',
@@ -58,7 +58,7 @@ export default function AdminPengaturanPage() {
         { label: 'Permohonan Informasi', url: '/permohonan' },
         { label: 'Keberatan', url: '/keberatan' }
       ]}
-    ] || []
+    ]
   });
   const [footerSettings, setFooterSettings] = useState({
     companyName: 'PPID Kabupaten Garut',
@@ -69,7 +69,14 @@ export default function AdminPengaturanPage() {
     serviceHours: {
       weekdays: 'Senin - Jumat: 08:00 - 16:00 WIB',
       weekend: 'Sabtu - Minggu: Tutup',
-      holidays: 'Hari Libur Nasional: Tutup'
+      holidays: 'Hari Libur Nasional: Tutup',
+      weekdayStart: '08:00',
+      weekdayEnd: '16:00',
+      weekdayClosed: false,
+      weekendStart: '',
+      weekendEnd: '',
+      weekendClosed: true,
+      holidayStatus: 'closed'
     },
     socialMedia: {
       facebook: '',
@@ -94,7 +101,8 @@ export default function AdminPengaturanPage() {
     showContact: true,
     showSocialMedia: true,
     showServiceHours: true,
-    showImportantLinks: true
+    showImportantLinks: true,
+    showQuickLinks: true
   });
 
   const [heroSettings, setHeroSettings] = useState<HeroSettings>({

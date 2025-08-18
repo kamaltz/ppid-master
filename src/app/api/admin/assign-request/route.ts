@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  id: string;
+  role: string;
+  userId?: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -10,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     // Only PPID Utama can assign requests
     if (decoded.role !== 'PPID_UTAMA') {
@@ -27,7 +33,7 @@ export async function POST(request: NextRequest) {
     await prisma.request.update({
       where: { id: requestId },
       data: {
-        assigned_to: assignedTo,
+        assigned_ppid_id: assignedTo,
         status: 'Diproses'
       }
     });

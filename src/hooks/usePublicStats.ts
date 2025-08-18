@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getPublicData } from '@/lib/api';
+
 
 interface PublicStats {
   totalPermintaan: number;

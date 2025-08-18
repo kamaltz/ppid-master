@@ -49,11 +49,11 @@ export default function InformasiPage() {
   const fetchAvailableYears = useCallback(async () => {
     try {
       const response = await getPublicData('/informasi?limit=1000');
-      const years = response.data?.map((item: Informasi) => {
+      const years: number[] = response.data?.map((item: Informasi) => {
         const date = new Date(item.tanggal_posting || item.created_at);
         return date.getFullYear();
       }) || [];
-      const uniqueYears = [...new Set(years)].sort((a, b) => b - a);
+      const uniqueYears = [...new Set(years)].sort((a: number, b: number) => b - a);
       setAvailableYears(uniqueYears);
     } catch {
       console.error('Failed to fetch years');

@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
     const authHeader = request.headers.get('authorization');
-    let isAdmin = false;
     
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-        isAdmin = ['ADMIN', 'PPID_UTAMA'].includes(decoded.role);
-      } catch (error) {
+        jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
+      } catch {
         // Token invalid, continue as public user
       }
     }
@@ -27,13 +26,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     return NextResponse.json({ success: true, data: kategori });
-  } catch (error) {
-    console.error('Get kategori by id error:', error);
+  } catch (err) {
+    console.error('Get kategori by id error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -41,11 +40,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const token = authHeader.split(' ')[1];
-    let decoded: any;
+    let decoded: { role: string };
     
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    } catch (error) {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -54,7 +53,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
     const { nama, slug, deskripsi } = await request.json();
 
     // Check if category exists
@@ -76,13 +76,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       message: 'Kategori berhasil diperbarui', 
       data: kategori 
     });
-  } catch (error) {
-    console.error('Update kategori error:', error);
+  } catch (err) {
+    console.error('Update kategori error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -90,11 +90,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const token = authHeader.split(' ')[1];
-    let decoded: any;
+    let decoded: { role: string };
     
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    } catch (error) {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -103,7 +103,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     // Check if category exists
     const existing = await prisma.kategoriInformasi.findUnique({
@@ -123,16 +124,16 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         success: true, 
         message: 'Kategori berhasil dihapus' 
       });
-    } catch (error: any) {
-      if (error.code === 'P2003') {
+    } catch (deleteError: unknown) {
+      if ((deleteError as { code?: string }).code === 'P2003') {
         return NextResponse.json({ 
           error: 'Kategori tidak dapat dihapus karena masih digunakan' 
         }, { status: 400 });
       }
-      throw error;
+      throw deleteError;
     }
-  } catch (error) {
-    console.error('Delete kategori error:', error);
+  } catch (err) {
+    console.error('Delete kategori error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

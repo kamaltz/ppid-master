@@ -9,7 +9,7 @@ interface ActivityLog {
   action: string;
   level: string;
   message: string;
-  details: any;
+  details: string | object | null;
   user_id: string;
   user_role: string;
   user_email: string;

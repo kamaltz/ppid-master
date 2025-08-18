@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  id: string;
+  role: string;
+  userId?: number;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -10,15 +16,12 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     const allowedRoles = ['ADMIN', 'Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'];
     if (!allowedRoles.includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
-
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
 
     // Only fetch PPID users with specific roles for permissions management
     const ppidUsers = await prisma.ppid.findMany({
@@ -47,6 +50,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: users });
   } catch (error) {
     console.error('Get users error:', error);
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Server error' }, { status: 500 });
   }
 }

@@ -307,7 +307,7 @@ export default function PermissionsPage() {
                         {(() => {
                           try {
                             const userPerms = user.permissions ? JSON.parse(user.permissions) : {};
-                            const activePerms = Object.entries(userPerms).filter(([_, value]) => value).length;
+                            const activePerms = Object.entries(userPerms).filter(([, value]) => value).length;
                             return activePerms > 0 ? (
                               <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
                                 {activePerms} akses aktif

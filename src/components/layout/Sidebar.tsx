@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ROLES, getRoleDisplayName, canAccessMenu } from "@/lib/roleUtils";
+import { getRoleDisplayName } from "@/lib/roleUtils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+
+type PermissionKey = 'informasi' | 'kategori' | 'chat' | 'permohonan' | 'keberatan' | 'kelola_akun' | 'manajemen_role' | 'kelola_akses' | 'log_aktivitas' | 'pengaturan' | 'media' | 'profile';
 import {
   LayoutDashboard,
   FileText,
   Users,
   Settings,
-  BarChart3,
-  Globe,
+
   AlertTriangle,
   User,
   ChevronLeft,
@@ -135,7 +136,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   
   const visibleMenuItems = menuItems.filter((item) => {
     if (!item.permission) return true; // Dashboard always visible
-    return hasPermission(item.permission as any);
+    return hasPermission(item.permission as PermissionKey);
   });
 
 

@@ -9,16 +9,23 @@ export interface User {
   role: string;
 }
 
+interface JWTPayload {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 export function verifyToken(token: string): User | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     return {
       id: decoded.id,
       email: decoded.email,
       name: decoded.name,
       role: decoded.role
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

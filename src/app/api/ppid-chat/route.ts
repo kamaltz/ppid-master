@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 

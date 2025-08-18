@@ -38,22 +38,21 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash('Garut@2025?', 10);
 
-    let updatedAccount;
     switch (table) {
       case 'admin':
-        updatedAccount = await prisma.admin.update({
+        await prisma.admin.update({
           where: { id: numericId },
           data: { hashed_password: hashedPassword }
         });
         break;
       case 'pemohon':
-        updatedAccount = await prisma.pemohon.update({
+        await prisma.pemohon.update({
           where: { id: numericId },
           data: { hashed_password: hashedPassword }
         });
         break;
       case 'ppid':
-        updatedAccount = await prisma.ppid.update({
+        await prisma.ppid.update({
           where: { id: numericId },
           data: { hashed_password: hashedPassword }
         });

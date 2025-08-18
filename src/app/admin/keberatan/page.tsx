@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useKeberatanData } from "@/hooks/useKeberatanData";
@@ -39,9 +39,35 @@ export default function AdminKeberatanPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
 
+  const fetchPpidList = useCallback(async (search = '', page = 1) => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        if (page === 1) {
+          setPpidList(data.data);
+        } else {
+          setPpidList(prev => [...prev, ...data.data]);
+        }
+        setHasMore(data.pagination.hasMore);
+        setCurrentPage(page);
+      }
+    } catch (error) {
+      console.error('Failed to fetch PPID list:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading]);
+
   React.useEffect(() => {
     fetchPpidList();
-  }, []);
+  }, [fetchPpidList]);
 
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -50,7 +76,7 @@ export default function AdminKeberatanPage() {
       fetchPpidList(searchTerm, 1);
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, fetchPpidList]);
   
   // Convert database data to display format
   const keberatanDisplay = keberatan.map(item => ({
@@ -63,7 +89,7 @@ export default function AdminKeberatanPage() {
     status: item.status,
     tanggal: (() => {
       try {
-        const date = new Date(item.created_at);
+        const date = new Date(item.tanggal_keberatan || new Date());
         return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak valid';
       } catch {
         return 'Tanggal tidak valid';
@@ -144,31 +170,7 @@ export default function AdminKeberatanPage() {
     }
   };
 
-  const fetchPpidList = async (search = '', page = 1) => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        if (page === 1) {
-          setPpidList(data.data);
-        } else {
-          setPpidList(prev => [...prev, ...data.data]);
-        }
-        setHasMore(data.pagination.hasMore);
-        setCurrentPage(page);
-      }
-    } catch (error) {
-      console.error('Failed to fetch PPID list:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const loadMore = () => {
     if (hasMore && !loading) {

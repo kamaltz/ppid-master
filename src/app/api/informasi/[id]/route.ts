@@ -8,9 +8,10 @@ interface JWTPayload {
   userId?: number;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     const informasi = await prisma.informasiPublik.findUnique({
       where: { id }
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -39,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -48,7 +49,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     const existingInformasi = await prisma.informasiPublik.findUnique({
       where: { id }
@@ -71,13 +73,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     });
 
     return NextResponse.json({ success: true, data: updatedInformasi });
-  } catch (error) {
-    console.error('Update informasi error:', error);
+  } catch (err) {
+    console.error('Update informasi error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -85,16 +87,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const token = authHeader.split(' ')[1];
-    let decoded: JWTPayload;
-    
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch (error) {
+      jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const id = parseInt(params.id);
-    const userId = parseInt(decoded.id) || decoded.userId;
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     const existingInformasi = await prisma.informasiPublik.findUnique({
       where: { id }
@@ -109,8 +109,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     });
 
     return NextResponse.json({ success: true, message: 'Information deleted successfully' });
-  } catch (error) {
-    console.error('Delete informasi error:', error);
+  } catch (err) {
+    console.error('Delete informasi error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

@@ -3,6 +3,24 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+interface ActivityLog {
+  id: number;
+  action: string;
+  level: string;
+  message: string;
+  user_id?: string;
+  user_role?: string;
+  user_email?: string;
+  ip_address?: string;
+  user_agent?: string;
+  details?: string | object | null;
+  created_at: string;
+}
+
+declare global {
+  var activityLogs: ActivityLog[] | undefined;
+}
+
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {

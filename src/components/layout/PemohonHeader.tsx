@@ -1,12 +1,10 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { getRoleDisplayName } from "@/lib/roleUtils";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 const PemohonHeader = () => {
-  const { logout, user, getUserRole } = useAuth();
-  const userRole = getUserRole();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
     logout();

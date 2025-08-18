@@ -38,8 +38,7 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { settings } = useSettings();
   
-  // Debug settings
-  console.log('Header settings:', settings?.header);
+
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     const { id } = await params;
 
     const requestData = await prisma.request.findUnique({
@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     const { id } = await params;
     const { status, catatan_ppid } = await request.json();
     console.log('API received:', { status, catatan_ppid });
@@ -64,10 +64,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Add system message when status changes
     if (status === 'Selesai') {
       try {
-        await prisma.request_response.create({
+        await prisma.requestResponse.create({
           data: {
             request_id: parseInt(id),
-            user_id: decoded.id,
+            user_id: '0',
             user_role: 'System',
             user_name: 'System',
             message: 'Permohonan telah Selesai. Chat ditutup.',
@@ -80,10 +80,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     } else if (status === 'Ditolak' && catatan_ppid) {
       try {
         console.log('Creating rejection message:', catatan_ppid);
-        await prisma.request_response.create({
+        await prisma.requestResponse.create({
           data: {
             request_id: parseInt(id),
-            user_id: decoded.id,
+            user_id: '0',
             user_role: 'System',
             user_name: 'System',
             message: `Permohonan Ditolak. Alasan: ${catatan_ppid}`,
@@ -111,7 +111,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     const { id } = await params;
 
     // Check if request exists and belongs to user (for PEMOHON role)
@@ -129,7 +129,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // Delete related responses first
-    await prisma.request_response.deleteMany({
+    await prisma.requestResponse.deleteMany({
       where: { request_id: parseInt(id) }
     });
 

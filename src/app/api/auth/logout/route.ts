@@ -9,8 +9,8 @@ export async function POST(request: NextRequest) {
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
-        userInfo = jwt.verify(token, process.env.JWT_SECRET!) as any;
-      } catch (error) {
+        userInfo = jwt.verify(token, process.env.JWT_SECRET!) as { id?: number; role: string; email: string };
+      } catch {
         console.log('Invalid token on logout');
       }
     }
