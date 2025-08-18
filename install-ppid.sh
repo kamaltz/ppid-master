@@ -2,29 +2,85 @@
 set -e
 
 echo "🚀 PPID Master - Production Deployment"
+echo "========================================"
+echo ""
+echo "Please configure your deployment:"
+echo ""
 
 # Get domain configuration
-echo "Domain Configuration:"
-echo "1. Use IP address only (no domain)"
+echo "📍 DOMAIN CONFIGURATION:"
+echo "1. Use IP address only (no domain needed)"
 echo "2. Use custom domain"
-read -p "Choose option (1-2): " DOMAIN_CHOICE
+echo ""
+while true; do
+    read -p "Choose option (1-2): " DOMAIN_CHOICE
+    if [ "$DOMAIN_CHOICE" = "1" ] || [ "$DOMAIN_CHOICE" = "2" ]; then
+        break
+    fi
+    echo "Please enter 1 or 2"
+done
 
 if [ "$DOMAIN_CHOICE" = "2" ]; then
-    read -p "Enter your domain: " DOMAIN
-    read -p "Setup SSL certificate? (y/n): " SSL_CHOICE
+    while true; do
+        read -p "Enter your domain (e.g., example.com): " DOMAIN
+        if [ -n "$DOMAIN" ]; then
+            break
+        fi
+        echo "Domain cannot be empty"
+    done
+    
+    while true; do
+        read -p "Setup SSL certificate for $DOMAIN? (y/n): " SSL_CHOICE
+        if [ "$SSL_CHOICE" = "y" ] || [ "$SSL_CHOICE" = "n" ]; then
+            break
+        fi
+        echo "Please enter y or n"
+    done
 else
     DOMAIN="_"
     SSL_CHOICE="n"
 fi
 
-# Get proxy manager choice
 echo ""
-echo "Proxy Manager:"
-echo "1. Nginx (built-in)"
-echo "2. Nginx Proxy Manager"
-echo "3. Traefik"
-echo "4. Caddy"
-read -p "Choose proxy manager (1-4): " PROXY_CHOICE
+# Get proxy manager choice
+echo "🔧 PROXY MANAGER:"
+echo "1. Nginx (built-in, recommended for beginners)"
+echo "2. Nginx Proxy Manager (web UI management)"
+echo "3. Traefik (advanced, auto SSL)"
+echo "4. Caddy (simple, auto SSL)"
+echo ""
+while true; do
+    read -p "Choose proxy manager (1-4): " PROXY_CHOICE
+    if [ "$PROXY_CHOICE" -ge 1 ] && [ "$PROXY_CHOICE" -le 4 ] 2>/dev/null; then
+        break
+    fi
+    echo "Please enter a number between 1-4"
+done
+
+echo ""
+echo "📋 CONFIGURATION SUMMARY:"
+if [ "$DOMAIN" = "_" ]; then
+    echo "   Domain: IP address only"
+else
+    echo "   Domain: $DOMAIN"
+    echo "   SSL: $SSL_CHOICE"
+fi
+case $PROXY_CHOICE in
+    1) echo "   Proxy: Nginx (built-in)" ;;
+    2) echo "   Proxy: Nginx Proxy Manager" ;;
+    3) echo "   Proxy: Traefik" ;;
+    4) echo "   Proxy: Caddy" ;;
+esac
+echo ""
+read -p "Continue with installation? (y/n): " CONFIRM
+if [ "$CONFIRM" != "y" ]; then
+    echo "Installation cancelled."
+    exit 0
+fi
+
+echo ""
+echo "🚀 Starting installation..."
+echo ""
 
 # Install Docker
 if ! command -v docker &> /dev/null; then
