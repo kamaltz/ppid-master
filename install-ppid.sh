@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 PPID Master - VPS Installation"
+echo "🚀 PPID Master - Production Deployment"
 
 # Install Docker
 if ! command -v docker &> /dev/null; then
@@ -94,6 +94,10 @@ server {
         expires 1y;
         add_header Cache-Control "public";
         try_files $uri $uri/ =404;
+    }
+
+    location /_next/image {
+        return 404;
     }
 
     location / {
