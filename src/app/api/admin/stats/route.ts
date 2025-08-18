@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
   role: string;
-  userId: number;
+  id: string;
+  email?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -24,29 +25,29 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is admin
-    if (decoded.role !== 'Admin') {
+    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Get counts from database
     const [
-      totalPermintaan,
+      totalRequests,
       totalInformasi,
       totalKeberatan,
       totalPemohon,
       totalAdmin,
       totalPpid
     ] = await Promise.all([
-      prisma.request.count().catch(() => 0),
-      prisma.informasiPublik.count().catch(() => 0),
-      prisma.keberatan.count().catch(() => 0),
-      prisma.pemohon.count().catch(() => 0),
-      prisma.admin.count().catch(() => 0),
-      prisma.ppid.count().catch(() => 0)
+      prisma.request.count(),
+      prisma.informasiPublik.count(),
+      prisma.keberatan.count(),
+      prisma.pemohon.count(),
+      prisma.admin.count(),
+      prisma.ppid.count()
     ]);
 
     const stats = {
-      totalPermintaan,
+      totalRequests,
       totalInformasi,
       totalKeberatan,
       totalPemohon,

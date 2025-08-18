@@ -5,15 +5,9 @@ import bcrypt from 'bcryptjs';
 
 interface JWTPayload {
   role: string;
-  userId: number;
-}
-
-interface UpdateData {
-  nama: string;
+  id: string;
   email: string;
-  no_telepon?: string;
-  alamat?: string;
-  hashed_password?: string;
+  nama?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -26,20 +20,32 @@ export async function GET(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
-    let user = null;
-    if (decoded.role === 'Admin') {
-      user = await prisma.admin.findUnique({ where: { id: decoded.userId } });
-    } else if (decoded.role === 'Pemohon') {
-      user = await prisma.pemohon.findUnique({ where: { id: decoded.userId } });
-    } else {
-      user = await prisma.ppid.findUnique({ where: { id: decoded.userId } });
+    let user;
+    if (decoded.role === 'ADMIN') {
+      user = await prisma.admin.findUnique({
+        where: { id: parseInt(decoded.id) },
+        select: { id: true, nama: true, email: true, created_at: true }
+      });
+    } else if (decoded.role === 'PEMOHON') {
+      user = await prisma.pemohon.findUnique({
+        where: { id: parseInt(decoded.id) },
+        select: { id: true, nama: true, email: true, nik: true, no_telepon: true, created_at: true }
+      });
+    } else if (['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(decoded.role)) {
+      user = await prisma.ppid.findUnique({
+        where: { id: parseInt(decoded.id) },
+        select: { id: true, nama: true, email: true, role: true, no_pegawai: true, created_at: true }
+      });
     }
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: user });
+    return NextResponse.json({ 
+      success: true, 
+      data: { ...user, role: decoded.role }
+    });
   } catch (error) {
     console.error('Get profile error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -55,51 +61,73 @@ export async function PUT(request: NextRequest) {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    const { nama, email, no_telepon, alamat, currentPassword, newPassword } = await request.json();
 
-    const updateData: UpdateData = { nama, email };
-    
-    if (decoded.role === 'Pemohon') {
-      updateData.no_telepon = no_telepon;
-      updateData.alamat = alamat;
+    const { nama, email, currentPassword, newPassword, ...otherData } = await request.json();
+
+    if (!nama || !email) {
+      return NextResponse.json({ error: 'Nama dan email wajib diisi' }, { status: 400 });
     }
 
-    if (newPassword && currentPassword) {
-      let user = null;
-      if (decoded.role === 'Admin') {
-        user = await prisma.admin.findUnique({ where: { id: decoded.userId } });
-      } else if (decoded.role === 'Pemohon') {
-        user = await prisma.pemohon.findUnique({ where: { id: decoded.userId } });
-      } else {
-        user = await prisma.ppid.findUnique({ where: { id: decoded.userId } });
+    // If changing password, validate current password
+    if (newPassword) {
+      if (!currentPassword) {
+        return NextResponse.json({ error: 'Password saat ini diperlukan' }, { status: 400 });
+      }
+
+      let user;
+      if (decoded.role === 'ADMIN') {
+        user = await prisma.admin.findUnique({ where: { id: parseInt(decoded.id) } });
+      } else if (decoded.role === 'PEMOHON') {
+        user = await prisma.pemohon.findUnique({ where: { id: parseInt(decoded.id) } });
+      } else if (['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(decoded.role)) {
+        user = await prisma.ppid.findUnique({ where: { id: parseInt(decoded.id) } });
       }
 
       if (!user || !await bcrypt.compare(currentPassword, user.hashed_password)) {
-        return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
+        return NextResponse.json({ error: 'Password saat ini salah' }, { status: 400 });
       }
+    }
 
+    // Update user data
+    const updateData: any = { nama, email };
+    if (newPassword) {
       updateData.hashed_password = await bcrypt.hash(newPassword, 10);
     }
 
-    let updatedUser = null;
-    if (decoded.role === 'Admin') {
+    // Add role-specific fields
+    if (decoded.role === 'PEMOHON' && otherData.nik) {
+      updateData.nik = otherData.nik;
+    }
+    if (decoded.role === 'PEMOHON' && otherData.no_telepon) {
+      updateData.no_telepon = otherData.no_telepon;
+    }
+
+    let updatedUser;
+    if (decoded.role === 'ADMIN') {
       updatedUser = await prisma.admin.update({
-        where: { id: decoded.userId },
-        data: updateData
+        where: { id: parseInt(decoded.id) },
+        data: updateData,
+        select: { id: true, nama: true, email: true }
       });
-    } else if (decoded.role === 'Pemohon') {
+    } else if (decoded.role === 'PEMOHON') {
       updatedUser = await prisma.pemohon.update({
-        where: { id: decoded.userId },
-        data: updateData
+        where: { id: parseInt(decoded.id) },
+        data: updateData,
+        select: { id: true, nama: true, email: true, nik: true, no_telepon: true }
       });
-    } else {
+    } else if (['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(decoded.role)) {
       updatedUser = await prisma.ppid.update({
-        where: { id: decoded.userId },
-        data: updateData
+        where: { id: parseInt(decoded.id) },
+        data: updateData,
+        select: { id: true, nama: true, email: true, role: true }
       });
     }
 
-    return NextResponse.json({ success: true, data: updatedUser });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Profil berhasil diperbarui',
+      data: updatedUser
+    });
   } catch (error) {
     console.error('Update profile error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

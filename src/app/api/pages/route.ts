@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    
+    const whereClause = status ? { status } : {};
+    
     const pages = await prisma.page.findMany({
+      where: whereClause,
       orderBy: {
         created_at: 'desc'
       }

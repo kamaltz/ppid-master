@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
-    if (!['Admin', 'PPID_UTAMA'].includes(decoded.role)) {
+    if (!['ADMIN', 'Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 

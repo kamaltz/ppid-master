@@ -26,6 +26,7 @@ import {
   Activity,
   HardDrive,
   Minus,
+  BarChart3,
 } from "lucide-react";
 
 const menuItems = [
@@ -92,6 +93,13 @@ const menuItems = [
     label: "Kelola Akses",
     permission: "kelola_akses",
     category: "user"
+  },
+  {
+    href: "/admin/laporan",
+    icon: BarChart3,
+    label: "Laporan",
+    permission: null,
+    category: "report"
   },
   {
     href: "/admin/logs",

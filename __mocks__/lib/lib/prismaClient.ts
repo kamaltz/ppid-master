@@ -1,7 +1,12 @@
 export const prisma = {
   admin: {
     findUnique: jest.fn(),
-    findMany: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([{
+      id: 1,
+      nama: 'Admin Test',
+      email: 'admin@test.com',
+      created_at: new Date('2025-01-01')
+    }]),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -9,7 +14,13 @@ export const prisma = {
   },
   pemohon: {
     findUnique: jest.fn(),
-    findMany: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([{
+      id: 1,
+      nama: 'Pemohon Test',
+      email: 'pemohon@test.com',
+      nik: '123456789',
+      created_at: new Date('2025-01-01')
+    }]),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -17,7 +28,13 @@ export const prisma = {
   },
   ppid: {
     findUnique: jest.fn(),
-    findMany: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([{
+      id: 1,
+      nama: 'PPID Test',
+      email: 'ppid@test.com',
+      role: 'PPID_UTAMA',
+      created_at: new Date('2025-01-01')
+    }]),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -67,7 +84,7 @@ export const prisma = {
     findFirst: jest.fn()
   },
   activityLog: {
-    create: jest.fn(),
+    create: jest.fn().mockResolvedValue({ id: 1 }),
     findMany: jest.fn(),
     count: jest.fn()
   },
@@ -81,12 +98,17 @@ export const prisma = {
     findMany: jest.fn()
   },
   requestResponse: {
-    create: jest.fn(),
+    create: jest.fn().mockResolvedValue({
+      id: 1,
+      message: 'Test message',
+      user_name: 'Test User',
+      created_at: new Date()
+    }),
     findMany: jest.fn()
   },
   chatSession: {
     create: jest.fn(),
-    findUnique: jest.fn(),
+    findUnique: jest.fn().mockResolvedValue(null),
     update: jest.fn()
   },
   kategoriiInformasi: {
@@ -94,7 +116,12 @@ export const prisma = {
     create: jest.fn()
   },
   page: {
-    findMany: jest.fn(),
+    findMany: jest.fn().mockImplementation((args) => {
+      if (args?.where?.status) {
+        return Promise.resolve([{ id: 1, title: 'Published Page', status: args.where.status }]);
+      }
+      return Promise.resolve([{ id: 1, title: 'Test Page', status: 'published' }]);
+    }),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn()
@@ -105,8 +132,8 @@ export const prisma = {
 beforeEach(() => {
   Object.values(prisma).forEach(model => {
     Object.values(model).forEach(method => {
-      if (typeof method === 'function' && method.mockReset) {
-        method.mockReset();
+      if (typeof method === 'function' && method.mockClear) {
+        method.mockClear();
       }
     });
   });

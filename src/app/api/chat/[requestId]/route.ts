@@ -70,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         request_id: id,
         user_id: decoded.id.toString(),
         user_role: decoded.role,
-        user_name: decoded.nama,
+        user_name: decoded.nama || 'Unknown User',
         message: message?.trim() || '',
         message_type: messageType || 'text',
         attachments: attachments && attachments.length > 0 ? JSON.stringify(attachments) : null
