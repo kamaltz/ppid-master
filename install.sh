@@ -70,7 +70,14 @@ docker-compose up -d
 
 # Wait for services
 echo "Waiting for services to start..."
-sleep 30
+sleep 45
+
+# Ensure database is seeded
+echo "Ensuring database is properly seeded..."
+docker-compose exec -T app npx prisma migrate deploy || true
+docker-compose exec -T app npx prisma db seed || true
+docker-compose restart app
+sleep 15
 
 # Install Nginx
 if ! command -v nginx &> /dev/null; then
