@@ -58,7 +58,7 @@ get_domain() {
         echo -ne "${GREEN}Enter your domain name (e.g., example.com): ${NC}"
         read domain
         
-        if [[ "$domain" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$ ]]; then
+        if [[ "$domain" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}$ ]] && [ -n "$domain" ]; then
             echo "$domain"
             return
         else
@@ -97,6 +97,7 @@ DOMAIN_CHOICE=$(get_input "Select option: " 2)
 
 if [ "$DOMAIN_CHOICE" = "2" ]; then
     echo ""
+    echo -e "${BLUE}Enter your domain configuration:${NC}"
     DOMAIN=$(get_domain)
     echo ""
     SSL_CHOICE=$(get_yes_no "Do you want to setup SSL certificate for $DOMAIN?")
@@ -111,10 +112,10 @@ echo ""
 echo -e "${CYAN}Step 2: Proxy Manager Selection${NC}"
 echo ""
 proxy_options=(
-    "Nginx (Built-in) - Simple and reliable"
-    "Nginx Proxy Manager - Web UI for easy management"
-    "Traefik - Advanced with automatic SSL"
-    "Caddy - Modern with automatic HTTPS"
+    "Nginx (Built-in) - Simple and reliable, manual SSL setup"
+    "Nginx Proxy Manager - Web UI, easy SSL management"
+    "Traefik - Advanced with automatic Let's Encrypt SSL"
+    "Caddy - Modern with automatic HTTPS and Let's Encrypt"
 )
 
 show_menu "Choose your reverse proxy manager:" "${proxy_options[@]}"
@@ -223,7 +224,59 @@ EOF
 else
     # External proxy managers
     docker network create proxy 2>/dev/null || true
-    sudo tee docker-compose.yml > /dev/null << 'EOF'
+    
+    if [ "$PROXY_CHOICE" = "3" ] && [ "$DOMAIN" != "ip" ]; then
+        # Traefik with domain labels
+        sudo tee docker-compose.yml > /dev/null << EOF
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ppid_garut
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: kamaltz/ppid-master:latest
+    expose:
+      - "3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres123@postgres:5432/ppid_garut?schema=public"
+      JWT_SECRET: "ppid-garut-production-secret-2025"
+      NEXT_PUBLIC_API_URL: "https://$DOMAIN/api"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - /opt/ppid/uploads:/app/public/uploads
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ppid.rule=Host(\`$DOMAIN\`)"
+      - "traefik.http.routers.ppid.entrypoints=websecure"
+      - "traefik.http.routers.ppid.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ppid.loadbalancer.server.port=3000"
+
+volumes:
+  postgres_data:
+
+networks:
+  proxy:
+    external: true
+EOF
+    else
+        # Other proxy managers
+        sudo tee docker-compose.yml > /dev/null << 'EOF'
 services:
   postgres:
     image: postgres:15-alpine
@@ -264,6 +317,7 @@ networks:
   proxy:
     external: true
 EOF
+    fi
 fi
 
 # Setup uploads directory
@@ -351,7 +405,13 @@ EOF
     3)
         # Traefik
         sudo mkdir -p /opt/traefik
-        sudo tee /opt/traefik/traefik.yml > /dev/null << 'EOF'
+        if [ "$DOMAIN" != "ip" ]; then
+            EMAIL="admin@$DOMAIN"
+        else
+            EMAIL="admin@example.com"
+        fi
+        
+        sudo tee /opt/traefik/traefik.yml > /dev/null << EOF
 api:
   dashboard: true
   insecure: true
@@ -369,7 +429,7 @@ providers:
 certificateResolvers:
   letsencrypt:
     acme:
-      email: admin@example.com
+      email: $EMAIL
       storage: /acme.json
       httpChallenge:
         entryPoint: web
