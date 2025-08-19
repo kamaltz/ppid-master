@@ -28,6 +28,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
       NODE_ENV: production
       PORT: 3000
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
     depends_on:
       postgres:
         condition: service_healthy

@@ -20,7 +20,10 @@ ENV DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/ppid_garut?sc
 ENV JWT_SECRET="build-time-secret"
 ENV NEXT_PUBLIC_API_URL="/api"
 
+# Generate Prisma client first
 RUN npx prisma generate
+
+# Build the application
 RUN npm run build
 
 # Runner - Final image
@@ -28,23 +31,22 @@ FROM base AS runner
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Create uploads directory
-RUN mkdir -p /app/public/uploads/images
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/public/uploads/images && chown -R nextjs:nodejs /app/public
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
-COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
-COPY start.sh ./
+COPY --chown=nextjs:nodejs start.sh ./
 
 # Set proper permissions
-RUN chown -R nextjs:nodejs /app
-RUN chmod +x start.sh
+RUN chmod +x start.sh && chown -R nextjs:nodejs /app
 
 # Switch to nextjs user for security
 USER nextjs
