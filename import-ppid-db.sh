@@ -16,7 +16,20 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
-# Stop application
+# Start services if not running
+echo "🚀 Starting services..."
+docker-compose up -d
+
+# Wait for postgres
+echo "⏳ Waiting for database..."
+for i in {1..30}; do
+    if docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+        break
+    fi
+    sleep 2
+done
+
+# Stop application only
 echo "🛑 Stopping application..."
 docker-compose stop app
 
