@@ -1,22 +1,18 @@
 #!/bin/bash
 set -e
 
-# Import ppid_db.sql script
-INSTALL_DIR="/opt/ppid"
-
 echo "📥 Importing ppid_db.sql..."
 
-# Navigate to install directory
-if [ -d "$INSTALL_DIR" ]; then
-    cd $INSTALL_DIR
-else
-    echo "❌ PPID not installed"
+# Check for ppid_db.sql in current directory
+if [ ! -f "ppid_db.sql" ]; then
+    echo "❌ ppid_db.sql not found in current directory"
+    echo "Please ensure ppid_db.sql is in $(pwd)"
     exit 1
 fi
 
-# Check for ppid_db.sql
-if [ ! -f "ppid_db.sql" ]; then
-    echo "❌ ppid_db.sql not found in $INSTALL_DIR"
+# Check if docker-compose.yml exists
+if [ ! -f "docker-compose.yml" ]; then
+    echo "❌ docker-compose.yml not found. Are you in the PPID directory?"
     exit 1
 fi
 
