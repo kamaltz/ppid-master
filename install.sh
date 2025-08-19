@@ -20,13 +20,17 @@ if ! command -v docker-compose &> /dev/null; then
     sudo chmod +x /usr/local/bin/docker-compose
 fi
 
+# Configure firewall first
+echo "Configuring firewall..."
+sudo ufw allow 22
+sudo ufw allow 80
+sudo ufw allow 443
+echo "y" | sudo ufw enable 2>/dev/null || true
+
 # Create directories
 echo "Setting up directories..."
-sudo mkdir -p /opt/ppid /opt/caddy
+sudo mkdir -p /opt/ppid
 cd /opt/ppid
-
-# Create network
-docker network create proxy 2>/dev/null || true
 
 # Create PPID docker-compose
 echo "Creating PPID configuration..."
@@ -49,8 +53,8 @@ services:
 
   app:
     image: kamaltz/ppid-master:latest
-    expose:
-      - "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:postgres123@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "ppid-garut-production-secret-2025"
@@ -61,15 +65,9 @@ services:
     volumes:
       - /opt/ppid/uploads:/app/public/uploads
     restart: unless-stopped
-    networks:
-      - proxy
 
 volumes:
   postgres_data:
-
-networks:
-  proxy:
-    external: true
 EOF
 
 # Setup uploads
@@ -78,76 +76,67 @@ sudo mkdir -p /opt/ppid/uploads/images
 sudo chown -R 1001:1001 /opt/ppid/uploads
 sudo chmod -R 755 /opt/ppid/uploads
 
-# Create Caddyfile
-echo "Setting up Caddy proxy..."
-sudo tee /opt/caddy/Caddyfile > /dev/null << 'EOF'
-ppidgarut.kamaltz.fun {
-    reverse_proxy ppid-app-1:3000
-    
-    handle_path /uploads/* {
-        root * /opt/ppid/uploads
-        file_server
+# Install and configure Nginx
+echo "Installing Nginx..."
+sudo apt update -qq
+sudo apt install -y nginx
+
+# Create Nginx config
+echo "Configuring Nginx..."
+sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
+server {
+    listen 80;
+    server_name ppidgarut.kamaltz.fun www.ppidgarut.kamaltz.fun;
+    client_max_body_size 50M;
+
+    location /uploads/ {
+        alias /opt/ppid/uploads/;
+        expires 1y;
+        add_header Cache-Control "public";
+        try_files $uri $uri/ =404;
     }
-    
-    header {
-        X-Content-Type-Options nosniff
-        X-Frame-Options DENY
-        X-XSS-Protection "1; mode=block"
+
+    location /_next/image {
+        return 404;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
     }
 }
 EOF
 
-# Create Caddy docker-compose
-sudo tee /opt/caddy-compose.yml > /dev/null << 'EOF'
-services:
-  caddy:
-    image: caddy:latest
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /opt/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - /opt/ppid/uploads:/opt/ppid/uploads
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - proxy
+# Enable site
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 
-volumes:
-  caddy_data:
-  caddy_config:
-
-networks:
-  proxy:
-    external: true
-EOF
-
-# Start services
-echo "Starting Caddy..."
-sudo docker-compose -f /opt/caddy-compose.yml up -d
-
+# Start PPID services
 echo "Starting PPID Master..."
 sudo docker-compose pull
 sudo docker-compose up -d
-
-echo "Waiting for services..."
 sleep 45
 
 # Setup database
 echo "Setting up database..."
 sudo docker-compose exec -T app npx prisma generate
-sudo docker-compose exec -T app npx prisma db push --force-reset --accept-data-loss
+sudo docker-compose exec -T app npx prisma migrate deploy
 sudo docker-compose exec -T app npx prisma db seed
 sudo docker-compose restart app
 sleep 15
 
-# Configure firewall
-echo "Configuring firewall..."
-sudo ufw allow 22 >/dev/null 2>&1
-sudo ufw allow 80 >/dev/null 2>&1
-sudo ufw allow 443 >/dev/null 2>&1
-echo "y" | sudo ufw enable >/dev/null 2>&1 || true
+# Setup SSL with Let's Encrypt
+echo "Setting up SSL certificate..."
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d ppidgarut.kamaltz.fun -d www.ppidgarut.kamaltz.fun --non-interactive --agree-tos --email admin@kamaltz.fun
 
 echo ""
 echo "✅ Installation Complete!"
