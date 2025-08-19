@@ -121,17 +121,8 @@ sudo apt update -qq
 sudo apt install -y nginx
 sudo systemctl enable nginx
 
-# Add rate limiting to nginx.conf
-log_info "Configuring Nginx rate limiting..."
-sudo tee -a /etc/nginx/nginx.conf > /dev/null << 'EOF'
-
-# PPID Rate Limiting
-limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
-EOF
-
-# Create Nginx site config
-log_info "Configuring Nginx site..."
+# Create Nginx site config without rate limiting
+log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 server {
     listen 80;
@@ -148,24 +139,6 @@ server {
         expires 1y;
         add_header Cache-Control "public, immutable";
         try_files $uri $uri/ =404;
-    }
-    
-    location /api/auth/login {
-        limit_req zone=login burst=3 nodelay;
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    
-    location /api/ {
-        limit_req zone=api burst=20 nodelay;
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     location / {
