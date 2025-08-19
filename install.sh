@@ -121,7 +121,10 @@ sudo apt update -qq
 sudo apt install -y nginx
 sudo systemctl enable nginx
 
-# Create Nginx site config without rate limiting
+# Clean nginx.conf first
+sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
+
+# Create Nginx site config
 log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 server {
