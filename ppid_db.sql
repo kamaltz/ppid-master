@@ -21,18 +21,18 @@ SET row_security = off;
 
 --
 -- TOC entry 5 (class 2615 OID 26196)
--- Name: public; Type: SCHEMA; Schema: -; Owner: sidogar_client_user
+-- Name: public; Type: SCHEMA; Schema: -; Owner: ppid_user
 --
 
 -- *not* creating schema, since initdb creates it
 
 
-ALTER SCHEMA public OWNER TO sidogar_client_user;
+ALTER SCHEMA public OWNER TO ppid_user;
 
 --
 -- TOC entry 5101 (class 0 OID 0)
 -- Dependencies: 5
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: sidogar_client_user
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: ppid_user
 --
 
 COMMENT ON SCHEMA public IS '';
@@ -44,7 +44,7 @@ SET default_table_access_method = heap;
 
 --
 -- TOC entry 217 (class 1259 OID 26197)
--- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public._prisma_migrations (
@@ -59,11 +59,11 @@ CREATE TABLE public._prisma_migrations (
 );
 
 
-ALTER TABLE public._prisma_migrations OWNER TO sidogar_client_user;
+ALTER TABLE public._prisma_migrations OWNER TO ppid_user;
 
 --
 -- TOC entry 235 (class 1259 OID 26299)
--- Name: activity_logs; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: activity_logs; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.activity_logs (
@@ -79,11 +79,11 @@ CREATE TABLE public.activity_logs (
 );
 
 
-ALTER TABLE public.activity_logs OWNER TO sidogar_client_user;
+ALTER TABLE public.activity_logs OWNER TO ppid_user;
 
 --
 -- TOC entry 234 (class 1259 OID 26298)
--- Name: activity_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: activity_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.activity_logs_id_seq
@@ -95,12 +95,12 @@ CREATE SEQUENCE public.activity_logs_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.activity_logs_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.activity_logs_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5103 (class 0 OID 0)
 -- Dependencies: 234
--- Name: activity_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: activity_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.activity_logs_id_seq OWNED BY public.activity_logs.id;
@@ -108,7 +108,7 @@ ALTER SEQUENCE public.activity_logs_id_seq OWNED BY public.activity_logs.id;
 
 --
 -- TOC entry 219 (class 1259 OID 26207)
--- Name: admin; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: admin; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.admin (
@@ -122,11 +122,11 @@ CREATE TABLE public.admin (
 );
 
 
-ALTER TABLE public.admin OWNER TO sidogar_client_user;
+ALTER TABLE public.admin OWNER TO ppid_user;
 
 --
 -- TOC entry 218 (class 1259 OID 26206)
--- Name: admin_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: admin_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.admin_id_seq
@@ -138,12 +138,12 @@ CREATE SEQUENCE public.admin_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.admin_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.admin_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5104 (class 0 OID 0)
 -- Dependencies: 218
--- Name: admin_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: admin_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.admin_id_seq OWNED BY public.admin.id;
@@ -151,7 +151,7 @@ ALTER SEQUENCE public.admin_id_seq OWNED BY public.admin.id;
 
 --
 -- TOC entry 229 (class 1259 OID 26264)
--- Name: chat_sessions; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.chat_sessions (
@@ -164,11 +164,11 @@ CREATE TABLE public.chat_sessions (
 );
 
 
-ALTER TABLE public.chat_sessions OWNER TO sidogar_client_user;
+ALTER TABLE public.chat_sessions OWNER TO ppid_user;
 
 --
 -- TOC entry 228 (class 1259 OID 26263)
--- Name: chat_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.chat_sessions_id_seq
@@ -180,12 +180,12 @@ CREATE SEQUENCE public.chat_sessions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.chat_sessions_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.chat_sessions_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5105 (class 0 OID 0)
 -- Dependencies: 228
--- Name: chat_sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.chat_sessions_id_seq OWNED BY public.chat_sessions.id;
@@ -193,7 +193,7 @@ ALTER SEQUENCE public.chat_sessions_id_seq OWNED BY public.chat_sessions.id;
 
 --
 -- TOC entry 233 (class 1259 OID 26286)
--- Name: informasi_publik; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: informasi_publik; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.informasi_publik (
@@ -215,11 +215,11 @@ CREATE TABLE public.informasi_publik (
 );
 
 
-ALTER TABLE public.informasi_publik OWNER TO sidogar_client_user;
+ALTER TABLE public.informasi_publik OWNER TO ppid_user;
 
 --
 -- TOC entry 232 (class 1259 OID 26285)
--- Name: informasi_publik_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: informasi_publik_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.informasi_publik_id_seq
@@ -231,12 +231,12 @@ CREATE SEQUENCE public.informasi_publik_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.informasi_publik_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.informasi_publik_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5106 (class 0 OID 0)
 -- Dependencies: 232
--- Name: informasi_publik_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: informasi_publik_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.informasi_publik_id_seq OWNED BY public.informasi_publik.id;
@@ -244,7 +244,7 @@ ALTER SEQUENCE public.informasi_publik_id_seq OWNED BY public.informasi_publik.i
 
 --
 -- TOC entry 245 (class 1259 OID 26389)
--- Name: kategori; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: kategori; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.kategori (
@@ -256,11 +256,11 @@ CREATE TABLE public.kategori (
 );
 
 
-ALTER TABLE public.kategori OWNER TO sidogar_client_user;
+ALTER TABLE public.kategori OWNER TO ppid_user;
 
 --
 -- TOC entry 244 (class 1259 OID 26388)
--- Name: kategori_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.kategori_id_seq
@@ -272,12 +272,12 @@ CREATE SEQUENCE public.kategori_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.kategori_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.kategori_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5107 (class 0 OID 0)
 -- Dependencies: 244
--- Name: kategori_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.kategori_id_seq OWNED BY public.kategori.id;
@@ -285,7 +285,7 @@ ALTER SEQUENCE public.kategori_id_seq OWNED BY public.kategori.id;
 
 --
 -- TOC entry 231 (class 1259 OID 26275)
--- Name: kategori_informasi; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.kategori_informasi (
@@ -298,11 +298,11 @@ CREATE TABLE public.kategori_informasi (
 );
 
 
-ALTER TABLE public.kategori_informasi OWNER TO sidogar_client_user;
+ALTER TABLE public.kategori_informasi OWNER TO ppid_user;
 
 --
 -- TOC entry 230 (class 1259 OID 26274)
--- Name: kategori_informasi_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.kategori_informasi_id_seq
@@ -314,12 +314,12 @@ CREATE SEQUENCE public.kategori_informasi_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.kategori_informasi_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.kategori_informasi_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5108 (class 0 OID 0)
 -- Dependencies: 230
--- Name: kategori_informasi_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.kategori_informasi_id_seq OWNED BY public.kategori_informasi.id;
@@ -327,7 +327,7 @@ ALTER SEQUENCE public.kategori_informasi_id_seq OWNED BY public.kategori_informa
 
 --
 -- TOC entry 237 (class 1259 OID 26309)
--- Name: keberatan; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.keberatan (
@@ -344,11 +344,11 @@ CREATE TABLE public.keberatan (
 );
 
 
-ALTER TABLE public.keberatan OWNER TO sidogar_client_user;
+ALTER TABLE public.keberatan OWNER TO ppid_user;
 
 --
 -- TOC entry 236 (class 1259 OID 26308)
--- Name: keberatan_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.keberatan_id_seq
@@ -360,12 +360,12 @@ CREATE SEQUENCE public.keberatan_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.keberatan_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.keberatan_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5109 (class 0 OID 0)
 -- Dependencies: 236
--- Name: keberatan_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.keberatan_id_seq OWNED BY public.keberatan.id;
@@ -373,7 +373,7 @@ ALTER SEQUENCE public.keberatan_id_seq OWNED BY public.keberatan.id;
 
 --
 -- TOC entry 243 (class 1259 OID 26378)
--- Name: keberatan_responses; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_responses; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.keberatan_responses (
@@ -389,11 +389,11 @@ CREATE TABLE public.keberatan_responses (
 );
 
 
-ALTER TABLE public.keberatan_responses OWNER TO sidogar_client_user;
+ALTER TABLE public.keberatan_responses OWNER TO ppid_user;
 
 --
 -- TOC entry 242 (class 1259 OID 26377)
--- Name: keberatan_responses_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_responses_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.keberatan_responses_id_seq
@@ -405,12 +405,12 @@ CREATE SEQUENCE public.keberatan_responses_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.keberatan_responses_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.keberatan_responses_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5110 (class 0 OID 0)
 -- Dependencies: 242
--- Name: keberatan_responses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_responses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.keberatan_responses_id_seq OWNED BY public.keberatan_responses.id;
@@ -418,7 +418,7 @@ ALTER SEQUENCE public.keberatan_responses_id_seq OWNED BY public.keberatan_respo
 
 --
 -- TOC entry 239 (class 1259 OID 26321)
--- Name: pages; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: pages; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.pages (
@@ -432,11 +432,11 @@ CREATE TABLE public.pages (
 );
 
 
-ALTER TABLE public.pages OWNER TO sidogar_client_user;
+ALTER TABLE public.pages OWNER TO ppid_user;
 
 --
 -- TOC entry 238 (class 1259 OID 26320)
--- Name: pages_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: pages_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.pages_id_seq
@@ -448,12 +448,12 @@ CREATE SEQUENCE public.pages_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.pages_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.pages_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5111 (class 0 OID 0)
 -- Dependencies: 238
--- Name: pages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: pages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.pages_id_seq OWNED BY public.pages.id;
@@ -461,7 +461,7 @@ ALTER SEQUENCE public.pages_id_seq OWNED BY public.pages.id;
 
 --
 -- TOC entry 221 (class 1259 OID 26218)
--- Name: pemohon; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: pemohon; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.pemohon (
@@ -476,11 +476,11 @@ CREATE TABLE public.pemohon (
 );
 
 
-ALTER TABLE public.pemohon OWNER TO sidogar_client_user;
+ALTER TABLE public.pemohon OWNER TO ppid_user;
 
 --
 -- TOC entry 220 (class 1259 OID 26217)
--- Name: pemohon_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: pemohon_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.pemohon_id_seq
@@ -492,12 +492,13 @@ CREATE SEQUENCE public.pemohon_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.pemohon_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.pemohon_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5112 (class 0 OID 0)
 -- Dependencies: 220
--- Name: pemohon_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: pemohon_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
+-- dibawah error
 --
 
 ALTER SEQUENCE public.pemohon_id_seq OWNED BY public.pemohon.id;
@@ -505,7 +506,7 @@ ALTER SEQUENCE public.pemohon_id_seq OWNED BY public.pemohon.id;
 
 --
 -- TOC entry 223 (class 1259 OID 26228)
--- Name: ppid; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: ppid; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.ppid (
@@ -520,11 +521,11 @@ CREATE TABLE public.ppid (
 );
 
 
-ALTER TABLE public.ppid OWNER TO sidogar_client_user;
+ALTER TABLE public.ppid OWNER TO ppid_user;
 
 --
 -- TOC entry 247 (class 1259 OID 26836)
--- Name: ppid_chats; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.ppid_chats (
@@ -539,11 +540,11 @@ CREATE TABLE public.ppid_chats (
 );
 
 
-ALTER TABLE public.ppid_chats OWNER TO sidogar_client_user;
+ALTER TABLE public.ppid_chats OWNER TO ppid_user;
 
 --
 -- TOC entry 246 (class 1259 OID 26835)
--- Name: ppid_chats_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.ppid_chats_id_seq
@@ -555,12 +556,12 @@ CREATE SEQUENCE public.ppid_chats_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.ppid_chats_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.ppid_chats_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5113 (class 0 OID 0)
 -- Dependencies: 246
--- Name: ppid_chats_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.ppid_chats_id_seq OWNED BY public.ppid_chats.id;
@@ -568,7 +569,7 @@ ALTER SEQUENCE public.ppid_chats_id_seq OWNED BY public.ppid_chats.id;
 
 --
 -- TOC entry 222 (class 1259 OID 26227)
--- Name: ppid_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.ppid_id_seq
@@ -580,12 +581,12 @@ CREATE SEQUENCE public.ppid_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.ppid_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.ppid_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5114 (class 0 OID 0)
 -- Dependencies: 222
--- Name: ppid_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.ppid_id_seq OWNED BY public.ppid.id;
@@ -593,7 +594,7 @@ ALTER SEQUENCE public.ppid_id_seq OWNED BY public.ppid.id;
 
 --
 -- TOC entry 227 (class 1259 OID 26253)
--- Name: request_responses; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: request_responses; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.request_responses (
@@ -609,11 +610,11 @@ CREATE TABLE public.request_responses (
 );
 
 
-ALTER TABLE public.request_responses OWNER TO sidogar_client_user;
+ALTER TABLE public.request_responses OWNER TO ppid_user;
 
 --
 -- TOC entry 226 (class 1259 OID 26252)
--- Name: request_responses_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: request_responses_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.request_responses_id_seq
@@ -625,12 +626,12 @@ CREATE SEQUENCE public.request_responses_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.request_responses_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.request_responses_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5115 (class 0 OID 0)
 -- Dependencies: 226
--- Name: request_responses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: request_responses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.request_responses_id_seq OWNED BY public.request_responses.id;
@@ -638,7 +639,7 @@ ALTER SEQUENCE public.request_responses_id_seq OWNED BY public.request_responses
 
 --
 -- TOC entry 225 (class 1259 OID 26239)
--- Name: requests; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: requests; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.requests (
@@ -658,11 +659,11 @@ CREATE TABLE public.requests (
 );
 
 
-ALTER TABLE public.requests OWNER TO sidogar_client_user;
+ALTER TABLE public.requests OWNER TO ppid_user;
 
 --
 -- TOC entry 224 (class 1259 OID 26238)
--- Name: requests_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: requests_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.requests_id_seq
@@ -673,13 +674,14 @@ CREATE SEQUENCE public.requests_id_seq
     NO MAXVALUE
     CACHE 1;
 
+--done manual ---------------------------------
 
-ALTER SEQUENCE public.requests_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.requests_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5116 (class 0 OID 0)
 -- Dependencies: 224
--- Name: requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.requests_id_seq OWNED BY public.requests.id;
@@ -687,7 +689,7 @@ ALTER SEQUENCE public.requests_id_seq OWNED BY public.requests.id;
 
 --
 -- TOC entry 241 (class 1259 OID 26333)
--- Name: settings; Type: TABLE; Schema: public; Owner: sidogar_client_user
+-- Name: settings; Type: TABLE; Schema: public; Owner: ppid_user
 --
 
 CREATE TABLE public.settings (
@@ -699,11 +701,11 @@ CREATE TABLE public.settings (
 );
 
 
-ALTER TABLE public.settings OWNER TO sidogar_client_user;
+ALTER TABLE public.settings OWNER TO ppid_user;
 
 --
 -- TOC entry 240 (class 1259 OID 26332)
--- Name: settings_id_seq; Type: SEQUENCE; Schema: public; Owner: sidogar_client_user
+-- Name: settings_id_seq; Type: SEQUENCE; Schema: public; Owner: ppid_user
 --
 
 CREATE SEQUENCE public.settings_id_seq
@@ -715,12 +717,12 @@ CREATE SEQUENCE public.settings_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.settings_id_seq OWNER TO sidogar_client_user;
+ALTER SEQUENCE public.settings_id_seq OWNER TO ppid_user;
 
 --
 -- TOC entry 5117 (class 0 OID 0)
 -- Dependencies: 240
--- Name: settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sidogar_client_user
+-- Name: settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ppid_user
 --
 
 ALTER SEQUENCE public.settings_id_seq OWNED BY public.settings.id;
@@ -728,7 +730,7 @@ ALTER SEQUENCE public.settings_id_seq OWNED BY public.settings.id;
 
 --
 -- TOC entry 4846 (class 2604 OID 26302)
--- Name: activity_logs id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: activity_logs id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.activity_logs ALTER COLUMN id SET DEFAULT nextval('public.activity_logs_id_seq'::regclass);
@@ -736,7 +738,7 @@ ALTER TABLE ONLY public.activity_logs ALTER COLUMN id SET DEFAULT nextval('publi
 
 --
 -- TOC entry 4818 (class 2604 OID 26210)
--- Name: admin id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: admin id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.admin ALTER COLUMN id SET DEFAULT nextval('public.admin_id_seq'::regclass);
@@ -744,7 +746,7 @@ ALTER TABLE ONLY public.admin ALTER COLUMN id SET DEFAULT nextval('public.admin_
 
 --
 -- TOC entry 4835 (class 2604 OID 26267)
--- Name: chat_sessions id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.chat_sessions ALTER COLUMN id SET DEFAULT nextval('public.chat_sessions_id_seq'::regclass);
@@ -752,7 +754,7 @@ ALTER TABLE ONLY public.chat_sessions ALTER COLUMN id SET DEFAULT nextval('publi
 
 --
 -- TOC entry 4841 (class 2604 OID 26289)
--- Name: informasi_publik id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: informasi_publik id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.informasi_publik ALTER COLUMN id SET DEFAULT nextval('public.informasi_publik_id_seq'::regclass);
@@ -760,7 +762,7 @@ ALTER TABLE ONLY public.informasi_publik ALTER COLUMN id SET DEFAULT nextval('pu
 
 --
 -- TOC entry 4862 (class 2604 OID 26392)
--- Name: kategori id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: kategori id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.kategori ALTER COLUMN id SET DEFAULT nextval('public.kategori_id_seq'::regclass);
@@ -768,7 +770,7 @@ ALTER TABLE ONLY public.kategori ALTER COLUMN id SET DEFAULT nextval('public.kat
 
 --
 -- TOC entry 4838 (class 2604 OID 26278)
--- Name: kategori_informasi id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.kategori_informasi ALTER COLUMN id SET DEFAULT nextval('public.kategori_informasi_id_seq'::regclass);
@@ -776,7 +778,7 @@ ALTER TABLE ONLY public.kategori_informasi ALTER COLUMN id SET DEFAULT nextval('
 
 --
 -- TOC entry 4848 (class 2604 OID 26312)
--- Name: keberatan id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan ALTER COLUMN id SET DEFAULT nextval('public.keberatan_id_seq'::regclass);
@@ -784,7 +786,7 @@ ALTER TABLE ONLY public.keberatan ALTER COLUMN id SET DEFAULT nextval('public.ke
 
 --
 -- TOC entry 4859 (class 2604 OID 26381)
--- Name: keberatan_responses id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_responses id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan_responses ALTER COLUMN id SET DEFAULT nextval('public.keberatan_responses_id_seq'::regclass);
@@ -792,7 +794,7 @@ ALTER TABLE ONLY public.keberatan_responses ALTER COLUMN id SET DEFAULT nextval(
 
 --
 -- TOC entry 4852 (class 2604 OID 26324)
--- Name: pages id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: pages id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.pages ALTER COLUMN id SET DEFAULT nextval('public.pages_id_seq'::regclass);
@@ -800,7 +802,7 @@ ALTER TABLE ONLY public.pages ALTER COLUMN id SET DEFAULT nextval('public.pages_
 
 --
 -- TOC entry 4821 (class 2604 OID 26221)
--- Name: pemohon id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: pemohon id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.pemohon ALTER COLUMN id SET DEFAULT nextval('public.pemohon_id_seq'::regclass);
@@ -808,7 +810,7 @@ ALTER TABLE ONLY public.pemohon ALTER COLUMN id SET DEFAULT nextval('public.pemo
 
 --
 -- TOC entry 4823 (class 2604 OID 26231)
--- Name: ppid id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: ppid id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.ppid ALTER COLUMN id SET DEFAULT nextval('public.ppid_id_seq'::regclass);
@@ -816,7 +818,7 @@ ALTER TABLE ONLY public.ppid ALTER COLUMN id SET DEFAULT nextval('public.ppid_id
 
 --
 -- TOC entry 4865 (class 2604 OID 26839)
--- Name: ppid_chats id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.ppid_chats ALTER COLUMN id SET DEFAULT nextval('public.ppid_chats_id_seq'::regclass);
@@ -824,7 +826,7 @@ ALTER TABLE ONLY public.ppid_chats ALTER COLUMN id SET DEFAULT nextval('public.p
 
 --
 -- TOC entry 4832 (class 2604 OID 26256)
--- Name: request_responses id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: request_responses id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.request_responses ALTER COLUMN id SET DEFAULT nextval('public.request_responses_id_seq'::regclass);
@@ -832,7 +834,7 @@ ALTER TABLE ONLY public.request_responses ALTER COLUMN id SET DEFAULT nextval('p
 
 --
 -- TOC entry 4826 (class 2604 OID 26242)
--- Name: requests id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: requests id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.requests ALTER COLUMN id SET DEFAULT nextval('public.requests_id_seq'::regclass);
@@ -840,7 +842,7 @@ ALTER TABLE ONLY public.requests ALTER COLUMN id SET DEFAULT nextval('public.req
 
 --
 -- TOC entry 4856 (class 2604 OID 26336)
--- Name: settings id; Type: DEFAULT; Schema: public; Owner: sidogar_client_user
+-- Name: settings id; Type: DEFAULT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.settings ALTER COLUMN id SET DEFAULT nextval('public.settings_id_seq'::regclass);
@@ -849,7 +851,7 @@ ALTER TABLE ONLY public.settings ALTER COLUMN id SET DEFAULT nextval('public.set
 --
 -- TOC entry 5065 (class 0 OID 26197)
 -- Dependencies: 217
--- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
@@ -863,7 +865,7 @@ baddbb6f-659c-40f5-aee1-2cedcc4e73cc	463949c86f949bcdff6b1460176e00c8eff4aad5c5e
 --
 -- TOC entry 5083 (class 0 OID 26299)
 -- Dependencies: 235
--- Data for Name: activity_logs; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: activity_logs; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.activity_logs (id, action, details, user_id, user_role, ip_address, user_agent, created_at, resource) FROM stdin;
@@ -879,7 +881,7 @@ COPY public.activity_logs (id, action, details, user_id, user_role, ip_address, 
 --
 -- TOC entry 5067 (class 0 OID 26207)
 -- Dependencies: 219
--- Data for Name: admin; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: admin; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.admin (id, email, hashed_password, nama, role, permissions, created_at) FROM stdin;
@@ -890,7 +892,7 @@ COPY public.admin (id, email, hashed_password, nama, role, permissions, created_
 --
 -- TOC entry 5077 (class 0 OID 26264)
 -- Dependencies: 229
--- Data for Name: chat_sessions; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: chat_sessions; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.chat_sessions (id, request_id, is_active, ended_by, ended_at, created_at) FROM stdin;
@@ -900,7 +902,7 @@ COPY public.chat_sessions (id, request_id, is_active, ended_by, ended_at, create
 --
 -- TOC entry 5081 (class 0 OID 26286)
 -- Dependencies: 233
--- Data for Name: informasi_publik; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: informasi_publik; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.informasi_publik (id, judul, klasifikasi, ringkasan_isi_informasi, file_attachments, links, tanggal_posting, pejabat_penguasa_informasi, status, thumbnail, jadwal_publish, images, created_at, updated_at, created_by) FROM stdin;
@@ -915,7 +917,7 @@ COPY public.informasi_publik (id, judul, klasifikasi, ringkasan_isi_informasi, f
 --
 -- TOC entry 5093 (class 0 OID 26389)
 -- Dependencies: 245
--- Data for Name: kategori; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: kategori; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.kategori (id, nama, deskripsi, created_at, updated_at) FROM stdin;
@@ -925,7 +927,7 @@ COPY public.kategori (id, nama, deskripsi, created_at, updated_at) FROM stdin;
 --
 -- TOC entry 5079 (class 0 OID 26275)
 -- Dependencies: 231
--- Data for Name: kategori_informasi; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: kategori_informasi; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.kategori_informasi (id, nama, slug, deskripsi, created_at, updated_at) FROM stdin;
@@ -936,7 +938,7 @@ COPY public.kategori_informasi (id, nama, slug, deskripsi, created_at, updated_a
 --
 -- TOC entry 5085 (class 0 OID 26309)
 -- Dependencies: 237
--- Data for Name: keberatan; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: keberatan; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.keberatan (id, permintaan_id, pemohon_id, judul, alasan_keberatan, status, catatan_ppid, created_at, updated_at, assigned_ppid_id) FROM stdin;
@@ -946,7 +948,7 @@ COPY public.keberatan (id, permintaan_id, pemohon_id, judul, alasan_keberatan, s
 --
 -- TOC entry 5091 (class 0 OID 26378)
 -- Dependencies: 243
--- Data for Name: keberatan_responses; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: keberatan_responses; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.keberatan_responses (id, keberatan_id, user_id, user_role, user_name, message, attachments, message_type, created_at) FROM stdin;
@@ -956,7 +958,7 @@ COPY public.keberatan_responses (id, keberatan_id, user_id, user_role, user_name
 --
 -- TOC entry 5087 (class 0 OID 26321)
 -- Dependencies: 239
--- Data for Name: pages; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: pages; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.pages (id, title, slug, content, status, created_at, updated_at) FROM stdin;
@@ -966,7 +968,7 @@ COPY public.pages (id, title, slug, content, status, created_at, updated_at) FRO
 --
 -- TOC entry 5069 (class 0 OID 26218)
 -- Dependencies: 221
--- Data for Name: pemohon; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: pemohon; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.pemohon (id, email, hashed_password, nama, nik, no_telepon, alamat, created_at) FROM stdin;
@@ -977,7 +979,7 @@ COPY public.pemohon (id, email, hashed_password, nama, nik, no_telepon, alamat, 
 --
 -- TOC entry 5071 (class 0 OID 26228)
 -- Dependencies: 223
--- Data for Name: ppid; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: ppid; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.ppid (id, no_pegawai, email, hashed_password, nama, role, permissions, created_at) FROM stdin;
@@ -990,7 +992,7 @@ COPY public.ppid (id, no_pegawai, email, hashed_password, nama, role, permission
 --
 -- TOC entry 5095 (class 0 OID 26836)
 -- Dependencies: 247
--- Data for Name: ppid_chats; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: ppid_chats; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.ppid_chats (id, sender_id, receiver_id, subject, message, attachments, is_read, created_at) FROM stdin;
@@ -1000,7 +1002,7 @@ COPY public.ppid_chats (id, sender_id, receiver_id, subject, message, attachment
 --
 -- TOC entry 5075 (class 0 OID 26253)
 -- Dependencies: 227
--- Data for Name: request_responses; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: request_responses; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.request_responses (id, request_id, user_id, user_role, user_name, message, attachments, message_type, created_at) FROM stdin;
@@ -1022,7 +1024,7 @@ COPY public.request_responses (id, request_id, user_id, user_role, user_name, me
 --
 -- TOC entry 5073 (class 0 OID 26239)
 -- Dependencies: 225
--- Data for Name: requests; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: requests; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.requests (id, pemohon_id, judul, rincian_informasi, tujuan_penggunaan, cara_memperoleh_informasi, cara_mendapat_salinan, status, catatan_ppid, file_attachments, created_at, updated_at, assigned_ppid_id) FROM stdin;
@@ -1042,7 +1044,7 @@ COPY public.requests (id, pemohon_id, judul, rincian_informasi, tujuan_penggunaa
 --
 -- TOC entry 5089 (class 0 OID 26333)
 -- Dependencies: 241
--- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: sidogar_client_user
+-- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: ppid_user
 --
 
 COPY public.settings (id, key, value, created_at, updated_at) FROM stdin;
@@ -1056,7 +1058,7 @@ COPY public.settings (id, key, value, created_at, updated_at) FROM stdin;
 --
 -- TOC entry 5118 (class 0 OID 0)
 -- Dependencies: 234
--- Name: activity_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: activity_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.activity_logs_id_seq', 6, true);
@@ -1065,7 +1067,7 @@ SELECT pg_catalog.setval('public.activity_logs_id_seq', 6, true);
 --
 -- TOC entry 5119 (class 0 OID 0)
 -- Dependencies: 218
--- Name: admin_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: admin_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.admin_id_seq', 1, true);
@@ -1074,7 +1076,7 @@ SELECT pg_catalog.setval('public.admin_id_seq', 1, true);
 --
 -- TOC entry 5120 (class 0 OID 0)
 -- Dependencies: 228
--- Name: chat_sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.chat_sessions_id_seq', 1, false);
@@ -1083,7 +1085,7 @@ SELECT pg_catalog.setval('public.chat_sessions_id_seq', 1, false);
 --
 -- TOC entry 5121 (class 0 OID 0)
 -- Dependencies: 232
--- Name: informasi_publik_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: informasi_publik_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.informasi_publik_id_seq', 5, true);
@@ -1092,7 +1094,7 @@ SELECT pg_catalog.setval('public.informasi_publik_id_seq', 5, true);
 --
 -- TOC entry 5122 (class 0 OID 0)
 -- Dependencies: 244
--- Name: kategori_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.kategori_id_seq', 1, false);
@@ -1101,7 +1103,7 @@ SELECT pg_catalog.setval('public.kategori_id_seq', 1, false);
 --
 -- TOC entry 5123 (class 0 OID 0)
 -- Dependencies: 230
--- Name: kategori_informasi_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.kategori_informasi_id_seq', 1, true);
@@ -1110,7 +1112,7 @@ SELECT pg_catalog.setval('public.kategori_informasi_id_seq', 1, true);
 --
 -- TOC entry 5124 (class 0 OID 0)
 -- Dependencies: 236
--- Name: keberatan_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.keberatan_id_seq', 1, false);
@@ -1119,7 +1121,7 @@ SELECT pg_catalog.setval('public.keberatan_id_seq', 1, false);
 --
 -- TOC entry 5125 (class 0 OID 0)
 -- Dependencies: 242
--- Name: keberatan_responses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_responses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.keberatan_responses_id_seq', 1, false);
@@ -1128,7 +1130,7 @@ SELECT pg_catalog.setval('public.keberatan_responses_id_seq', 1, false);
 --
 -- TOC entry 5126 (class 0 OID 0)
 -- Dependencies: 238
--- Name: pages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: pages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.pages_id_seq', 1, false);
@@ -1137,7 +1139,7 @@ SELECT pg_catalog.setval('public.pages_id_seq', 1, false);
 --
 -- TOC entry 5127 (class 0 OID 0)
 -- Dependencies: 220
--- Name: pemohon_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: pemohon_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.pemohon_id_seq', 1, true);
@@ -1146,7 +1148,7 @@ SELECT pg_catalog.setval('public.pemohon_id_seq', 1, true);
 --
 -- TOC entry 5128 (class 0 OID 0)
 -- Dependencies: 246
--- Name: ppid_chats_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.ppid_chats_id_seq', 1, false);
@@ -1155,7 +1157,7 @@ SELECT pg_catalog.setval('public.ppid_chats_id_seq', 1, false);
 --
 -- TOC entry 5129 (class 0 OID 0)
 -- Dependencies: 222
--- Name: ppid_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.ppid_id_seq', 3, true);
@@ -1164,7 +1166,7 @@ SELECT pg_catalog.setval('public.ppid_id_seq', 3, true);
 --
 -- TOC entry 5130 (class 0 OID 0)
 -- Dependencies: 226
--- Name: request_responses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: request_responses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.request_responses_id_seq', 12, true);
@@ -1173,7 +1175,7 @@ SELECT pg_catalog.setval('public.request_responses_id_seq', 12, true);
 --
 -- TOC entry 5131 (class 0 OID 0)
 -- Dependencies: 224
--- Name: requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.requests_id_seq', 10, true);
@@ -1182,7 +1184,7 @@ SELECT pg_catalog.setval('public.requests_id_seq', 10, true);
 --
 -- TOC entry 5132 (class 0 OID 0)
 -- Dependencies: 240
--- Name: settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sidogar_client_user
+-- Name: settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ppid_user
 --
 
 SELECT pg_catalog.setval('public.settings_id_seq', 40, true);
@@ -1190,7 +1192,7 @@ SELECT pg_catalog.setval('public.settings_id_seq', 40, true);
 
 --
 -- TOC entry 4869 (class 2606 OID 26205)
--- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public._prisma_migrations
@@ -1199,7 +1201,7 @@ ALTER TABLE ONLY public._prisma_migrations
 
 --
 -- TOC entry 4894 (class 2606 OID 26307)
--- Name: activity_logs activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: activity_logs activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.activity_logs
@@ -1208,7 +1210,7 @@ ALTER TABLE ONLY public.activity_logs
 
 --
 -- TOC entry 4872 (class 2606 OID 26216)
--- Name: admin admin_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: admin admin_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.admin
@@ -1217,7 +1219,7 @@ ALTER TABLE ONLY public.admin
 
 --
 -- TOC entry 4885 (class 2606 OID 26273)
--- Name: chat_sessions chat_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions chat_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.chat_sessions
@@ -1226,7 +1228,7 @@ ALTER TABLE ONLY public.chat_sessions
 
 --
 -- TOC entry 4892 (class 2606 OID 26297)
--- Name: informasi_publik informasi_publik_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: informasi_publik informasi_publik_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.informasi_publik
@@ -1235,7 +1237,7 @@ ALTER TABLE ONLY public.informasi_publik
 
 --
 -- TOC entry 4889 (class 2606 OID 26284)
--- Name: kategori_informasi kategori_informasi_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi kategori_informasi_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.kategori_informasi
@@ -1244,7 +1246,7 @@ ALTER TABLE ONLY public.kategori_informasi
 
 --
 -- TOC entry 4907 (class 2606 OID 26398)
--- Name: kategori kategori_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: kategori kategori_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.kategori
@@ -1253,7 +1255,7 @@ ALTER TABLE ONLY public.kategori
 
 --
 -- TOC entry 4896 (class 2606 OID 26319)
--- Name: keberatan keberatan_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan keberatan_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan
@@ -1262,7 +1264,7 @@ ALTER TABLE ONLY public.keberatan
 
 --
 -- TOC entry 4904 (class 2606 OID 26387)
--- Name: keberatan_responses keberatan_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_responses keberatan_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan_responses
@@ -1271,7 +1273,7 @@ ALTER TABLE ONLY public.keberatan_responses
 
 --
 -- TOC entry 4898 (class 2606 OID 26331)
--- Name: pages pages_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: pages pages_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.pages
@@ -1280,7 +1282,7 @@ ALTER TABLE ONLY public.pages
 
 --
 -- TOC entry 4875 (class 2606 OID 26226)
--- Name: pemohon pemohon_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: pemohon pemohon_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.pemohon
@@ -1289,7 +1291,7 @@ ALTER TABLE ONLY public.pemohon
 
 --
 -- TOC entry 4909 (class 2606 OID 26845)
--- Name: ppid_chats ppid_chats_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats ppid_chats_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.ppid_chats
@@ -1298,7 +1300,7 @@ ALTER TABLE ONLY public.ppid_chats
 
 --
 -- TOC entry 4879 (class 2606 OID 26237)
--- Name: ppid ppid_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: ppid ppid_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.ppid
@@ -1307,7 +1309,7 @@ ALTER TABLE ONLY public.ppid
 
 --
 -- TOC entry 4883 (class 2606 OID 26262)
--- Name: request_responses request_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: request_responses request_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.request_responses
@@ -1316,7 +1318,7 @@ ALTER TABLE ONLY public.request_responses
 
 --
 -- TOC entry 4881 (class 2606 OID 26251)
--- Name: requests requests_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: requests requests_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.requests
@@ -1325,7 +1327,7 @@ ALTER TABLE ONLY public.requests
 
 --
 -- TOC entry 4902 (class 2606 OID 26342)
--- Name: settings settings_pkey; Type: CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: settings settings_pkey; Type: CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.settings
@@ -1334,7 +1336,7 @@ ALTER TABLE ONLY public.settings
 
 --
 -- TOC entry 4870 (class 1259 OID 26343)
--- Name: admin_email_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: admin_email_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX admin_email_key ON public.admin USING btree (email);
@@ -1342,7 +1344,7 @@ CREATE UNIQUE INDEX admin_email_key ON public.admin USING btree (email);
 
 --
 -- TOC entry 4886 (class 1259 OID 26347)
--- Name: chat_sessions_request_id_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions_request_id_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX chat_sessions_request_id_key ON public.chat_sessions USING btree (request_id);
@@ -1350,7 +1352,7 @@ CREATE UNIQUE INDEX chat_sessions_request_id_key ON public.chat_sessions USING b
 
 --
 -- TOC entry 4887 (class 1259 OID 26348)
--- Name: kategori_informasi_nama_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi_nama_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX kategori_informasi_nama_key ON public.kategori_informasi USING btree (nama);
@@ -1358,7 +1360,7 @@ CREATE UNIQUE INDEX kategori_informasi_nama_key ON public.kategori_informasi USI
 
 --
 -- TOC entry 4890 (class 1259 OID 26349)
--- Name: kategori_informasi_slug_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_informasi_slug_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX kategori_informasi_slug_key ON public.kategori_informasi USING btree (slug);
@@ -1366,7 +1368,7 @@ CREATE UNIQUE INDEX kategori_informasi_slug_key ON public.kategori_informasi USI
 
 --
 -- TOC entry 4905 (class 1259 OID 26399)
--- Name: kategori_nama_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: kategori_nama_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX kategori_nama_key ON public.kategori USING btree (nama);
@@ -1374,7 +1376,7 @@ CREATE UNIQUE INDEX kategori_nama_key ON public.kategori USING btree (nama);
 
 --
 -- TOC entry 4899 (class 1259 OID 26350)
--- Name: pages_slug_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: pages_slug_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX pages_slug_key ON public.pages USING btree (slug);
@@ -1382,7 +1384,7 @@ CREATE UNIQUE INDEX pages_slug_key ON public.pages USING btree (slug);
 
 --
 -- TOC entry 4873 (class 1259 OID 26344)
--- Name: pemohon_email_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: pemohon_email_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX pemohon_email_key ON public.pemohon USING btree (email);
@@ -1390,7 +1392,7 @@ CREATE UNIQUE INDEX pemohon_email_key ON public.pemohon USING btree (email);
 
 --
 -- TOC entry 4876 (class 1259 OID 26346)
--- Name: ppid_email_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_email_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX ppid_email_key ON public.ppid USING btree (email);
@@ -1398,7 +1400,7 @@ CREATE UNIQUE INDEX ppid_email_key ON public.ppid USING btree (email);
 
 --
 -- TOC entry 4877 (class 1259 OID 26345)
--- Name: ppid_no_pegawai_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_no_pegawai_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX ppid_no_pegawai_key ON public.ppid USING btree (no_pegawai);
@@ -1406,7 +1408,7 @@ CREATE UNIQUE INDEX ppid_no_pegawai_key ON public.ppid USING btree (no_pegawai);
 
 --
 -- TOC entry 4900 (class 1259 OID 26351)
--- Name: settings_key_key; Type: INDEX; Schema: public; Owner: sidogar_client_user
+-- Name: settings_key_key; Type: INDEX; Schema: public; Owner: ppid_user
 --
 
 CREATE UNIQUE INDEX settings_key_key ON public.settings USING btree (key);
@@ -1414,7 +1416,7 @@ CREATE UNIQUE INDEX settings_key_key ON public.settings USING btree (key);
 
 --
 -- TOC entry 4913 (class 2606 OID 26362)
--- Name: chat_sessions chat_sessions_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: chat_sessions chat_sessions_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.chat_sessions
@@ -1423,7 +1425,7 @@ ALTER TABLE ONLY public.chat_sessions
 
 --
 -- TOC entry 4914 (class 2606 OID 26851)
--- Name: keberatan keberatan_assigned_ppid_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan keberatan_assigned_ppid_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan
@@ -1432,7 +1434,7 @@ ALTER TABLE ONLY public.keberatan
 
 --
 -- TOC entry 4915 (class 2606 OID 26372)
--- Name: keberatan keberatan_pemohon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan keberatan_pemohon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan
@@ -1441,7 +1443,7 @@ ALTER TABLE ONLY public.keberatan
 
 --
 -- TOC entry 4916 (class 2606 OID 26367)
--- Name: keberatan keberatan_permintaan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan keberatan_permintaan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan
@@ -1450,7 +1452,7 @@ ALTER TABLE ONLY public.keberatan
 
 --
 -- TOC entry 4917 (class 2606 OID 26400)
--- Name: keberatan_responses keberatan_responses_keberatan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: keberatan_responses keberatan_responses_keberatan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.keberatan_responses
@@ -1459,7 +1461,7 @@ ALTER TABLE ONLY public.keberatan_responses
 
 --
 -- TOC entry 4918 (class 2606 OID 26861)
--- Name: ppid_chats ppid_chats_receiver_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats ppid_chats_receiver_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.ppid_chats
@@ -1468,7 +1470,7 @@ ALTER TABLE ONLY public.ppid_chats
 
 --
 -- TOC entry 4919 (class 2606 OID 26856)
--- Name: ppid_chats ppid_chats_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: ppid_chats ppid_chats_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.ppid_chats
@@ -1477,7 +1479,7 @@ ALTER TABLE ONLY public.ppid_chats
 
 --
 -- TOC entry 4912 (class 2606 OID 26357)
--- Name: request_responses request_responses_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: request_responses request_responses_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.request_responses
@@ -1486,7 +1488,7 @@ ALTER TABLE ONLY public.request_responses
 
 --
 -- TOC entry 4910 (class 2606 OID 26846)
--- Name: requests requests_assigned_ppid_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: requests requests_assigned_ppid_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.requests
@@ -1495,7 +1497,7 @@ ALTER TABLE ONLY public.requests
 
 --
 -- TOC entry 4911 (class 2606 OID 26352)
--- Name: requests requests_pemohon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sidogar_client_user
+-- Name: requests requests_pemohon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ppid_user
 --
 
 ALTER TABLE ONLY public.requests
@@ -1505,7 +1507,7 @@ ALTER TABLE ONLY public.requests
 --
 -- TOC entry 5102 (class 0 OID 0)
 -- Dependencies: 5
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: sidogar_client_user
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: ppid_user
 --
 
 REVOKE USAGE ON SCHEMA public FROM PUBLIC;
