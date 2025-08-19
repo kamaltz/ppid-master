@@ -17,7 +17,7 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 log_info "🚀 PPID Master - Production Deployment"
-log_info "Domain: ppidgarut.kamaltz.fun"
+log_info "Domain: ppid-garut.kamaltz.fun"
 log_info "SSL: Automatic HTTPS"
 echo ""
 
@@ -129,7 +129,7 @@ log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 server {
     listen 80;
-    server_name ppidgarut.kamaltz.fun www.ppidgarut.kamaltz.fun;
+    server_name ppid-garut.kamaltz.fun;
     client_max_body_size 50M;
     
     # Security headers
@@ -226,7 +226,7 @@ done
 # Setup SSL with Let's Encrypt
 log_info "Setting up SSL certificate..."
 sudo apt install -y certbot python3-certbot-nginx
-if sudo certbot --nginx -d ppidgarut.kamaltz.fun -d www.ppidgarut.kamaltz.fun --non-interactive --agree-tos --email admin@kamaltz.fun --expand; then
+if sudo certbot --nginx -d ppid-garut.kamaltz.fun --non-interactive --agree-tos --email admin@kamaltz.fun --expand; then
     log_info "SSL certificate installed successfully"
     # Setup auto-renewal
     echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
