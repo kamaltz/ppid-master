@@ -16,6 +16,12 @@ interface LinkData {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if JWT_SECRET is available
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
     let isAdminOrPPID = false;
     let userId = null;
@@ -27,7 +33,8 @@ export async function GET(request: NextRequest) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id?: number; userId?: number; role: string };
         userId = parseInt(decoded.id?.toString() || '') || decoded.userId;
         isAdminOrPPID = ['ADMIN', 'PPID_UTAMA'].includes(decoded.role);
-      } catch {
+      } catch (jwtError) {
+        console.error('JWT verification failed:', jwtError);
         // Token invalid, continue as public user
       }
     }
@@ -87,6 +94,14 @@ export async function GET(request: NextRequest) {
       where.tanggal_posting = dateFilter;
     }
 
+    // Check database connection
+    try {
+      await prisma.$connect();
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 503 });
+    }
+
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       prisma.informasiPublik.findMany({
@@ -105,7 +120,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Get informasi error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Server error', 
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
+    }, { status: 500 });
   }
 }
 

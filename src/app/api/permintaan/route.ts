@@ -29,6 +29,12 @@ function getClientIP(request: NextRequest): string {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if JWT_SECRET is available
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -39,18 +45,24 @@ export async function GET(request: NextRequest) {
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch {
+    } catch (jwtError) {
+      console.error('JWT verification failed:', jwtError);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const page = parseInt(searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100); // Limit max to 100
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1); // Ensure page is at least 1
     const status = searchParams.get('status');
 
     // Filter based on user role
     const where: Record<string, unknown> = {};
     const userId = parseInt(decoded.id) || decoded.userId;
+    
+    if (!userId || isNaN(userId)) {
+      console.error('Invalid user ID from token:', decoded);
+      return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+    }
     
     // Role-based filtering
     if (decoded.role === 'PEMOHON') {
@@ -72,6 +84,14 @@ export async function GET(request: NextRequest) {
     }
     
     const skip = (page - 1) * limit;
+
+    // Check database connection
+    try {
+      await prisma.$connect();
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 503 });
+    }
 
     const [requests, total] = await Promise.all([
       prisma.request.findMany({
@@ -109,8 +129,6 @@ export async function GET(request: NextRequest) {
       lastMessage: request.responses[0] || null
     }));
 
-    console.log('API Response sample:', transformedRequests && transformedRequests.length > 0 ? transformedRequests[0] : 'No requests found');
-
     return NextResponse.json({ 
       success: true,
       data: transformedRequests,
@@ -118,7 +136,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Get permintaan error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Server error', 
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
+    }, { status: 500 });
   }
 }
 

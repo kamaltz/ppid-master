@@ -190,9 +190,11 @@ docker-compose -f docker-compose.deploy.yml exec postgres pg_dump -U postgres pp
 - ✅ **Auto Migration** - Database schema setup on first run
 - ✅ **Data Seeding** - Default accounts created automatically
 - ✅ **File Storage** - Persistent uploads directory
-- ✅ **Health Checks** - Automatic service monitoring
+- ✅ **Health Checks** - Automatic service monitoring with `/api/health`
 - ✅ **Auto Restart** - Services restart on failure
 - ✅ **Production Ready** - Optimized for production use
+- ✅ **Improved Error Handling** - Better API error responses
+- ✅ **No DDoS Protection** - Removed aggressive rate limiting that caused API errors
 
 ## 👥 Akun Default (Seeder)
 
@@ -509,5 +511,60 @@ tar -xzf ppid-deployment.tar.gz
 - ✅ **Comprehensive Testing** - Full test coverage
 - ✅ **PostgreSQL + Prisma** - Modern database stack
 - ✅ **Production Ready** - Optimized untuk production deployment
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**API Returns 500 Errors:**
+```bash
+# Check container logs
+docker-compose -f docker-compose.deploy.yml logs app
+
+# Check database connection
+docker-compose -f docker-compose.deploy.yml logs postgres
+
+# Restart services
+docker-compose -f docker-compose.deploy.yml restart
+```
+
+**Database Connection Issues:**
+```bash
+# Check if database is ready
+docker-compose -f docker-compose.deploy.yml exec postgres pg_isready -U postgres
+
+# Manual migration if needed
+docker-compose -f docker-compose.deploy.yml exec app npx prisma migrate deploy
+
+# Manual seeding if needed
+docker-compose -f docker-compose.deploy.yml exec app npx prisma db seed
+```
+
+**Health Check:**
+```bash
+# Check application health
+curl http://localhost:3000/api/health
+
+# Should return: {"status":"healthy","database":"connected"}
+```
+
+**Reset Everything:**
+```bash
+# Stop and remove all containers and volumes
+docker-compose -f docker-compose.deploy.yml down -v
+
+# Remove images
+docker rmi $(docker images "*ppid-master*" -q)
+
+# Start fresh
+./deploy.sh
+```
+
+### Performance Optimization
+
+- **DDoS Protection**: Removed aggressive rate limiting that caused API errors
+- **Database Connection**: Improved connection handling with timeouts
+- **Error Handling**: Better error responses for debugging
+- **Health Monitoring**: Added `/api/health` endpoint for monitoring
 
 **Dikembangkan untuk PPID Diskominfo Kabupaten Garut** 🏛️

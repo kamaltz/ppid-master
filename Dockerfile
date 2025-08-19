@@ -1,6 +1,6 @@
 # Base image
 FROM node:18-alpine AS base
-RUN apk add --no-cache libc6-compat postgresql-client
+RUN apk add --no-cache libc6-compat postgresql-client curl
 WORKDIR /app
 
 # Dependencies
@@ -20,6 +20,9 @@ FROM base AS runner
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Create uploads directory
+RUN mkdir -p /app/public/uploads/images
+
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -31,11 +34,11 @@ COPY --from=builder /app/package.json ./package.json
 
 COPY start.sh ./
 
-# Mengubah kepemilikan semua file di /app ke pengguna nextjs
+# Set proper permissions
 RUN chown -R nextjs:nodejs /app
-
-USER root
 RUN chmod +x start.sh
+
+# Switch to nextjs user for security
 USER nextjs
 
 EXPOSE 3000

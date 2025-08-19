@@ -11,18 +11,41 @@ interface JWTPayload {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if JWT_SECRET is available
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    let decoded: JWTPayload;
     
-    const { searchParams } = new URL(request.url);
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (jwtError) {
+      console.error('JWT verification failed:', jwtError);
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+    
     const pemohonId = searchParams.get('pemohon_id');
 
     const userId = parseInt(decoded.id) || decoded.userId;
+    
+    if (!userId || isNaN(userId)) {
+      console.error('Invalid user ID from token:', decoded);
+      return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+    }
+
+    // Prevent infinite loops by limiting query complexity
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    
     const where: Record<string, unknown> = {};
     
     if (decoded.role === 'PEMOHON') {
@@ -33,10 +56,22 @@ export async function GET(request: NextRequest) {
     } else if (decoded.role === 'PPID_UTAMA' || decoded.role === 'ADMIN') {
       // PPID Utama and Admin see all keberatan
       if (pemohonId) {
-        where.pemohon_id = parseInt(pemohonId);
+        const parsedPemohonId = parseInt(pemohonId);
+        if (!isNaN(parsedPemohonId)) {
+          where.pemohon_id = parsedPemohonId;
+        }
       }
     }
 
+    // Check database connection
+    try {
+      await prisma.$connect();
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 503 });
+    }
+
+    const skip = (page - 1) * limit;
     const keberatan = await prisma.keberatan.findMany({
       where,
       include: {
@@ -60,13 +95,22 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: limit
     });
 
-    return NextResponse.json({ success: true, data: keberatan });
+    return NextResponse.json({ 
+      success: true, 
+      data: keberatan,
+      pagination: { page, limit, total: keberatan.length }
+    });
   } catch (error) {
     console.error('Get keberatan error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Server error', 
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
+    }, { status: 500 });
   }
 }
 

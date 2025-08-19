@@ -10,6 +10,12 @@ interface JWTPayload {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if JWT_SECRET is available
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -20,11 +26,30 @@ export async function GET(request: NextRequest) {
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch {
+    } catch (jwtError) {
+      console.error('JWT verification failed:', jwtError);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const userId = parseInt(decoded.id);
+    const userId = parseInt(decoded.id) || decoded.userId;
+    
+    if (!userId || isNaN(userId)) {
+      console.error('Invalid user ID from token:', decoded);
+      return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+    }
+
+    // Only PPID roles can access PPID chat
+    if (!decoded.role.includes('PPID')) {
+      return NextResponse.json({ error: 'Access denied. Only PPID can access this feature.' }, { status: 403 });
+    }
+
+    // Check database connection
+    try {
+      await prisma.$connect();
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 503 });
+    }
 
     // Get chats where user is sender or receiver
     const chats = await prisma.ppidChat.findMany({
@@ -51,7 +76,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Get PPID chats error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Server error', 
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
+    }, { status: 500 });
   }
 }
 
