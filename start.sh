@@ -17,8 +17,15 @@ npx prisma generate
 echo "Running migrations..."
 npx prisma migrate deploy
 
-echo "Seeding database..."
-npx prisma db seed || echo "Seeding failed or already completed"
+# Check for custom database import
+if [ -f "/app/ppid_db.sql" ]; then
+  echo "Found ppid_db.sql - importing custom database..."
+  PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres -U postgres -d ppid_garut < /app/ppid_db.sql
+  echo "Custom database imported successfully"
+else
+  echo "No ppid_db.sql found - using default seed data..."
+  npx prisma db seed || echo "Seeding failed or already completed"
+fi
 
 echo "Creating uploads directory..."
 mkdir -p /app/public/uploads/images
