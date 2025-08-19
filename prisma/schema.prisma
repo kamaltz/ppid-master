@@ -63,6 +63,7 @@ model Request {
   status                    String      @default("Diajukan")
   catatan_ppid              String?
   file_attachments          String?     @db.Text
+  created_by                Int?
   created_at                DateTime    @default(now())
   updated_at                DateTime    @default(now()) @updatedAt
   pemohon                   Pemohon     @relation(fields: [pemohon_id], references: [id])
@@ -155,6 +156,7 @@ model Keberatan {
   alasan_keberatan String @db.Text
   status         String   @default("Diajukan")
   catatan_ppid   String?  @db.Text
+  created_by     Int?
   created_at     DateTime @default(now())
   updated_at     DateTime @default(now()) @updatedAt
   permintaan     Request  @relation(fields: [permintaan_id], references: [id])
