@@ -11,10 +11,9 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# Check if running as root
+# Allow root for production deployment
 if [[ $EUID -eq 0 ]]; then
-   log_error "This script should not be run as root for security reasons"
-   exit 1
+   log_warn "Running as root - ensure this is a production server"
 fi
 
 log_info "🚀 PPID Master - Production Deployment"
