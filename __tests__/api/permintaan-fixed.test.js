@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 
 // Mock prisma first
 const mockPrisma = {
+  $connect: jest.fn().mockResolvedValue(),
   request: {
     findMany: jest.fn(),
     count: jest.fn(),

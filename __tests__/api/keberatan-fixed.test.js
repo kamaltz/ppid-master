@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 
 // Mock prisma first
 const mockPrisma = {
+  $connect: jest.fn().mockResolvedValue(),
   keberatan: {
     findMany: jest.fn(),
     create: jest.fn(),
@@ -86,7 +87,9 @@ describe('Keberatan API Tests (Fixed)', () => {
             }
           }
         },
-        orderBy: { created_at: 'desc' }
+        orderBy: { created_at: 'desc' },
+        skip: 0,
+        take: 10
       });
     });
 
@@ -100,7 +103,7 @@ describe('Keberatan API Tests (Fixed)', () => {
     });
 
     test('should handle server error', async () => {
-      const token = jwt.sign({ role: 'Pemohon', id: '1' }, 'test-secret');
+      const token = jwt.sign({ role: 'PEMOHON', id: '1' }, 'test-secret');
       mockPrisma.keberatan.findMany.mockRejectedValue(new Error('Database error'));
 
       const request = new NextRequest('http://localhost:3000/api/keberatan', {
