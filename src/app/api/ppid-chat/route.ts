@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
     }
 
-    // Only PPID roles can access PPID chat
-    if (!decoded.role.includes('PPID')) {
-      return NextResponse.json({ error: 'Access denied. Only PPID can access this feature.' }, { status: 403 });
+    // Allow PPID roles and ADMIN to access PPID chat
+    if (!decoded.role.includes('PPID') && decoded.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Access denied. Only PPID and Admin can access this feature.' }, { status: 403 });
     }
 
     // Check database connection

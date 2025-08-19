@@ -31,8 +31,12 @@ export async function GET(request: NextRequest) {
       console.error('JWT verification failed:', jwtError);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
-    
+
+    // Parse URL parameters first
+    const { searchParams } = new URL(request.url);
     const pemohonId = searchParams.get('pemohon_id');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
 
     const userId = parseInt(decoded.id) || decoded.userId;
     
@@ -40,11 +44,6 @@ export async function GET(request: NextRequest) {
       console.error('Invalid user ID from token:', decoded);
       return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
     }
-
-    // Prevent infinite loops by limiting query complexity
-    const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
     
     const where: Record<string, unknown> = {};
     

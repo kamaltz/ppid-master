@@ -62,11 +62,12 @@ export const useRealtimeData = () => {
       status: generateStatusData(requests)
     };
     
-    // Only update if data actually changed
-    if (JSON.stringify(newChartData) !== JSON.stringify(chartData)) {
+    // Only update if data actually changed (avoid infinite loop)
+    const hasChanged = JSON.stringify(newChartData) !== JSON.stringify(chartData);
+    if (hasChanged) {
       setChartData(newChartData);
     }
-  }, [requests, chartData]);
+  }, [requests]); // Remove chartData from dependencies to prevent infinite loop
 
   const refreshData = useCallback(() => {
     setIsLoading(true);

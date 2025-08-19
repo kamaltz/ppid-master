@@ -44,10 +44,17 @@ export default function AdminKeberatanPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
+      if (!token) return;
+      
       const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
       if (data.success) {
         if (page === 1) {
@@ -60,23 +67,33 @@ export default function AdminKeberatanPage() {
       }
     } catch (error) {
       console.error('Failed to fetch PPID list:', error);
+      setPpidList([]);
     } finally {
       setLoading(false);
     }
   }, [loading]);
 
   React.useEffect(() => {
-    fetchPpidList();
-  }, [fetchPpidList]);
+    let mounted = true;
+    const initFetch = async () => {
+      if (mounted && showAssignModal) {
+        await fetchPpidList();
+      }
+    };
+    initFetch();
+    return () => { mounted = false; };
+  }, [showAssignModal]);
 
   React.useEffect(() => {
+    if (!showAssignModal) return;
+    
     const timeoutId = setTimeout(() => {
       setCurrentPage(1);
       setPpidList([]);
       fetchPpidList(searchTerm, 1);
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, fetchPpidList]);
+  }, [searchTerm]);
   
   // Convert database data to display format
   const keberatanDisplay = keberatan.map(item => ({

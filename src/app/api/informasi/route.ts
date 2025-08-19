@@ -16,25 +16,18 @@ interface LinkData {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check if JWT_SECRET is available
-    if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET is not configured');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-
     const authHeader = request.headers.get('authorization');
     let isAdminOrPPID = false;
     let userId = null;
     
     // Check if user is authenticated and is admin/PPID
-    if (authHeader?.startsWith('Bearer ')) {
+    if (authHeader?.startsWith('Bearer ') && process.env.JWT_SECRET) {
       try {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id?: number; userId?: number; role: string };
         userId = parseInt(decoded.id?.toString() || '') || decoded.userId;
         isAdminOrPPID = ['ADMIN', 'PPID_UTAMA'].includes(decoded.role);
-      } catch (jwtError) {
-        console.error('JWT verification failed:', jwtError);
+      } catch {
         // Token invalid, continue as public user
       }
     }
@@ -94,21 +87,13 @@ export async function GET(request: NextRequest) {
       where.tanggal_posting = dateFilter;
     }
 
-    // Check database connection
-    try {
-      await prisma.$connect();
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      return NextResponse.json({ error: 'Database connection failed' }, { status: 503 });
-    }
-
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * Math.min(limit, 50); // Max 50 items
     const [data, total] = await Promise.all([
       prisma.informasiPublik.findMany({
         where,
         orderBy: { tanggal_posting: 'desc' },
         skip,
-        take: limit
+        take: Math.min(limit, 50)
       }),
       prisma.informasiPublik.count({ where })
     ]);
@@ -129,6 +114,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -139,7 +128,8 @@ export async function POST(request: NextRequest) {
     
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id?: number; userId?: number; role: string };
-    } catch {
+    } catch (jwtError) {
+      console.error('JWT verification failed:', jwtError);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 

@@ -31,6 +31,7 @@ export const useKeberatanData = () => {
       const token = localStorage.getItem('auth_token');
       
       if (!token) {
+        setIsLoading(false);
         return;
       }
 
@@ -45,7 +46,14 @@ export const useKeberatanData = () => {
   }, []);
 
   useEffect(() => {
-    loadData();
+    let mounted = true;
+    const loadDataSafe = async () => {
+      if (mounted) {
+        await loadData();
+      }
+    };
+    loadDataSafe();
+    return () => { mounted = false; };
   }, [loadData]);
 
   const updateKeberatanStatus = async (id: number, statusData: KeberatanStatusData) => {

@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import DynamicLayout from "@/components/layout/DynamicLayout";
 import { getGeneralSettings } from "@/lib/getSettings";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,12 +40,14 @@ export default function RootLayout({
   return (
     <html lang="id" data-scroll-behavior="smooth" className="scroll-smooth" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          <DynamicLayout />
-          <Header />
-          {children}
-          <Footer />
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <DynamicLayout />
+            <Header />
+            {children}
+            <Footer />
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

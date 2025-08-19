@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
+import { rateLimit } from '@/lib/rateLimiter';
 
 interface JWTPayload {
   id: string;
@@ -76,6 +77,24 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const rateLimitResult = rateLimit(`assign-ppid-${clientIP}`, 30, 60000); // 30 requests per minute
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '30',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
+          }
+        }
+      );
+    }
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -114,7 +133,7 @@ export async function GET(request: NextRequest) {
       prisma.ppid.count({ where })
     ]);
 
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       success: true, 
       data: ppidList,
       pagination: {
@@ -124,6 +143,13 @@ export async function GET(request: NextRequest) {
         hasMore: skip + ppidList.length < total
       }
     });
+    
+    // Add rate limit headers
+    response.headers.set('X-RateLimit-Limit', '30');
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.resetTime.toString());
+    
+    return response;
   } catch (error) {
     console.error('Get PPID list error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
