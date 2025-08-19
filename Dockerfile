@@ -12,6 +12,14 @@ RUN npm install --legacy-peer-deps
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Set build environment variables
+ENV NODE_ENV=production
+ENV SKIP_ENV_VALIDATION=true
+ENV DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/ppid_garut?schema=public"
+ENV JWT_SECRET="build-time-secret"
+ENV NEXT_PUBLIC_API_URL="/api"
+
 RUN npx prisma generate
 RUN npm run build
 
