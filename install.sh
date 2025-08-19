@@ -216,7 +216,17 @@ done
 log_info "Setting up database..."
 docker-compose exec -T app npx prisma generate
 docker-compose exec -T app npx prisma migrate deploy
-docker-compose exec -T app npx prisma db seed
+
+# Check for custom database import
+if [ -f "ppid_db.sql" ]; then
+    log_info "Found ppid_db.sql - importing custom database..."
+    docker-compose exec -T postgres psql -U postgres -d ppid_garut < ppid_db.sql
+    log_info "Custom database imported successfully"
+else
+    log_info "No ppid_db.sql found - using default seed data..."
+    docker-compose exec -T app npx prisma db seed
+fi
+
 docker-compose restart app
 
 # Wait for app to be ready
