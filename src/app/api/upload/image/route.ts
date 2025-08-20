@@ -40,22 +40,35 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.\./g, '_');
     const filename = `${timestamp}-${sanitizedName}`;
-    const uploadDir = join(process.cwd(), 'public/uploads/images');
+    // Use uploads directory in project root for Docker deployment
+    const uploadDir = process.env.NODE_ENV === 'production' 
+      ? '/app/uploads/images'
+      : join(process.cwd(), 'public/uploads/images');
     const path = join(uploadDir, filename);
 
-    // Create directory if it doesn't exist
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
+    try {
+      // Create directory if it doesn't exist
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true });
+      }
+
+      await writeFile(path, buffer);
+    } catch (fsError) {
+      console.error('File system error:', fsError);
+      throw new Error('Failed to save file to disk');
     }
 
-    await writeFile(path, buffer);
+    // Return appropriate URL based on environment
+    const fileUrl = process.env.NODE_ENV === 'production'
+      ? `/uploads/images/${filename}`
+      : `/uploads/images/${filename}`;
 
     return NextResponse.json({ 
       success: true, 
       filename,
       originalName: file.name,
       size: file.size,
-      url: `/uploads/images/${filename}`
+      url: fileUrl
     });
   } catch (error) {
     console.error('Image upload error:', error);

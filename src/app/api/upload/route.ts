@@ -29,14 +29,22 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\\.\\./g, '_');
     const filename = `${timestamp}-${sanitizedName}`;
-    const uploadDir = join(process.cwd(), 'public/uploads');
+    // Use uploads directory in project root for Docker deployment
+    const uploadDir = process.env.NODE_ENV === 'production' 
+      ? '/app/uploads'
+      : join(process.cwd(), 'public/uploads');
     const path = join(uploadDir, filename);
 
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
+    try {
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true });
+      }
 
-    await writeFile(path, buffer);
+      await writeFile(path, buffer);
+    } catch (fsError) {
+      console.error('File system error:', fsError);
+      throw new Error('Failed to save file to disk');
+    }
 
     console.log('File uploaded successfully:', filename);
 
