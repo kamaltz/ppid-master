@@ -28,7 +28,8 @@
     "seed:old-requests": "node scripts/create-old-requests.js",
     "db:migrate": "npx prisma migrate dev",
     "seed": "npx prisma db seed",
-    "reset-admin": "node lib/scripts/resetAdminPassword.ts"
+    "reset-admin": "node lib/scripts/resetAdminPassword.ts",
+    "fix-roles": "node scripts/fix-roles.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

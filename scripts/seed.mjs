@@ -29,7 +29,7 @@ async function main() {
       no_pegawai: "001",
       hashed_password: hashedPassword,
       nama: "PPID Utama",
-      role: "PPID_Utama",
+      role: "PPID_UTAMA",
     },
   });
   console.log("PPID Utama user created.");
@@ -42,7 +42,7 @@ async function main() {
       no_pegawai: "002",
       hashed_password: hashedPassword,
       nama: "PPID Pelaksana",
-      role: "PPID_Pelaksana",
+      role: "PPID_PELAKSANA",
     },
   });
   console.log("PPID Pelaksana user created.");
@@ -55,7 +55,7 @@ async function main() {
       no_pegawai: "003",
       hashed_password: hashedPassword,
       nama: "Atasan PPID",
-      role: "Atasan_PPID",
+      role: "ATASAN_PPID",
     },
   });
   console.log("Atasan PPID user created.");
