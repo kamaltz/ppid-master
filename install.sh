@@ -124,6 +124,28 @@ sudo systemctl enable nginx
 # Clean nginx.conf first
 sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
 
+# Setup self-signed SSL certificate
+log_info "Setting up self-signed SSL certificate..."
+
+SSL_DIR="/etc/ssl/ppid-selfsigned"
+CERT_FILE="$SSL_DIR/selfsigned.crt"
+KEY_FILE="$SSL_DIR/selfsigned.key"
+
+# Buat folder jika belum ada
+sudo mkdir -p $SSL_DIR
+
+# Generate cert jika belum ada
+if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
+    log_info "Generating new self-signed certificate..."
+    sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$KEY_FILE" \
+        -out "$CERT_FILE" \
+        -subj "/C=ID/ST=West Java/L=Garut/O=PPID/OU=IT/CN=143.198.205.44"
+    log_info "Self-signed certificate generated at $SSL_DIR"
+else
+    log_info "Existing self-signed certificate found, skipping generation."
+fi
+
 # Create Nginx site config
 log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/default << EOF
@@ -138,8 +160,8 @@ server {
     listen 443 ssl;
     server_name 143.198.205.44;
 
-    ssl_certificate /etc/ssl/ppid-selfsigned/selfsigned.crt;
-    ssl_certificate_key /etc/ssl/ppid-selfsigned/selfsigned.key;
+    ssl_certificate $CERT_FILE;
+    ssl_certificate_key $KEY_FILE;
 
     client_max_body_size 50M;
 
@@ -168,7 +190,7 @@ EOF
 
 # server {
 #     listen 80;
-#     server_name 143.198.205.44;
+#     server_name domain.com;
 #     client_max_body_size 50M;
     
 #     # Security headers
