@@ -72,6 +72,43 @@ async function main() {
   });
   console.log("Pemohon user created.");
 
+  // Seed Settings
+  const defaultSettings = {
+    general: {
+      namaInstansi: 'PPID Diskominfo Kabupaten Garut',
+      logo: '/logo-garut.svg',
+      email: 'ppid@garutkab.go.id',
+      telepon: '(0262) 123456',
+      alamat: 'Jl. Pembangunan No. 1, Garut, Jawa Barat',
+      websiteTitle: 'PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik',
+      websiteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut.'
+    },
+    header: {
+      menuItems: [
+        { label: 'Beranda', url: '/', hasDropdown: false, dropdownItems: [] },
+        { label: 'Profil', url: '/profil', hasDropdown: true, dropdownItems: [
+          { label: 'Tentang PPID', url: '/profil' },
+          { label: 'Visi Misi', url: '/visi-misi' },
+          { label: 'Struktur Organisasi', url: '/struktur' }
+        ]},
+        { label: 'Informasi Publik', url: '/informasi', hasDropdown: false, dropdownItems: [] },
+        { label: 'Layanan', url: '/layanan', hasDropdown: true, dropdownItems: [
+          { label: 'Permohonan Informasi', url: '/permohonan' },
+          { label: 'Keberatan', url: '/keberatan' }
+        ]}
+      ]
+    }
+  };
+
+  for (const [key, value] of Object.entries(defaultSettings)) {
+    await prisma.setting.upsert({
+      where: { key },
+      update: { value: JSON.stringify(value) },
+      create: { key, value: JSON.stringify(value) }
+    });
+  }
+  console.log("Settings seeded.");
+
   console.log(`Seeding finished.`);
 }
 

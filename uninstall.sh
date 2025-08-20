@@ -20,21 +20,11 @@ sudo docker volume rm ppid_postgres_data 2>/dev/null || true
 sudo docker system prune -af
 
 # Remove proxy configs
-sudo rm -f /etc/nginx/sites-enabled/ppid-master
-sudo rm -f /etc/nginx/sites-available/ppid-master
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-available/default
 sudo systemctl reload nginx 2>/dev/null || true
 
-# Stop proxy managers
-sudo docker-compose -f /opt/nginx-proxy-manager.yml down -v 2>/dev/null || true
-sudo docker-compose -f /opt/traefik-compose.yml down -v 2>/dev/null || true
-sudo docker-compose -f /opt/caddy-compose.yml down -v 2>/dev/null || true
 
-# Remove proxy manager files
-sudo rm -f /opt/nginx-proxy-manager.yml
-sudo rm -f /opt/traefik-compose.yml
-sudo rm -f /opt/caddy-compose.yml
-sudo rm -rf /opt/traefik
-sudo rm -rf /opt/caddy
 
 # Remove networks
 sudo docker network rm proxy 2>/dev/null || true
