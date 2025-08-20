@@ -40,22 +40,20 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.\./g, '_');
     const filename = `${timestamp}-${sanitizedName}`;
-    // Use uploads directory in project root for Docker deployment
-    const uploadDir = process.env.NODE_ENV === 'production' 
-      ? '/app/uploads/images'
-      : join(process.cwd(), 'public/uploads/images');
+    // Always use /app/uploads for Docker deployment
+    const uploadDir = '/app/uploads/images';
     const path = join(uploadDir, filename);
 
     try {
       // Create directory if it doesn't exist
-      if (!existsSync(uploadDir)) {
-        await mkdir(uploadDir, { recursive: true });
-      }
-
+      await mkdir(uploadDir, { recursive: true });
       await writeFile(path, buffer);
+      console.log('File saved successfully:', path);
     } catch (fsError) {
       console.error('File system error:', fsError);
-      throw new Error('Failed to save file to disk');
+      console.error('Upload dir:', uploadDir);
+      console.error('Full path:', path);
+      throw new Error(`Failed to save file: ${fsError.message}`);
     }
 
     // Return appropriate URL based on environment

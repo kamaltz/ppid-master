@@ -10,10 +10,8 @@ export async function GET(
   try {
     const filePath = params.path.join('/');
     
-    // Determine upload directory based on environment
-    const uploadDir = process.env.NODE_ENV === 'production' 
-      ? '/app/uploads'
-      : join(process.cwd(), 'public/uploads');
+    // Always use /app/uploads for Docker deployment
+    const uploadDir = '/app/uploads';
     
     const fullPath = join(uploadDir, filePath);
     
