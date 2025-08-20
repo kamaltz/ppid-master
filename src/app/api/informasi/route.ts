@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     const tanggalMulai = searchParams.get('tanggalMulai');
     const tanggalSelesai = searchParams.get('tanggalSelesai');
     const status = searchParams.get('status');
+    const penulis = searchParams.get('penulis');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (klasifikasi) where.klasifikasi = klasifikasi;
+    if (penulis) where.pejabat_penguasa_informasi = penulis;
     if (search) {
       where.OR = [
         { judul: { contains: search, mode: 'insensitive' } },

@@ -6,6 +6,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { Calendar, User, Tag, FileText, ExternalLink, ArrowLeft } from "lucide-react";
 
+// Function to get proper author display name
+const getAuthorDisplayName = (pejabat: string) => {
+  // If it's generic role display, show more specific name
+  if (pejabat === 'PPID Pelaksana') {
+    return 'PPID Pelaksana Diskominfo Garut';
+  }
+  // If it's already a proper name or other role, return as is
+  return pejabat;
+};
+
 interface InformasiDetail {
   id: number;
   judul: string;
@@ -135,7 +145,7 @@ export default function InformasiDetailPage() {
               </div>
               <div className="flex items-center">
                 <User className="w-4 h-4 mr-2" />
-                {informasi.pejabat_penguasa_informasi || 'PPID Diskominfo Garut'}
+                {getAuthorDisplayName(informasi.pejabat_penguasa_informasi || 'PPID Diskominfo Garut')}
               </div>
             </div>
           </div>

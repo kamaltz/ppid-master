@@ -31,7 +31,7 @@ interface InformasiItem {
 }
 
 export default function AdminInformasiPage() {
-  const { getUserRole } = useAuth();
+  const { getUserRole, getUserName } = useAuth();
   
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -66,6 +66,8 @@ export default function AdminInformasiPage() {
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [availableImages, setAvailableImages] = useState<string[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
   
   const { informasi, isLoading, createInformasi, updateInformasi, deleteInformasi, loadData } = useInformasiData(itemsPerPage, currentPage, setTotalPages, setTotalItems, filters);
   
@@ -211,7 +213,7 @@ export default function AdminInformasiPage() {
         thumbnail: formData.thumbnail,
         status: formData.status,
         jadwal_publish: formData.jadwal_publish,
-        pejabat_penguasa_informasi: getRoleDisplayName(getUserRole()) || 'PPID Diskominfo',
+        pejabat_penguasa_informasi: getUserRole() === 'PPID_PELAKSANA' ? getUserName() || 'PPID Pelaksana' : getRoleDisplayName(getUserRole()) || 'PPID Diskominfo',
         files: allFiles,
         links: formData.links.filter(link => link.title.trim() !== '' && link.url.trim() !== ''),
         images: formData.images
@@ -361,6 +363,68 @@ export default function AdminInformasiPage() {
     setCurrentPage(1);
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(informasi.map(item => item.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  const handleSelectItem = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedItems([...selectedItems, id]);
+    } else {
+      setSelectedItems(selectedItems.filter(item => item !== id));
+    }
+  };
+
+  const handleBulkDraft = async () => {
+    if (!confirm(`Yakin ingin mengubah ${selectedItems.length} informasi menjadi draft?`)) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      for (const id of selectedItems) {
+        await fetch(`/api/informasi/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'draft' })
+        });
+      }
+      alert(`✅ ${selectedItems.length} informasi berhasil diubah menjadi draft`);
+      setSelectedItems([]);
+      await fetchAllInformasi();
+      if (loadData) loadData();
+    } catch (error) {
+      alert('❌ Gagal mengubah status informasi');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Yakin ingin menghapus ${selectedItems.length} informasi? Tindakan ini tidak dapat dibatalkan.`)) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      for (const id of selectedItems) {
+        await fetch(`/api/informasi/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      }
+      alert(`✅ ${selectedItems.length} informasi berhasil dihapus`);
+      setSelectedItems([]);
+      await fetchAllInformasi();
+      if (loadData) loadData();
+    } catch (error) {
+      alert('❌ Gagal menghapus informasi');
+    }
+  };
+
   const availableYears = useMemo(() => {
     if (!allInformasi || allInformasi.length === 0) return [];
     const years = allInformasi.map(item => {
@@ -413,6 +477,33 @@ export default function AdminInformasiPage() {
             <Filter className="w-4 h-4" />
             Filter
           </button>
+          <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+            <button 
+              onClick={async () => {
+                if (confirm('Update semua data pejabat penguasa informasi dengan nama penulis yang sebenarnya?\n\nProses ini akan:\n- Mencari informasi dengan penulis "PPID Pelaksana"\n- Mengganti dengan nama asli penulis jika ditemukan\n- Atau menggunakan nama yang lebih spesifik')) {
+                  try {
+                    const token = localStorage.getItem('auth_token');
+                    const response = await fetch('/api/admin/update-informasi-authors', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                      alert(`✅ Berhasil!\n\nDitemukan: ${data.totalFound} informasi\nDiupdate: ${data.updated} informasi\n\nSilakan refresh halaman untuk melihat perubahan.`);
+                      window.location.reload();
+                    } else {
+                      alert(`❌ ${data.error}`);
+                    }
+                  } catch (error) {
+                    alert('❌ Gagal mengupdate data');
+                  }
+                }
+              }}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+            >
+              🔄 Update Authors
+            </button>
+          </RoleGuard>
           <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
             <button 
               onClick={() => setShowForm(true)}
@@ -901,7 +992,7 @@ export default function AdminInformasiPage() {
             
             <div className="bg-blue-50 p-3 rounded">
               <p className="text-sm text-blue-700">
-                <strong>Pejabat Penguasa Informasi:</strong> {getRoleDisplayName(getUserRole()) || 'PPID Diskominfo'}
+                <strong>Pejabat Penguasa Informasi:</strong> {getUserRole() === 'PPID_PELAKSANA' ? getUserName() || 'PPID Pelaksana' : getRoleDisplayName(getUserRole()) || 'PPID Diskominfo'}
               </p>
             </div>
             
@@ -956,10 +1047,40 @@ onClick={() => {
         </div>
       )}
       
+      {selectedItems.length > 0 && (
+        <div className="bg-white p-4 rounded-lg shadow-md mb-4 flex items-center justify-between">
+          <span className="text-sm text-gray-600">
+            {selectedItems.length} informasi dipilih
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={handleBulkDraft}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
+            >
+              📝 Draft
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
+            >
+              🗑️ Hapus
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.length === informasi.length && informasi.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded"
+                />
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Klasifikasi</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -971,19 +1092,27 @@ onClick={() => {
           <tbody className="divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
             ) : informasi.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                   {informasi.length === 0 ? 'Belum ada informasi publik' : 'Tidak ada informasi yang sesuai dengan filter'}
                 </td>
               </tr>
             ) : (
               informasi.map((item) => (
                 <tr key={item.id}>
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item.id)}
+                      onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                      className="rounded"
+                    />
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{item.judul}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.klasifikasi}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">

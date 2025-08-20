@@ -60,16 +60,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Information not found' }, { status: 404 });
     }
 
-    const { judul, klasifikasi, ringkasan_isi_informasi, status } = await request.json();
+    const { judul, klasifikasi, ringkasan_isi_informasi, status, tanggal_posting, pejabat_penguasa_informasi, thumbnail, jadwal_publish, files, links, images } = await request.json();
+
+    const updateData: any = {};
+    if (judul !== undefined) updateData.judul = judul;
+    if (klasifikasi !== undefined) updateData.klasifikasi = klasifikasi;
+    if (ringkasan_isi_informasi !== undefined) updateData.ringkasan_isi_informasi = ringkasan_isi_informasi;
+    if (status !== undefined) updateData.status = status;
+    if (tanggal_posting !== undefined) updateData.tanggal_posting = new Date(tanggal_posting);
+    if (pejabat_penguasa_informasi !== undefined) updateData.pejabat_penguasa_informasi = pejabat_penguasa_informasi;
+    if (thumbnail !== undefined) updateData.thumbnail = thumbnail;
+    if (jadwal_publish !== undefined) updateData.jadwal_publish = jadwal_publish ? new Date(jadwal_publish) : null;
+    if (files !== undefined) updateData.file_attachments = files && files.length > 0 ? JSON.stringify(files) : null;
+    if (links !== undefined) updateData.links = links && links.length > 0 ? JSON.stringify(links) : null;
+    if (images !== undefined) updateData.images = images && images.length > 0 ? JSON.stringify(images) : null;
 
     const updatedInformasi = await prisma.informasiPublik.update({
       where: { id },
-      data: {
-        judul: judul || existingInformasi.judul,
-        klasifikasi: klasifikasi || existingInformasi.klasifikasi,
-        ringkasan_isi_informasi: ringkasan_isi_informasi || existingInformasi.ringkasan_isi_informasi,
-        status: status || existingInformasi.status
-      }
+      data: updateData
     });
 
     return NextResponse.json({ success: true, data: updatedInformasi });

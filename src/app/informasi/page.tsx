@@ -36,6 +36,8 @@ export default function InformasiPage() {
   const [endDate, setEndDate] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [selectedAuthor, setSelectedAuthor] = useState("");
+  const [availableAuthors, setAvailableAuthors] = useState<string[]>([]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -55,8 +57,13 @@ export default function InformasiPage() {
       }) || [];
       const uniqueYears = [...new Set(years)].sort((a: number, b: number) => b - a);
       setAvailableYears(uniqueYears);
+      
+      // Extract unique authors
+      const authors: string[] = response.data?.map((item: any) => item.pejabat_penguasa_informasi).filter(Boolean) || [];
+      const uniqueAuthors = [...new Set(authors)].sort();
+      setAvailableAuthors(uniqueAuthors);
     } catch {
-      console.error('Failed to fetch years');
+      console.error('Failed to fetch years and authors');
     }
   }, []);
 
@@ -73,6 +80,7 @@ export default function InformasiPage() {
       if (selectedYear) params.append('tahun', selectedYear);
       if (startDate) params.append('tanggalMulai', startDate);
       if (endDate) params.append('tanggalSelesai', endDate);
+      if (selectedAuthor) params.append('penulis', selectedAuthor);
       
       const data = await getPublicData(`/informasi?${params}`);
       setInformasi(data.data || []);
@@ -86,7 +94,7 @@ export default function InformasiPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, search, selectedCategory, selectedYear, startDate, endDate]);
+  }, [currentPage, search, selectedCategory, selectedYear, startDate, endDate, selectedAuthor]);
 
   useEffect(() => {
     fetchCategories();
@@ -113,6 +121,7 @@ export default function InformasiPage() {
     setSelectedYear("");
     setStartDate("");
     setEndDate("");
+    setSelectedAuthor("");
     setCurrentPage(1);
   };
 
@@ -161,7 +170,7 @@ export default function InformasiPage() {
           {/* Filter Panel */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                   <select
@@ -213,6 +222,22 @@ export default function InformasiPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Penulis</label>
+                  <select
+                    value={selectedAuthor}
+                    onChange={(e) => setSelectedAuthor(e.target.value || "")}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Semua Penulis</option>
+                    {availableAuthors.map((author) => (
+                      <option key={author} value={author}>
+                        {author}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
               <div className="flex gap-2">
@@ -223,9 +248,9 @@ export default function InformasiPage() {
                   <X className="w-4 h-4" />
                   Reset Filter
                 </button>
-                {(selectedCategory || selectedYear || startDate || endDate) && (
+                {(selectedCategory || selectedYear || startDate || endDate || selectedAuthor) && (
                   <div className="text-sm text-blue-600 flex items-center font-medium">
-                    Filter aktif: {[selectedCategory, selectedYear, startDate && 'Tanggal Mulai', endDate && 'Tanggal Selesai'].filter(Boolean).join(', ')}
+                    Filter aktif: {[selectedCategory, selectedYear, startDate && 'Tanggal Mulai', endDate && 'Tanggal Selesai', selectedAuthor && 'Penulis'].filter(Boolean).join(', ')}
                   </div>
                 )}
               </div>

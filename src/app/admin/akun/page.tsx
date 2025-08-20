@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { Plus, Edit, Trash2, Key } from "lucide-react";
+import { Plus, Edit, Trash2, Key, Upload, Download } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Account {
@@ -35,6 +35,9 @@ export default function AdminAkunPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{type: 'delete' | 'reset' | 'save' | 'bulk-delete' | 'bulk-reset', data?: string | string[] | {nama: string; email: string; role: string}}>({type: 'delete'});
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
     if (!token) return;
@@ -74,7 +77,9 @@ export default function AdminAkunPage() {
 
     try {
       if (editId) {
-        const response = await fetch(`/api/accounts/${editId}`, {
+        // Extract numeric ID from prefixed ID (e.g., 'ppid_2' -> '2')
+        const numericId = editId.includes('_') ? editId.split('_')[1] : editId;
+        const response = await fetch(`/api/accounts/${numericId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -137,7 +142,7 @@ export default function AdminAkunPage() {
   };
 
   const confirmDelete = async () => {
-    const id = confirmAction.data;
+    const id = confirmAction.data as string;
     if (!token) {
       alert('Token tidak ditemukan');
       return;
@@ -174,7 +179,7 @@ export default function AdminAkunPage() {
   };
 
   const confirmResetPassword = async () => {
-    const id = confirmAction.data;
+    const id = confirmAction.data as string;
     if (!token) {
       alert('Token tidak ditemukan');
       return;
@@ -295,6 +300,62 @@ export default function AdminAkunPage() {
     }
   };
 
+  const handleImport = async () => {
+    if (!importFile || !token) {
+      alert('Pilih file CSV terlebih dahulu');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const response = await fetch('/api/accounts/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(data.message);
+        if (data.errors && data.errors.length > 0) {
+          console.warn('Import errors:', data.errors);
+        }
+        fetchAccounts();
+        setShowImportModal(false);
+        setImportFile(null);
+      } else {
+        alert(data.error || 'Gagal mengimpor akun');
+        if (data.details) {
+          console.error('Import details:', data.details);
+        }
+      }
+    } catch (error) {
+      console.error('Error importing accounts:', error);
+      alert('Terjadi kesalahan saat mengimpor akun');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csvContent = 'nama,email,role\nJohn Doe,john@example.com,PEMOHON\nJane Smith,jane@example.com,PPID_PELAKSANA';
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template-import-akun.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
 
 
 
@@ -315,7 +376,20 @@ export default function AdminAkunPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Kelola Akun</h1>
           <div className="flex gap-2">
-
+            <button 
+              onClick={downloadTemplate}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Template CSV
+            </button>
+            <button 
+              onClick={() => setShowImportModal(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </button>
             <button 
               onClick={() => setShowForm(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
@@ -498,6 +572,57 @@ export default function AdminAkunPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Import Modal */}
+        {showImportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Import Akun dari CSV</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Pilih File CSV</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              
+              <div className="bg-blue-50 p-3 rounded mb-4">
+                <p className="text-sm text-blue-700 mb-2">
+                  <strong>Format CSV:</strong> nama,email,role
+                </p>
+                <p className="text-sm text-blue-700 mb-2">
+                  <strong>Role yang valid:</strong> ADMIN, PEMOHON, PPID_UTAMA, PPID_PELAKSANA
+                </p>
+                <p className="text-sm text-blue-700">
+                  <strong>Password default:</strong> Garut@2025?
+                </p>
+              </div>
+              
+              <div className="flex space-x-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                  disabled={isImporting}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleImport}
+                  disabled={!importFile || isImporting}
+                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {isImporting ? 'Mengimpor...' : 'Import'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Confirmation Modal */}
         {showConfirmModal && (

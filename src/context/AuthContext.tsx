@@ -8,6 +8,7 @@ import { isAdminRole, isPemohon } from "@/lib/roleUtils";
 interface User {
   userId: string;
   email: string;
+  nama: string;
   role: string;
 }
 
@@ -19,6 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   getUserRole: () => string | null;
+  getUserName: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,6 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const finalUserData = {
         userId: payload.userId,
         email: payload.email,
+        nama: payload.nama,
         role: payload.role
       };
       
@@ -123,10 +126,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return user?.role || localStorage.getItem("user_role");
   };
 
+  const getUserName = () => {
+    return user?.nama || null;
+  };
+
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated, loading, getUserRole }}>
+    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated, loading, getUserRole, getUserName }}>
       {children}
     </AuthContext.Provider>
   );

@@ -21,7 +21,7 @@ export async function GET(
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
-    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
+    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -81,7 +81,7 @@ export async function PUT(
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
-    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
+    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -145,7 +145,7 @@ export async function DELETE(
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
-    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
+    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
