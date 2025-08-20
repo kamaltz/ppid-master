@@ -102,7 +102,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - /opt/ppid/uploads:/app/public/uploads
+      - /opt/ppid/uploads:/app/uploads
     restart: unless-stopped
 
 volumes:
