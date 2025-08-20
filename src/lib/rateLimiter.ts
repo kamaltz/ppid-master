@@ -47,11 +47,26 @@ export function rateLimit(
 }
 
 // Clean up expired entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitMap.delete(key);
+let cleanupInterval: NodeJS.Timeout | null = null;
+
+if (process.env.NODE_ENV !== 'test') {
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitMap.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitMap.delete(key);
+      }
     }
+  }, 300000); // Clean up every 5 minutes
+  
+  cleanupInterval.unref(); // Allow process to exit
+}
+
+// Export cleanup function for tests
+export function cleanupRateLimit() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
   }
-}, 300000); // Clean up every 5 minutes
+  rateLimitMap.clear();
+}

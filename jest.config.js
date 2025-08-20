@@ -60,5 +60,9 @@ module.exports = {
   // Test environment options
   testEnvironmentOptions: {
     url: 'http://localhost:3000'
-  }
+  },
+  // Force exit to prevent hanging
+  forceExit: true,
+  // Detect open handles
+  detectOpenHandles: true
 };

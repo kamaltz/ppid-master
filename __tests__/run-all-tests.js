@@ -21,7 +21,13 @@ const testCategories = {
     '__tests__/api/keberatan.test.js',
     '__tests__/api/kategori.test.js',
     '__tests__/api/upload.test.js',
-    '__tests__/api/settings.test.js'
+    '__tests__/api/settings.test.js',
+    '__tests__/api/assign-ppid.test.js',
+    '__tests__/api/chat.test.js',
+    '__tests__/api/ppid-chat-simple.test.js',
+    '__tests__/api/health.test.js',
+    '__tests__/api/uploads.test.js',
+    '__tests__/api/activity-logs.test.js'
   ],
   'Component Tests': [
     '__tests__/components/auth.test.jsx'
@@ -138,13 +144,15 @@ async function runAllTests() {
 // Feature-specific test runners
 const featureTests = {
   auth: () => runTestCategory('Authentication', ['__tests__/api/auth.test.js', '__tests__/components/auth.test.jsx']),
-  admin: () => runTestCategory('Admin Features', ['__tests__/api/admin.test.js']),
+  admin: () => runTestCategory('Admin Features', ['__tests__/api/admin.test.js', '__tests__/api/assign-ppid.test.js', '__tests__/api/activity-logs.test.js']),
   requests: () => runTestCategory('Request Management', ['__tests__/api/permintaan.test.js']),
   information: () => runTestCategory('Information Management', ['__tests__/api/informasi.test.js']),
   objections: () => runTestCategory('Objection Management', ['__tests__/api/keberatan.test.js']),
   categories: () => runTestCategory('Category Management', ['__tests__/api/kategori.test.js']),
-  uploads: () => runTestCategory('File Upload', ['__tests__/api/upload.test.js']),
+  uploads: () => runTestCategory('File Upload', ['__tests__/api/upload.test.js', '__tests__/api/uploads.test.js']),
   settings: () => runTestCategory('Settings Management', ['__tests__/api/settings.test.js']),
+  chat: () => runTestCategory('Chat System', ['__tests__/api/chat.test.js', '__tests__/api/ppid-chat-simple.test.js']),
+  health: () => runTestCategory('Health Check', ['__tests__/api/health.test.js']),
   integration: () => runTestCategory('Integration Tests', ['__tests__/integration/complete-flow.test.js']),
   utils: () => runTestCategory('Utilities', ['__tests__/utils/validation.test.js'])
 };
