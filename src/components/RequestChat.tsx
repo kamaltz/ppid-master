@@ -34,11 +34,12 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   const [chatSession, setChatSession] = useState<ChatSession>({ is_active: true });
   const [canSendMessage, setCanSendMessage] = useState(true);
   const [showPpidModal, setShowPpidModal] = useState(false);
-  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string}[]>([]);
+  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string, no_pegawai: string, role: string}[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingPpid, setLoadingPpid] = useState(false);
+  const loadingPpidRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -217,7 +218,8 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
   };
 
   const fetchPpidList = useCallback(async (search = '', page = 1) => {
-    if (loadingPpid) return;
+    if (loadingPpidRef.current) return;
+    loadingPpidRef.current = true;
     setLoadingPpid(true);
     try {
       const token = localStorage.getItem('auth_token');
@@ -238,12 +240,13 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
     } catch (error) {
       console.error('Failed to fetch PPID list:', error);
     } finally {
+      loadingPpidRef.current = false;
       setLoadingPpid(false);
     }
-  }, [loadingPpid]);
+  }, []);
 
   const loadMorePpid = () => {
-    if (hasMore && !loadingPpid) {
+    if (hasMore && !loadingPpidRef.current) {
       fetchPpidList(searchTerm, currentPage + 1);
     }
   };
@@ -265,7 +268,7 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       });
       if (response.ok) {
         setShowPpidModal(false);
-        alert('Permohonan berhasil diteruskan ke PPID Pelaksana');
+        alert('Permohonan berhasil diteruskan ke PPID');
         window.location.reload();
       }
     } catch (error) {
@@ -276,12 +279,16 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
 
   useEffect(() => {
     if (showPpidModal) {
-      fetchPpidList();
+      setSearchTerm('');
+      setPpidList([]);
+      setCurrentPage(1);
+      setHasMore(true);
+      fetchPpidList('', 1);
     }
   }, [showPpidModal, fetchPpidList]);
 
   useEffect(() => {
-    if (showPpidModal) {
+    if (showPpidModal && searchTerm !== '') {
       const timeoutId = setTimeout(() => {
         setCurrentPage(1);
         setPpidList([]);
@@ -536,14 +543,14 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
       {showPpidModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Teruskan ke PPID Pelaksana</h3>
+            <h3 className="text-lg font-semibold mb-4">Teruskan ke PPID</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Pilih PPID Pelaksana untuk meneruskan permohonan ini
+              Pilih PPID untuk meneruskan permohonan ini
             </p>
             <div className="mb-4">
               <input
                 type="text"
-                placeholder="Cari PPID Pelaksana..."
+                placeholder="Cari nama, email, atau NIP PPID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2"
@@ -558,8 +565,10 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                 }
               }}
             >
-              {ppidList.length === 0 && !loadingPpid ? (
-                <p className="text-gray-500 text-center py-4">Tidak ada PPID ditemukan</p>
+              {ppidList.length === 0 && !loadingPpid && searchTerm ? (
+                <p className="text-gray-500 text-center py-4">Tidak ada PPID ditemukan untuk "{searchTerm}"</p>
+              ) : ppidList.length === 0 && !loadingPpid ? (
+                <p className="text-gray-500 text-center py-4">Memuat daftar PPID...</p>
               ) : (
                 ppidList.map((ppid) => (
                   <button
@@ -567,9 +576,21 @@ export default function RequestChat({ requestId, currentUserRole, isAdmin = fals
                     onClick={() => forwardToPpid(ppid.id)}
                     className="w-full flex items-center p-3 border rounded-lg hover:bg-gray-50 text-left"
                   >
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium">{ppid.nama}</div>
                       <div className="text-sm text-gray-500">{ppid.email}</div>
+                      <div className="text-xs text-gray-400">NIP: {ppid.no_pegawai}</div>
+                    </div>
+                    <div className="ml-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        ppid.role === 'PPID_UTAMA' ? 'bg-blue-100 text-blue-800' :
+                        ppid.role === 'PPID_PELAKSANA' ? 'bg-green-100 text-green-800' :
+                        'bg-purple-100 text-purple-800'
+                      }`}>
+                        {ppid.role === 'PPID_UTAMA' ? 'PPID Utama' :
+                         ppid.role === 'PPID_PELAKSANA' ? 'PPID Pelaksana' :
+                         'Atasan PPID'}
+                      </span>
                     </div>
                   </button>
                 ))

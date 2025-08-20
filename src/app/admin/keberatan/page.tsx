@@ -50,17 +50,20 @@ export default function AdminKeberatanPage() {
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       
       const data = await response.json();
-      if (data.success) {
+      if (data?.success) {
         if (page === 1) {
-          setPpidList(data.data);
+          setPpidList((data?.data || []));
         } else {
-          setPpidList(prev => [...prev, ...data.data]);
+          setPpidList(prev => [...prev, ...(data?.data || [])]);
         }
         setHasMore(data.pagination.hasMore);
         setCurrentPage(page);

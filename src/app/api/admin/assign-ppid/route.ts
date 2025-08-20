@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/lib/prismaClient';
+import { prisma } from '../../../../lib/prisma';
 import jwt from 'jsonwebtoken';
 import { rateLimit } from '@/lib/rateLimiter';
 
@@ -36,13 +36,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Verify PPID exists and is PPID_PELAKSANA
+    // Verify PPID exists and has valid role
     const ppid = await prisma.ppid.findUnique({
       where: { id: ppidId }
     });
 
-    if (!ppid || ppid.role !== 'PPID_PELAKSANA') {
-      return NextResponse.json({ error: 'Invalid PPID Pelaksana' }, { status: 400 });
+    if (!ppid || !['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(ppid.role)) {
+      return NextResponse.json({ error: 'Invalid PPID' }, { status: 400 });
     }
 
     if (type === 'request' && requestId) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Successfully assigned to PPID Pelaksana' 
+      message: 'Successfully assigned to PPID' 
     });
   } catch (error) {
     console.error('Assign PPID error:', error);
@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Rate limiting
+    // Relaxed rate limiting for development
     const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    const rateLimitResult = rateLimit(`assign-ppid-${clientIP}`, 30, 60000); // 30 requests per minute
+    const rateLimitResult = rateLimit(`assign-ppid-${clientIP}`, 300, 60000); // 300 requests per minute
     
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         { 
           status: 429,
           headers: {
-            'X-RateLimit-Limit': '30',
+            'X-RateLimit-Limit': '300',
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
           }
@@ -106,13 +106,14 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
-    // Get PPID Pelaksana with search and pagination
+    // Get all PPID roles with search and pagination
     const where = {
-      role: 'PPID_PELAKSANA',
+      role: { in: ['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'] },
       ...(search && {
         OR: [
-          { nama: { contains: search } },
-          { email: { contains: search } }
+          { nama: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { no_pegawai: { contains: search, mode: 'insensitive' } }
         ]
       })
     };
@@ -124,7 +125,8 @@ export async function GET(request: NextRequest) {
           id: true,
           nama: true,
           email: true,
-          no_pegawai: true
+          no_pegawai: true,
+          role: true
         },
         skip,
         take: limit,
@@ -145,7 +147,7 @@ export async function GET(request: NextRequest) {
     });
     
     // Add rate limit headers
-    response.headers.set('X-RateLimit-Limit', '30');
+    response.headers.set('X-RateLimit-Limit', '300');
     response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
     response.headers.set('X-RateLimit-Reset', rateLimitResult.resetTime.toString());
     

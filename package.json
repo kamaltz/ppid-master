@@ -48,7 +48,8 @@
     "react-dom": "19.1.0",
     "react-quill": "^2.0.0",
     "styled-jsx": "^5.1.7",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "mime-types": "^2.1.35"
   },
   "devDependencies": {
     "@babel/plugin-syntax-jsx": "^7.27.1",
@@ -68,6 +69,7 @@
     "@types/react-dom": "^19",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^9.0.8",
+    "@types/mime-types": "^2.1.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.4.5",

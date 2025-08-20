@@ -93,13 +93,16 @@ export default function AdminChatPage() {
       const response = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       const data = await response.json();
-      if (data.success) {
+      if (data?.success) {
         // Filter chats based on user role
-        let filteredData = data.data;
+        let filteredData = (data?.data || []);
         if (userRole === 'PPID_UTAMA') {
           // Show requests that have been responded to by PPID (have messages)
-          filteredData = data.data.filter((chat: ChatItem) => chat.messageCount > 0);
+          filteredData = (data?.data || []).filter((chat: ChatItem) => chat.messageCount > 0);
         }
         setChats(filteredData);
         setFilteredChats(filteredData);
@@ -116,9 +119,12 @@ export default function AdminChatPage() {
       const response = await fetch("/api/ppid-chat", {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       const data = await response.json();
-      if (data.success) {
-        setPpidChats(data.data);
+      if (data?.success) {
+        setPpidChats((data?.data || []));
       }
     } catch (error) {
       console.error("Failed to fetch PPID chats:", error);
@@ -126,25 +132,38 @@ export default function AdminChatPage() {
   }, [token]);
 
   const fetchPpidList = useCallback(async (search = '', page = 1) => {
-    if (ppidLoading) return;
+    if (ppidLoading || !token) return;
     setPpidLoading(true);
     try {
       const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
-      if (data.success) {
+      if (data?.success) {
         if (page === 1) {
-          setPpidList(data.data);
+          setPpidList((data?.data || []) || []);
         } else {
-          setPpidList(prev => [...prev, ...data.data]);
+          setPpidList(prev => [...prev, ...((data?.data || []) || [])]);
         }
-        setPpidHasMore(data.pagination.hasMore);
+        setPpidHasMore(data.pagination?.hasMore || false);
         setPpidCurrentPage(page);
       }
     } catch (error) {
       console.error("Failed to fetch PPID list:", error);
+      // Set empty state on error
+      if (page === 1) {
+        setPpidList([]);
+        setPpidHasMore(false);
+      }
     } finally {
       setPpidLoading(false);
     }
@@ -285,13 +304,13 @@ export default function AdminChatPage() {
   }, [token, userRole, fetchChats, fetchPpidChats]);
 
   useEffect(() => {
-    if (showPpidChatModal) {
-      fetchPpidList();
+    if (showPpidChatModal && token) {
+      fetchPpidList('', 1);
     }
-  }, [showPpidChatModal, fetchPpidList]);
+  }, [showPpidChatModal, token]);
 
   useEffect(() => {
-    if (showPpidChatModal) {
+    if (showPpidChatModal && token) {
       const timeoutId = setTimeout(() => {
         setPpidCurrentPage(1);
         setPpidList([]);
@@ -299,7 +318,7 @@ export default function AdminChatPage() {
       }, 300);
       return () => clearTimeout(timeoutId);
     }
-  }, [ppidSearchTerm, showPpidChatModal, fetchPpidList]);
+  }, [ppidSearchTerm, showPpidChatModal, token]);
 
   useEffect(() => {
     if (chatType === 'requests') {

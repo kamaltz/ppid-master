@@ -37,11 +37,12 @@ export default function AdminPermohonanPage() {
   }>({ isOpen: false, title: '', message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [ppidList] = useState<{id: number, nama: string, email: string}[]>([]);
+  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string}[]>([]);
   const [selectedPpid, setSelectedPpid] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [hasMore] = useState(true);
-  const [loading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Convert database data to component format
   const permohonan = permintaan.map(req => {
@@ -140,6 +141,9 @@ export default function AdminPermohonanPage() {
               'Authorization': `Bearer ${token}`
             }
           });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
           
           if (!response.ok) throw new Error('Failed to delete');
           
@@ -232,6 +236,9 @@ export default function AdminPermohonanPage() {
                   'Authorization': `Bearer ${token}`
                 }
               });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
               if (!response.ok) {
                 throw new Error(`Failed to delete request ${id}`);
               }
@@ -259,8 +266,42 @@ export default function AdminPermohonanPage() {
     });
   };
 
+  const loadPpidList = async (page = 1, search = '') => {
+    if (loading) return;
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const response = await fetch(`/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (page === 1) {
+          setPpidList((data?.data || []) || []);
+        } else {
+          setPpidList(prev => [...prev, ...((data?.data || []) || [])]);
+        }
+        setHasMore(data.pagination?.hasMore || false);
+      }
+    } catch (error) {
+      console.error('Failed to load PPID list:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadMore = () => {
-    // Function placeholder for PPID loading
+    if (hasMore && !loading) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      loadPpidList(nextPage, searchTerm);
+    }
   };
 
   const handleBulkAssign = () => {
@@ -268,8 +309,13 @@ export default function AdminPermohonanPage() {
       alert('Pilih permohonan terlebih dahulu!');
       return;
     }
-    // Fetch PPID list when needed
+    // Reset and load PPID list
+    setPpidList([]);
+    setCurrentPage(1);
+    setSearchTerm('');
+    setSelectedPpid('');
     setShowAssignModal(true);
+    loadPpidList(1, '');
   };
 
   const assignToPpid = async () => {
@@ -585,7 +631,19 @@ export default function AdminPermohonanPage() {
                 type="text"
                 placeholder="Cari PPID Pelaksana..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  const newSearch = e.target.value;
+                  setSearchTerm(newSearch);
+                  setPpidList([]);
+                  setCurrentPage(1);
+                  setHasMore(true);
+                  // Debounce search
+                  setTimeout(() => {
+                    if (searchTerm === newSearch) {
+                      loadPpidList(1, newSearch);
+                    }
+                  }, 300);
+                }}
                 className="w-full border rounded-lg px-3 py-2"
               />
             </div>
@@ -634,6 +692,9 @@ export default function AdminPermohonanPage() {
                 onClick={() => {
                   setShowAssignModal(false);
                   setSelectedPpid('');
+                  setPpidList([]);
+                  setCurrentPage(1);
+                  setSearchTerm('');
                 }}
                 className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
