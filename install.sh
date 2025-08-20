@@ -17,7 +17,7 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 log_info "🚀 PPID Master - Production Deployment"
-log_info "Domain: ppid-garut.kamaltz.fun"
+log_info "Domain: 143.198.205.44"
 log_info "SSL: Automatic HTTPS"
 echo ""
 
@@ -79,7 +79,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: ppid_garut
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ppid_user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -95,9 +95,9 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
+      DATABASE_URL: "postgresql://ppid_user:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
-      NEXT_PUBLIC_API_URL: "https://ppidgarut.kamaltz.fun/api"
+      NEXT_PUBLIC_API_URL: "https://143.198.205.44/api"
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,41 +126,77 @@ sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
 
 # Create Nginx site config
 log_info "Configuring Nginx..."
-sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
+sudo tee /etc/nginx/sites-available/default << 'EOF'
+
 server {
     listen 80;
-    server_name ppid-garut.kamaltz.fun;
+    server_name 143.198.205.44;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name 143.198.205.44;
+
+    ssl_certificate $SSL_DIR/selfsigned.crt;
+    ssl_certificate_key $SSL_DIR/selfsigned.key;
+
     client_max_body_size 50M;
-    
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
 
     location /uploads/ {
         alias /opt/ppid/uploads/;
         expires 1y;
         add_header Cache-Control "public, immutable";
-        try_files $uri $uri/ =404;
+        try_files \$uri \$uri/ =404;
     }
 
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
     }
 }
+
 EOF
 
+# server {
+#     listen 80;
+#     server_name 143.198.205.44;
+#     client_max_body_size 50M;
+    
+#     # Security headers
+#     add_header X-Frame-Options "SAMEORIGIN" always;
+#     add_header X-Content-Type-Options "nosniff" always;
+#     add_header X-XSS-Protection "1; mode=block" always;
+
+#     location /uploads/ {
+#         alias /opt/ppid/uploads/;
+#         expires 1y;
+#         add_header Cache-Control "public, immutable";
+#         try_files $uri $uri/ =404;
+#     }
+
+#     location / {
+#         proxy_pass http://127.0.0.1:3000;
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection 'upgrade';
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         proxy_cache_bypass $http_upgrade;
+#     }
+# }
+
 # Enable site
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
 if sudo nginx -t; then
     sudo systemctl reload nginx
     log_info "Nginx configuration validated and reloaded"
@@ -177,7 +213,7 @@ docker-compose up -d
 # Wait for services to be ready
 log_info "Waiting for services to start..."
 for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+    if docker-compose exec -T postgres pg_isready -U ppid_user > /dev/null 2>&1; then
         log_info "Database is ready"
         break
     fi
@@ -196,7 +232,7 @@ docker-compose exec -T app npx prisma migrate deploy
 # Check for custom database import
 if [ -f "ppid_db.sql" ]; then
     log_info "Found ppid_db.sql - importing custom database..."
-    docker-compose exec -T postgres psql -U postgres -d ppid_garut < ppid_db.sql
+    docker-compose exec -T postgres psql -U ppid_user -d ppid_garut < ppid_db.sql
     log_info "Custom database imported successfully"
 else
     log_info "No ppid_db.sql found - using default seed data..."
@@ -220,15 +256,30 @@ for i in {1..30}; do
 done
 
 # Setup SSL with Let's Encrypt
-log_info "Setting up SSL certificate..."
-sudo apt install -y certbot python3-certbot-nginx
-if sudo certbot --nginx -d ppid-garut.kamaltz.fun --non-interactive --agree-tos --email admin@kamaltz.fun --expand; then
-    log_info "SSL certificate installed successfully"
-    # Setup auto-renewal
-    echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
-else
-    log_warn "SSL certificate installation failed, continuing without HTTPS"
-fi
+# log_info "Setting up SSL certificate..."
+# sudo apt install -y certbot python3-certbot-nginx
+# if sudo certbot --nginx -d ppid-garut.kamaltz.fun --non-interactive --agree-tos --email admin@kamaltz.fun --expand; then
+#     log_info "SSL certificate installed successfully"
+#     # Setup auto-renewal
+#     echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
+# else
+#     log_warn "SSL certificate installation failed, continuing without HTTPS"
+# fi
+
+# Setup SSL with self-signed certificate
+log_info "Setting up self-signed SSL certificate..."
+
+SSL_DIR="/etc/ssl/ppid-selfsigned"
+sudo mkdir -p $SSL_DIR
+
+# Generate self-signed cert valid 1 year
+if sudo openssl req -x509 -nodes -days 365 \
+    -newkey rsa:2048 \
+    -keyout $SSL_DIR/selfsigned.key \
+    -out $SSL_DIR/selfsigned.crt \
+    -subj "/C=ID/ST=West Java/L=Garut/O=PPID/OU=IT/CN=143.198.205.44"; then
+    
+    log_info "Self-signed SSL certificate generated successfully"
 
 # Save credentials securely
 log_info "Saving credentials..."
@@ -240,9 +291,11 @@ chmod 600 .env.production
 
 echo ""
 log_info "✅ Installation Complete!"
-log_info "🌐 URL: https://ppidgarut.kamaltz.fun"
+log_info "🌐 URL: https://143.198.205.44"
 log_info "📊 Admin: admin@garut.go.id / Garut@2025?"
-log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
+# log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
+log_info "🔐 Credentials saved in: /etc/ssl/ppid-selfsigned"
+
 echo ""
 log_info "Management Commands:"
 echo "  View logs: docker-compose -f /opt/ppid/docker-compose.yml logs -f"
