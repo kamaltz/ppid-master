@@ -403,6 +403,30 @@ export default function AdminInformasiPage() {
     }
   };
 
+  const handleBulkPublish = async () => {
+    if (!confirm(`Yakin ingin mempublish ${selectedItems.length} informasi?`)) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      for (const id of selectedItems) {
+        await fetch(`/api/informasi/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'published' })
+        });
+      }
+      alert(`✅ ${selectedItems.length} informasi berhasil dipublish`);
+      setSelectedItems([]);
+      await fetchAllInformasi();
+      if (loadData) loadData();
+    } catch (error) {
+      alert('❌ Gagal mempublish informasi');
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (!confirm(`Yakin ingin menghapus ${selectedItems.length} informasi? Tindakan ini tidak dapat dibatalkan.`)) return;
     
@@ -1053,6 +1077,12 @@ onClick={() => {
             {selectedItems.length} informasi dipilih
           </span>
           <div className="flex gap-2">
+            <button
+              onClick={handleBulkPublish}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
+            >
+              ✅ Publish
+            </button>
             <button
               onClick={handleBulkDraft}
               className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
