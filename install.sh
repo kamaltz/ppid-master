@@ -126,7 +126,7 @@ sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
 
 # Create Nginx site config
 log_info "Configuring Nginx..."
-sudo tee /etc/nginx/sites-available/default << 'EOF'
+sudo tee /etc/nginx/sites-available/default << EOF
 
 server {
     listen 80;
@@ -138,8 +138,8 @@ server {
     listen 443 ssl;
     server_name 143.198.205.44;
 
-    ssl_certificate $SSL_DIR/selfsigned.crt;
-    ssl_certificate_key $SSL_DIR/selfsigned.key;
+    ssl_certificate /etc/ssl/ppid-selfsigned/selfsigned.crt;
+    ssl_certificate_key /etc/ssl/ppid-selfsigned/selfsigned.key;
 
     client_max_body_size 50M;
 
@@ -164,6 +164,7 @@ server {
 }
 
 EOF
+
 
 # server {
 #     listen 80;
