@@ -6,19 +6,28 @@ import { existsSync } from 'fs';
 
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Re-enable authentication after testing
-    console.log('Upload API called - auth temporarily disabled');
+    console.log('=== Upload Image API Called ===');
+    console.log('Request method:', request.method);
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
 
     const data = await request.formData();
+    console.log('FormData entries:', Array.from(data.entries()).map(([key, value]) => [key, value instanceof File ? `File: ${value.name}` : value]));
+    
     const file: File | null = data.get('file') as unknown as File;
 
     if (!file) {
+      console.log('❌ No file in FormData');
       return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 });
     }
 
-    console.log('Image file received:', file ? file.name : 'No file', file ? file.type : 'No type');
+    console.log('✅ File received:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
 
     if (!file || file.size === 0) {
+      console.log('❌ File is empty or invalid');
       return NextResponse.json({ success: false, error: 'No file uploaded or file is empty' }, { status: 400 });
     }
 
@@ -44,16 +53,27 @@ export async function POST(request: NextRequest) {
     const uploadDir = '/app/uploads/images';
     const path = join(uploadDir, filename);
 
+    console.log('Upload directory:', uploadDir);
+    console.log('Full file path:', path);
+    console.log('Filename:', filename);
+
     try {
-      // Create directory if it doesn't exist
+      console.log('Creating directory...');
       await mkdir(uploadDir, { recursive: true });
+      console.log('✅ Directory created/exists');
+      
+      console.log('Writing file...');
       await writeFile(path, buffer);
-      console.log('File saved successfully:', path);
+      console.log('✅ File saved successfully:', path);
     } catch (fsError) {
-      console.error('File system error:', fsError);
-      console.error('Upload dir:', uploadDir);
-      console.error('Full path:', path);
-      throw new Error(`Failed to save file: ${fsError.message}`);
+      console.error('❌ File system error:', fsError);
+      console.error('Error details:', {
+        code: (fsError as any).code,
+        errno: (fsError as any).errno,
+        syscall: (fsError as any).syscall,
+        path: (fsError as any).path
+      });
+      throw new Error(`Failed to save file: ${(fsError as Error).message}`);
     }
 
     // Return appropriate URL based on environment
@@ -69,7 +89,16 @@ export async function POST(request: NextRequest) {
       url: fileUrl
     });
   } catch (error) {
-    console.error('Image upload error:', error);
-    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
+    console.error('❌ Image upload error:', error);
+    console.error('Error stack:', (error as Error).stack);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error message:', errorMessage);
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: `Upload failed: ${errorMessage}`,
+      details: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
+    }, { status: 500 });
   }
 }
