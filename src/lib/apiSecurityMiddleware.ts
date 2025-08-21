@@ -233,7 +233,7 @@ export function checkUserAgentSecurity(userAgent: string): SecurityCheckResult {
     };
   }
 
-  if (userAgent.length > 1000) {
+  if (userAgent.length > 2000) {
     return {
       allowed: false,
       reason: 'User-Agent too long',
@@ -241,12 +241,17 @@ export function checkUserAgentSecurity(userAgent: string): SecurityCheckResult {
     };
   }
 
-  // Check for malicious patterns
-  for (const pattern of MALICIOUS_USER_AGENTS) {
+  // Only check for obvious security tools, not legitimate browsers
+  const securityTools = [
+    /sqlmap/i, /nikto/i, /nmap/i, /burp/i, /zap/i,
+    /acunetix/i, /nessus/i, /wpscan/i, /dirb/i, /gobuster/i
+  ];
+
+  for (const pattern of securityTools) {
     if (pattern.test(userAgent)) {
       return {
         allowed: false,
-        reason: 'Suspicious User-Agent detected',
+        reason: 'Security tool detected',
         statusCode: 403
       };
     }

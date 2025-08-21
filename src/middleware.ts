@@ -1,27 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addSecurityHeaders } from './lib/securityHeaders';
 
-// Suspicious User-Agent patterns
+// Suspicious User-Agent patterns (only security tools, not legitimate browsers)
 const SUSPICIOUS_USER_AGENTS = [
-  /bot/i,
-  /crawler/i,
-  /spider/i,
-  /scraper/i,
-  /scanner/i,
-  /MSIE [1-8]\./,  // Old IE versions
-  /^Mozilla\/4\.0 \(compatible; MSIE/,
-  /msnbot/i,
-  /googlebot/i,
-  /yahoo.*slurp/i
+  /sqlmap/i,
+  /nikto/i,
+  /nmap/i,
+  /burp/i,
+  /zap/i,
+  /acunetix/i,
+  /nessus/i,
+  /wpscan/i,
+  /dirb/i,
+  /gobuster/i,
+  /hydra/i,
+  /MSIE [1-6]\./  // Only very old IE versions
 ];
 
 // Validate User-Agent
 function isValidUserAgent(userAgent: string): boolean {
-  if (!userAgent || userAgent.length < 10 || userAgent.length > 500) {
+  if (!userAgent || userAgent.length < 5 || userAgent.length > 1000) {
     return false;
   }
   
-  // Block suspicious patterns for sensitive endpoints
+  // Block only security tools, allow legitimate browsers
   return !SUSPICIOUS_USER_AGENTS.some(pattern => pattern.test(userAgent));
 }
 

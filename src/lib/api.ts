@@ -33,14 +33,20 @@ export const loginUser = async (email: string, password: string) => {
       if (response.status === 401) {
         throw new Error("Email atau password salah");
       }
+      if (response.status === 403) {
+        throw new Error("Akses ditolak. Silakan coba lagi atau hubungi administrator.");
+      }
       if (response.status === 404) {
         throw new Error("User tidak ditemukan");
+      }
+      if (response.status === 429) {
+        throw new Error("Terlalu banyak percobaan login. Silakan tunggu beberapa saat.");
       }
       if (response.status >= 500) {
         throw new Error("Server error, silakan coba lagi");
       }
       
-      throw new Error(errorData.message || "Login gagal");
+      throw new Error(errorData.error || errorData.message || "Login gagal");
     }
 
     return await response.json();
