@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
+import { prisma, testConnection } from '../../../../lib/lib/prismaClient';
 
 export async function GET() {
   try {
-    // Check database connection
-    await prisma.$queryRaw`SELECT 1`;
+    // Test database connection
+    const isConnected = await testConnection();
     
-    return NextResponse.json({
-      status: 'healthy',
-      database: 'connected',
-      timestamp: new Date().toISOString()
-    });
+    if (isConnected) {
+      // Additional check with simple query
+      await prisma.$queryRaw`SELECT 1 as test`;
+      
+      return NextResponse.json({
+        status: 'healthy',
+        database: 'connected',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      throw new Error('Database connection test failed');
+    }
   } catch (error) {
     console.error('Health check failed:', error);
     return NextResponse.json(
