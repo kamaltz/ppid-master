@@ -186,7 +186,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed top-0 left-0 h-full bg-white shadow-lg transform transition-all duration-300 ease-in-out pt-16
+        fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white shadow-lg transform transition-all duration-300 ease-in-out
         ${
           isOpen
             ? "w-64 translate-x-0 z-50"
