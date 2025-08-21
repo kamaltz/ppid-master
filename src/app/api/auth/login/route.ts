@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sanitizeInput, validateEmail, validateInput } from '@/lib/xssProtection';
+import { apiSecurityMiddleware } from '@/lib/apiSecurityMiddleware';
 
 interface ActivityLog {
   id: number;
@@ -75,7 +76,21 @@ function getClientIP(request: NextRequest): string {
   return '127.0.0.1';
 }
 
+// Block GET requests
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use POST for login.' },
+    { status: 405 }
+  );
+}
+
 export async function POST(request: NextRequest) {
+  // Apply security middleware
+  const securityResponse = apiSecurityMiddleware(request);
+  if (securityResponse) {
+    return securityResponse;
+  }
+
   try {
     const body = await request.json();
     const clientIP = getClientIP(request);

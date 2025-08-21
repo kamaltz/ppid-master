@@ -7,7 +7,7 @@ const rateLimitMap = new Map<string, RateLimitEntry>();
 
 export function rateLimit(
   identifier: string,
-  maxRequests: number = 1000, // Increased from 100
+  maxRequests: number = 100, // Reduced back to reasonable limit
   windowMs: number = 60000 // 1 minute
 ): { success: boolean; remaining: number; resetTime: number } {
   const now = Date.now();
@@ -44,6 +44,15 @@ export function rateLimit(
     remaining: maxRequests - entry.count,
     resetTime: entry.resetTime
   };
+}
+
+// Strict rate limiting for sensitive endpoints
+export function strictRateLimit(
+  identifier: string,
+  maxRequests: number = 5,
+  windowMs: number = 300000 // 5 minutes
+): { success: boolean; remaining: number; resetTime: number } {
+  return rateLimit(`strict:${identifier}`, maxRequests, windowMs);
 }
 
 // Clean up expired entries periodically
