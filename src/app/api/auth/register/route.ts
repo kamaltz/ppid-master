@@ -15,9 +15,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Strict rate limiting for registration
+    // Basic rate limiting for registration
     const clientIP = getClientIP(request);
-    const rateLimitResult = strictRateLimit(`register:${clientIP}`, 3, 600000); // 3 requests per 10 minutes
+    const rateLimitResult = strictRateLimit(`register:${clientIP}`, 5, 300000); // 5 requests per 5 minutes
     
     if (!rateLimitResult.success) {
       return NextResponse.json(

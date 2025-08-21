@@ -85,12 +85,6 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  // Apply security middleware
-  const securityResponse = apiSecurityMiddleware(request);
-  if (securityResponse) {
-    return securityResponse;
-  }
-
   try {
     const body = await request.json();
     const clientIP = getClientIP(request);

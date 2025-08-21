@@ -36,12 +36,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Block suspicious User-Agents on sensitive endpoints
-  const sensitiveEndpoints = ['/register', '/login', '/api/auth', '/admin', '/dashboard'];
-  const isSensitiveEndpoint = sensitiveEndpoints.some(endpoint => url.startsWith(endpoint));
+  // Only block obvious security tools on auth endpoints
+  const authEndpoints = ['/api/auth'];
+  const isAuthEndpoint = authEndpoints.some(endpoint => url.startsWith(endpoint));
   
-  if (isSensitiveEndpoint && !isValidUserAgent(userAgent)) {
-    return new NextResponse('Forbidden', { status: 403 });
+  if (isAuthEndpoint) {
+    const obviousSecurityTools = [/sqlmap/i, /nikto/i, /nmap/i, /burp/i, /zap/i];
+    if (obviousSecurityTools.some(pattern => pattern.test(userAgent))) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
   }
 
   // Block GET requests with sensitive parameters
