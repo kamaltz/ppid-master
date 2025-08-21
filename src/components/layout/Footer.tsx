@@ -18,26 +18,26 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Informasi Kontak */}
-          {((footer?.showContact as boolean) !== false) && (
+          {(footer?.showContact !== false) && (
             <div>
-              <h3 className="text-lg font-bold mb-4">Kontak {(footer?.companyName as string) || 'PPID'}</h3>
+              <h3 className="text-lg font-bold mb-4">Kontak {footer?.companyName || 'PPID'}</h3>
               <div className="space-y-3 text-sm">
-                {((footer?.showAddress as boolean) !== false) && (footer?.address as string) && (
+                {(footer?.showAddress !== false) && footer?.address && (
                   <div className="flex items-start">
                     <MapPin className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
-                    <span>{footer?.address as string}</span>
+                    <span>{footer.address}</span>
                   </div>
                 )}
-                {(footer?.phone as string) && (
+                {footer?.phone && (
                   <div className="flex items-center">
                     <Phone className="h-4 w-4 mr-2" />
-                    <span>{footer?.phone as string}</span>
+                    <span>{footer.phone}</span>
                   </div>
                 )}
-                {(footer?.email as string) && (
+                {footer?.email && (
                   <div className="flex items-center">
                     <Mail className="h-4 w-4 mr-2" />
-                    <span>{footer?.email as string}</span>
+                    <span>{footer.email}</span>
                   </div>
                 )}
               </div>
@@ -64,21 +64,26 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Link Penting</h3>
             <div className="space-y-2 text-sm">
               {Array.isArray(footer?.quickLinks) && footer.quickLinks.length > 0 ? (
-                footer.quickLinks.map((link: unknown, index: number) => {
-                  const linkObj = link as { label?: unknown; url?: unknown };
-                  const linkLabel: string = String(linkObj.label || 'Link');
-                  const linkUrl: string = String(linkObj.url || '#');
-                  return (
-                    <Link 
-                      key={index} 
-                      href={linkUrl} 
-                      className="flex items-center hover:text-blue-200 transition-colors"
-                    >
-                      <ExternalLink className="h-3 w-3 mr-2" />
-                      <span>{`${linkLabel}`}</span>
-                    </Link>
-                  );
-                })
+                footer.quickLinks
+                  .filter((link: unknown) => {
+                    const linkObj = link as { label?: unknown; url?: unknown };
+                    return linkObj.label && String(linkObj.label).trim() && linkObj.url && String(linkObj.url).trim();
+                  })
+                  .map((link: unknown, index: number) => {
+                    const linkObj = link as { label?: unknown; url?: unknown };
+                    const linkLabel: string = String(linkObj.label);
+                    const linkUrl: string = String(linkObj.url);
+                    return (
+                      <Link 
+                        key={index} 
+                        href={linkUrl} 
+                        className="flex items-center hover:text-blue-200 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-2" />
+                        <span>{linkLabel}</span>
+                      </Link>
+                    );
+                  })
               ) : (
                 <>
                   <Link href="/permohonan" className="flex items-center hover:text-blue-200 transition-colors">
@@ -101,14 +106,14 @@ const Footer = () => {
               {description}
             </p>
             
-            {(footer?.showSocialMedia !== false) && footer?.socialMedia ? (
+            {(footer?.showSocialMedia !== false) && footer?.socialMedia && (
               <div className="mt-4">
                 <div className="flex space-x-3">
                   {(() => {
                     const socialMedia = footer.socialMedia as Record<string, unknown>;
                     const socialLinks: React.ReactNode[] = [];
                     
-                    if (socialMedia?.facebook) {
+                    if (socialMedia?.facebook && String(socialMedia.facebook).trim()) {
                       socialLinks.push(
                         <a key="facebook" href={String(socialMedia.facebook)} target="_blank" rel="noopener noreferrer" className="hover:text-blue-200">
                           <Facebook className="h-5 w-5" />
@@ -116,7 +121,7 @@ const Footer = () => {
                       );
                     }
                     
-                    if (socialMedia?.instagram) {
+                    if (socialMedia?.instagram && String(socialMedia.instagram).trim()) {
                       socialLinks.push(
                         <a key="instagram" href={String(socialMedia.instagram)} target="_blank" rel="noopener noreferrer" className="hover:text-blue-200">
                           <Instagram className="h-5 w-5" />
@@ -124,7 +129,7 @@ const Footer = () => {
                       );
                     }
                     
-                    if (socialMedia?.twitter) {
+                    if (socialMedia?.twitter && String(socialMedia.twitter).trim()) {
                       socialLinks.push(
                         <a key="twitter" href={String(socialMedia.twitter)} target="_blank" rel="noopener noreferrer" className="hover:text-blue-200">
                           <Twitter className="h-5 w-5" />
@@ -132,7 +137,7 @@ const Footer = () => {
                       );
                     }
                     
-                    if (socialMedia?.youtube) {
+                    if (socialMedia?.youtube && String(socialMedia.youtube).trim()) {
                       socialLinks.push(
                         <a key="youtube" href={String(socialMedia.youtube)} target="_blank" rel="noopener noreferrer" className="hover:text-blue-200">
                           <Youtube className="h-5 w-5" />
@@ -140,17 +145,17 @@ const Footer = () => {
                       );
                     }
                     
-                    return socialLinks;
+                    return socialLinks.length > 0 ? socialLinks : null;
                   })()}
                 </div>
               </div>
-            ) : null}
+            )}
           </div>
         </div>
 
         {/* Copyright */}
         <div className="border-t border-blue-700 mt-8 pt-6 text-center text-sm text-blue-200">
-          <p>{(footer?.copyrightText as string) || '© 2024 PPID Dinas Komunikasi dan Informatika Kabupaten Garut. Hak Cipta Dilindungi.'}</p>
+          <p>{footer?.copyrightText || '© 2024 PPID Dinas Komunikasi dan Informatika Kabupaten Garut. Hak Cipta Dilindungi.'}</p>
         </div>
       </div>
     </footer>
