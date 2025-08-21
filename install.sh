@@ -98,6 +98,7 @@ services:
       DATABASE_URL: "postgresql://ppid_user:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
       NEXT_PUBLIC_API_URL: "https://143.198.205.44/api"
+      DOCKER_ENV: "true"
     depends_on:
       postgres:
         condition: service_healthy

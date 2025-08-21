@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-// import jwt from 'jsonwebtoken'; // Temporarily disabled
 import { existsSync } from 'fs';
+
+// Determine upload directory based on environment
+function getUploadDir() {
+  // Check if running in Docker container
+  if (existsSync('/.dockerenv') || process.env.DOCKER_ENV === 'true') {
+    return '/app/uploads/images';
+  }
+  // Development or non-Docker production
+  return join(process.cwd(), 'public/uploads/images');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,11 +40,26 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.\./g, '_');
     const filename = `${timestamp}-${sanitizedName}`;
-    const uploadDir = '/app/uploads/images';
-    const path = join(uploadDir, filename);
+    const uploadDir = getUploadDir();
+    const filePath = join(uploadDir, filename);
 
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path, buffer);
+    try {
+      // Ensure directory exists
+      await mkdir(uploadDir, { recursive: true });
+      
+      // Write file
+      await writeFile(filePath, buffer);
+      
+      // Verify file was written
+      if (!existsSync(filePath)) {
+        throw new Error('File was not saved properly');
+      }
+      
+      console.log('File uploaded successfully:', filePath);
+    } catch (fsError) {
+      console.error('File system error:', fsError);
+      throw new Error(`Failed to save file: ${(fsError as Error).message}`);
+    }
 
     return NextResponse.json({ 
       success: true, 
