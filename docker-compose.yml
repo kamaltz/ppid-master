@@ -3,12 +3,12 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: ppid_garut
-      POSTGRES_USER: ppid_user
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ppid_user"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,7 +19,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      DATABASE_URL: "postgresql://ppid_user:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
       NEXT_PUBLIC_API_URL: "https://143.198.205.44/api"
     depends_on:

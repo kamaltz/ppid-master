@@ -79,7 +79,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: ppid_garut
-      POSTGRES_USER: ppid_user
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -95,7 +95,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      DATABASE_URL: "postgresql://ppid_user:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
       NEXT_PUBLIC_API_URL: "https://143.198.205.44/api"
       DOCKER_ENV: "true"
@@ -238,7 +238,7 @@ docker-compose up -d
 # Wait for services to be ready
 log_info "Waiting for services to start..."
 for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready -U ppid_user > /dev/null 2>&1; then
+    if docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
         log_info "Database is ready"
         break
     fi
@@ -257,7 +257,7 @@ docker-compose exec -T app npx prisma migrate deploy
 # Check for custom database import
 if [ -f "ppid_db.sql" ]; then
     log_info "Found ppid_db.sql - importing custom database..."
-    docker-compose exec -T postgres psql -U ppid_user -d ppid_garut < ppid_db.sql
+    docker-compose exec -T postgres psql -U postgres -d ppid_garut < ppid_db.sql
     log_info "Custom database imported successfully"
 else
     log_info "No ppid_db.sql found - using default seed data..."

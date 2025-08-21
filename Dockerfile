@@ -16,7 +16,7 @@ COPY . .
 # Set build environment variables
 ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=true
-ENV DATABASE_URL="postgresql://postgres:ppid_user@localhost:5432/ppid_garut?schema=public"
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppid_garut?schema=public"
 ENV JWT_SECRET="build-time-secret"
 ENV NEXT_PUBLIC_API_URL="/api"
 
