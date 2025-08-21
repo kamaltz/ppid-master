@@ -113,9 +113,9 @@ EOF
 # Setup uploads with proper security
 log_info "Setting up file storage..."
 sudo mkdir -p /opt/ppid/uploads/images
-# kasih akses ke user node (UID 1000)
+# Set ownership to node user (UID 1000) and make writable
 sudo chown -R 1000:1000 /opt/ppid/uploads
-sudo chmod -R 775 /opt/ppid/uploads
+sudo chmod -R 777 /opt/ppid/uploads
 
 # Install and configure Nginx
 log_info "Installing Nginx..."
