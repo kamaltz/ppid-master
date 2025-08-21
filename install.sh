@@ -111,9 +111,10 @@ EOF
 
 # Setup uploads with proper security
 log_info "Setting up file storage..."
-mkdir -p uploads/images
-chmod 755 uploads
-chmod 755 uploads/images
+sudo mkdir -p /opt/ppid/uploads/images
+# kasih akses ke user node (UID 1000)
+sudo chown -R 1000:1000 /opt/ppid/uploads
+sudo chmod -R 775 /opt/ppid/uploads
 
 # Install and configure Nginx
 log_info "Installing Nginx..."
