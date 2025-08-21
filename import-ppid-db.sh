@@ -23,7 +23,7 @@ docker-compose up -d
 # Wait for postgres
 echo "⏳ Waiting for database..."
 for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+    if docker-compose exec -T postgres pg_isready -U ppid_user > /dev/null 2>&1; then
         break
     fi
     sleep 2
@@ -36,11 +36,11 @@ docker-compose stop app
 # Backup current database
 echo "💾 Creating backup..."
 mkdir -p backups
-docker-compose exec -T postgres pg_dump -U postgres -d ppid_garut > "backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+docker-compose exec -T postgres pg_dump -U ppid_user -d ppid_garut > "backups/backup_$(date +%Y%m%d_%H%M%S).sql"
 
 # Import database
 echo "📥 Importing ppid_db.sql..."
-docker-compose exec -T postgres psql -U postgres -d ppid_garut < ppid_db.sql
+docker-compose exec -T postgres psql -U ppid_user -d ppid_garut < ppid_db.sql
 
 # Update Prisma
 echo "🔄 Updating Prisma..."

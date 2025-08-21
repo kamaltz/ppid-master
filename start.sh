@@ -4,7 +4,7 @@ set -e
 echo "🔄 Starting PPID Master application..."
 
 echo "⏳ Waiting for database..."
-until pg_isready -h postgres -p 5432 -U postgres; do
+until pg_isready -h postgres -p 5432 -U ppid_user; do
   echo "Database not ready, waiting..."
   sleep 2
 done
@@ -26,7 +26,7 @@ npx prisma migrate status || echo "Migration status check completed"
 # Check for custom database import
 if [ -f "/app/ppid_db.sql" ]; then
   echo "📥 Found ppid_db.sql - importing custom database..."
-  PGPASSWORD=${POSTGRES_PASSWORD:-postgres123} psql -h postgres -U postgres -d ppid_garut < /app/ppid_db.sql
+  PGPASSWORD=${POSTGRES_PASSWORD:-ppid_user} psql -h postgres -U ppid_user -d ppid_garut < /app/ppid_db.sql
   echo "✅ Custom database imported successfully"
 else
   echo "🌱 No ppid_db.sql found - using default seed data..."
