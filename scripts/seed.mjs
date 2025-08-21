@@ -129,7 +129,7 @@ async function main() {
   ];
 
   for (const category of defaultCategories) {
-    await prisma.kategori.upsert({
+    await prisma.kategoriInformasi.upsert({
       where: { nama: category.nama },
       update: category,
       create: category
