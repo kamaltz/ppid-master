@@ -140,11 +140,13 @@ chmod +x deploy.sh
 ### Manual Docker Deployment
 
 1. **Download deployment files:**
+
 ```bash
 curl -O https://raw.githubusercontent.com/your-repo/ppid-master/main/docker-compose.deploy.yml
 ```
 
 2. **Create environment file:**
+
 ```bash
 cat > .env << 'EOF'
 DOCKERHUB_USERNAME=your-dockerhub-username
@@ -155,6 +157,7 @@ EOF
 ```
 
 3. **Deploy:**
+
 ```bash
 mkdir -p uploads
 docker-compose -f docker-compose.deploy.yml up -d
@@ -195,45 +198,6 @@ docker-compose -f docker-compose.deploy.yml exec postgres pg_dump -U postgres pp
 - ✅ **Production Ready** - Optimized for production use
 - ✅ **Improved Error Handling** - Better API error responses
 - ✅ **No DDoS Protection** - Removed aggressive rate limiting that caused API errors
-
-## 👥 Akun Default (Seeder)
-
-Setelah menjalankan `npm run seed`, akun berikut akan tersedia:
-
-### 🔑 **Admin**
-
-- **Email**: `admin@garut.go.id`
-- **Password**: `Garut@2025?`
-- **Role**: Administrator
-- **Akses**: Full access ke semua fitur
-
-### 🏛️ **PPID Utama**
-
-- **Email**: `ppid.utama@garut.go.id`
-- **Password**: `Garut@2025?`
-- **Role**: PPID Utama
-- **Akses**: Manajemen informasi, permohonan, keberatan
-
-### 👨💼 **PPID Pelaksana**
-
-- **Email**: `ppid.pelaksana@garut.go.id`
-- **Password**: `Garut@2025?`
-- **Role**: PPID Pelaksana
-- **Akses**: Proses permohonan, input informasi
-
-### 👔 **Atasan PPID**
-
-- **Email**: `atasan.ppid@garut.go.id`
-- **Password**: `Garut@2025?`
-- **Role**: Atasan PPID
-- **Akses**: Approve permohonan, monitoring
-
-### 👤 **Pemohon Test**
-
-- **Email**: `pemohon@example.com`
-- **Password**: `Garut@2025?`
-- **Role**: Pemohon
-- **Akses**: Submit permohonan, tracking status
 
 ## 📖 Cara Penggunaan
 
@@ -517,6 +481,7 @@ tar -xzf ppid-deployment.tar.gz
 ### Common Issues
 
 **API Returns 500 Errors:**
+
 ```bash
 # Check container logs
 docker-compose -f docker-compose.deploy.yml logs app
@@ -529,6 +494,7 @@ docker-compose -f docker-compose.deploy.yml restart
 ```
 
 **Database Connection Issues:**
+
 ```bash
 # Check if database is ready
 docker-compose -f docker-compose.deploy.yml exec postgres pg_isready -U postgres
@@ -541,6 +507,7 @@ docker-compose -f docker-compose.deploy.yml exec app npx prisma db seed
 ```
 
 **Health Check:**
+
 ```bash
 # Check application health
 curl http://localhost:3000/api/health
@@ -549,6 +516,7 @@ curl http://localhost:3000/api/health
 ```
 
 **Reset Everything:**
+
 ```bash
 # Stop and remove all containers and volumes
 docker-compose -f docker-compose.deploy.yml down -v
