@@ -29,16 +29,32 @@ export default function PublicInformationList() {
       setError(null);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
       const response = await fetch(`/api/informasi?page=${currentPage}&limit=10`, {
-        signal: controller.signal
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
       
       clearTimeout(timeoutId);
       
+      // Handle non-JSON responses (like HTML error pages)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Non-JSON response received, using fallback data');
+        setInformasi([]);
+        setTotal(0);
+        return;
+      }
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        console.warn(`API returned ${response.status}, using fallback data`);
+        setInformasi([]);
+        setTotal(0);
+        return;
       }
       
       const data = await response.json();
@@ -46,17 +62,16 @@ export default function PublicInformationList() {
       if (data.success) {
         setInformasi(data.data || []);
         if (data.pagination) {
-          setTotalPages(data.pagination.totalPages);
-          setTotal(data.pagination.total);
+          setTotalPages(data.pagination.totalPages || 1);
+          setTotal(data.pagination.total || 0);
         }
       } else {
         setInformasi([]);
         setTotal(0);
       }
     } catch (error) {
-      console.error('Error fetching informasi:', error);
-      // Don't show error to user, just show empty state
-      setError(null);
+      console.warn('Failed to fetch informasi, using fallback:', error);
+      // Always use fallback data, never show error to user
       setInformasi([]);
       setTotal(0);
     } finally {

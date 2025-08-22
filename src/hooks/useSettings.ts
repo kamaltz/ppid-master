@@ -72,14 +72,32 @@ export const useSettings = () => {
 
   const loadSettings = async () => {
     try {
-      const response = await fetch(`/api/settings?t=${Date.now()}`);
+      const response = await fetch(`/api/settings?t=${Date.now()}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Non-JSON response from settings API, using defaults');
+        return;
+      }
+      
+      if (!response.ok) {
+        console.warn(`Settings API returned ${response.status}, using defaults`);
+        return;
+      }
+      
       const result = await response.json();
       
       if (result.success) {
         setSettings(result.data);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.warn('Failed to load settings, using defaults:', error);
     } finally {
       setLoading(false);
     }
