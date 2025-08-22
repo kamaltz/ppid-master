@@ -145,23 +145,41 @@ export default function AdminPengaturanPage() {
       let allSuccess = true;
       
       for (const setting of settingsToSave) {
-        const response = await fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(setting)
-        });
-        
-        if (!response.ok) {
-          console.error(`Failed to save ${setting.key}:`, response.status);
-          allSuccess = false;
-          continue;
-        }
-        
-        const result = await response.json();
-        console.log(`Saved ${setting.key}:`, result);
-        
-        if (!result.success) {
-          console.error(`API error for ${setting.key}:`, result.error);
+        try {
+          const response = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(setting)
+          });
+          
+          if (response.status === 503) {
+            console.error(`Database unavailable for ${setting.key}`);
+            allSuccess = false;
+            continue;
+          }
+          
+          if (!response.ok) {
+            console.error(`Failed to save ${setting.key}:`, response.status);
+            allSuccess = false;
+            continue;
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            console.error(`Non-JSON response for ${setting.key}`);
+            allSuccess = false;
+            continue;
+          }
+          
+          const result = await response.json();
+          console.log(`Saved ${setting.key}:`, result);
+          
+          if (!result.success) {
+            console.error(`API error for ${setting.key}:`, result.error);
+            allSuccess = false;
+          }
+        } catch (error) {
+          console.error(`Error saving ${setting.key}:`, error);
           allSuccess = false;
         }
       }
@@ -192,7 +210,7 @@ export default function AdminPengaturanPage() {
           }, 1000);
         }
       } else {
-        alert('⚠️ Beberapa pengaturan gagal disimpan. Periksa console untuk detail.');
+        alert('❌ Gagal menyimpan pengaturan. Database tidak tersedia (Error 503). Silakan coba lagi nanti atau hubungi administrator.');
       }
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -205,8 +223,19 @@ export default function AdminPengaturanPage() {
   const loadSettings = async () => {
     try {
       const response = await fetch(`/api/settings?t=${Date.now()}`);
-      const result = await response.json();
       
+      if (response.status === 503) {
+        console.warn('Database unavailable, using current settings');
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Non-JSON response from settings API, using current settings');
+        return;
+      }
+      
+      const result = await response.json();
       console.log('Loaded settings:', result);
       
       if (result.success) {
