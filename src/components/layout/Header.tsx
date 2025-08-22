@@ -18,18 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
-
-interface DropdownItem {
-  label: string;
-  url: string;
-}
-
-interface MenuItem {
-  label: string;
-  url: string;
-  hasDropdown: boolean;
-  dropdownItems: DropdownItem[];
-}
+import { MenuItem, DropdownItem } from "@/types/menu";
 
 const Header = () => {
   const { token, logout } = useAuth();
@@ -38,14 +27,30 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { settings, refetch: refetchSettings } = useSettings();
   
+  // Debug logging
+  useEffect(() => {
+    console.log('Header settings updated:', settings?.header);
+    console.log('Menu items count:', settings?.header?.menuItems?.length || 0);
+  }, [settings]);
+  
   // Listen for settings changes and refetch
   useEffect(() => {
     const handleSettingsChange = () => {
+      console.log('Header received settings change event');
       refetchSettings();
     };
     
+    const handleSettingsLoaded = (event: CustomEvent) => {
+      console.log('Header received settings loaded event:', event.detail);
+    };
+    
     window.addEventListener('settingsChanged', handleSettingsChange);
-    return () => window.removeEventListener('settingsChanged', handleSettingsChange);
+    window.addEventListener('settingsLoaded', handleSettingsLoaded as EventListener);
+    
+    return () => {
+      window.removeEventListener('settingsChanged', handleSettingsChange);
+      window.removeEventListener('settingsLoaded', handleSettingsLoaded as EventListener);
+    };
   }, [refetchSettings]);
   
 
@@ -91,7 +96,7 @@ const Header = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-6">
-          {settings?.header?.menuItems && Array.isArray(settings.header.menuItems) && settings.header.menuItems.length > 0 ? 
+          {settings?.header?.menuItems && Array.isArray(settings.header.menuItems) && settings.header.menuItems.length > 0 ? (
             settings.header.menuItems.map((item: MenuItem, index: number) => (
               <div key={`${item.label}-${index}`} className="relative group">
                 {item.hasDropdown ? (
@@ -122,7 +127,9 @@ const Header = () => {
                   </Link>
                 )}
               </div>
-            )) : (
+            ))
+          ) : (
+            settings && (!settings.header?.menuItems || settings.header.menuItems.length === 0) ? (
               <>
                 <Link href="/" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
                   <Home className="mr-2 h-4 w-4" /> Beranda
@@ -137,8 +144,8 @@ const Header = () => {
                   <BarChart3 className="mr-2 h-4 w-4" /> DIP
                 </Link>
               </>
-            )
-          }
+            ) : null
+          )}
         </nav>
 
         {/* Mobile Menu Button & Desktop Actions */}
@@ -222,7 +229,7 @@ const Header = () => {
 
             {/* Mobile Navigation */}
             <nav className="space-y-2">
-              {settings?.header?.menuItems && Array.isArray(settings.header.menuItems) && settings.header.menuItems.length > 0 ?
+              {settings?.header?.menuItems && Array.isArray(settings.header.menuItems) && settings.header.menuItems.length > 0 ? (
                 settings.header.menuItems.map((item: MenuItem, index: number) => (
                   <div key={`mobile-${item.label}-${index}`}>
                     {item.hasDropdown ? (
@@ -251,7 +258,9 @@ const Header = () => {
                       </Link>
                     )}
                   </div>
-                )) : (
+                ))
+              ) : (
+                settings && (!settings.header?.menuItems || settings.header.menuItems.length === 0) ? (
                   <>
                     <Link href="/" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
                       <Home className="mr-2 h-4 w-4" /> Beranda
@@ -266,8 +275,8 @@ const Header = () => {
                       <BarChart3 className="mr-2 h-4 w-4" /> DIP
                     </Link>
                   </>
-                )
-              }
+                ) : null
+              )}
             </nav>
 
             {/* Mobile Auth Buttons */}

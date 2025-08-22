@@ -5,6 +5,7 @@ import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
+import { MenuItem, DropdownItem } from "@/types/menu";
 
 interface Slide {
   id: number;
@@ -17,18 +18,6 @@ interface Slide {
   backgroundPosition: string;
   cleanNoCTA?: boolean;
   cleanImage?: boolean;
-}
-
-interface DropdownItem {
-  label: string;
-  url: string;
-}
-
-interface MenuItem {
-  label: string;
-  url: string;
-  hasDropdown: boolean;
-  dropdownItems: DropdownItem[];
 }
 
 interface HeroSettings {
@@ -189,6 +178,7 @@ export default function AdminPengaturanPage() {
         { key: "hero", value: heroSettings },
       ];
       
+      console.log('Saving header settings:', cleanedHeaderSettings);
       console.log('Saving settings with', cleanedHeaderSettings.menuItems?.length || 0, 'menu items');
 
       let allSuccess = true;
@@ -258,56 +248,19 @@ export default function AdminPengaturanPage() {
 
         // Force reload all components by clearing cache
         if (typeof window !== "undefined") {
-          // Preserve authentication data
-          const authToken = localStorage.getItem('auth_token');
-          const userRole = localStorage.getItem('user_role');
-          const userId = localStorage.getItem('user_id');
+          // Clear settings cache
+          sessionStorage.removeItem('cachedSettings');
           
-          // Clear only settings cache, not auth data
-          const keysToRemove = [];
-          for (let i = 0; i < sessionStorage.length; i++) {
-            const key = sessionStorage.key(i);
-            if (key && !key.includes('auth') && !key.includes('token') && !key.includes('user')) {
-              keysToRemove.push(key);
-            }
-          }
-          keysToRemove.forEach(key => sessionStorage.removeItem(key));
-          
-          // Restore auth data
-          if (authToken) localStorage.setItem('auth_token', authToken);
-          if (userRole) localStorage.setItem('user_role', userRole);
-          if (userId) localStorage.setItem('user_id', userId);
-
-          // Multiple event dispatches to ensure all components receive the update
+          // Immediate event dispatch
           window.dispatchEvent(new CustomEvent("settingsChanged"));
           
-          // Delayed broadcasts to catch any components that might load later
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent("settingsChanged"));
-          }, 500);
-          
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent("settingsChanged"));
-          }, 1000);
-          
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent("settingsChanged"));
-          }, 2000);
-
           // Trigger storage event for cross-tab updates
           localStorage.setItem("settingsUpdated", Date.now().toString());
           localStorage.removeItem("settingsUpdated");
-
-          // Force refresh any open homepage tabs
-          if (window.opener) {
-            window.opener.location.reload();
-          }
         }
         
-        // Reload settings and force component refresh
-        setTimeout(async () => {
-          await loadSettings();
-        }, 1500);
+        // Reload settings immediately
+        await loadSettings();
       } else {
         alert(
           "❌ Gagal menyimpan pengaturan. Database tidak tersedia (Error 503). Silakan coba lagi nanti atau hubungi administrator."
@@ -349,46 +302,8 @@ export default function AdminPengaturanPage() {
           setSettings(result.data.general);
         }
         if (result.data.header) {
-          // Ensure menuItems is always an array with proper structure
-          const headerData = {
-            ...result.data.header,
-            menuItems: Array.isArray(result.data.header.menuItems) 
-              ? result.data.header.menuItems.map((item: MenuItem) => ({
-                  label: item.label || '',
-                  url: item.url || '/',
-                  hasDropdown: Boolean(item.hasDropdown),
-                  dropdownItems: Array.isArray(item.dropdownItems) 
-                    ? item.dropdownItems.map((dropItem: DropdownItem) => ({
-                        label: dropItem.label || '',
-                        url: dropItem.url || '/'
-                      }))
-                    : []
-                }))
-              : [
-                  { label: "Beranda", url: "/", hasDropdown: false, dropdownItems: [] },
-                  {
-                    label: "Profil",
-                    url: "/profil",
-                    hasDropdown: true,
-                    dropdownItems: [
-                      { label: "Tentang PPID", url: "/profil" },
-                      { label: "Visi Misi", url: "/visi-misi" },
-                      { label: "Struktur Organisasi", url: "/struktur" }
-                    ]
-                  },
-                  { label: "Informasi Publik", url: "/informasi", hasDropdown: false, dropdownItems: [] },
-                  {
-                    label: "Layanan",
-                    url: "/layanan",
-                    hasDropdown: true,
-                    dropdownItems: [
-                      { label: "Permohonan Informasi", url: "/permohonan" },
-                      { label: "Keberatan", url: "/keberatan" }
-                    ]
-                  }
-                ]
-          };
-          setHeaderSettings(headerData);
+          console.log('Loading header settings:', result.data.header);
+          setHeaderSettings(result.data.header);
         }
         if (result.data.footer) {
           setFooterSettings(result.data.footer);

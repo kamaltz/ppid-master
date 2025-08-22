@@ -96,7 +96,13 @@ export const useSettings = () => {
       const result = await response.json();
       
       if (result.success && result.data) {
+        console.log('Settings loaded:', result.data);
         setSettings(result.data);
+        
+        // Store in sessionStorage for immediate access
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('cachedSettings', JSON.stringify(result.data));
+        }
         
         // Force re-render by dispatching a custom event
         setTimeout(() => {
@@ -113,11 +119,30 @@ export const useSettings = () => {
   };
 
   useEffect(() => {
+    // Try to load from cache first for immediate display
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('cachedSettings');
+      if (cached) {
+        try {
+          const cachedData = JSON.parse(cached);
+          setSettings(cachedData);
+          setLoading(false);
+        } catch (e) {
+          console.warn('Failed to parse cached settings');
+        }
+      }
+    }
+    
+    // Then load fresh data
     loadSettings();
 
     // Listen for settings changes
     const handleSettingsChange = () => {
       console.log('Settings change event received, reloading...');
+      // Clear cache first
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('cachedSettings');
+      }
       loadSettings();
     };
 
@@ -126,6 +151,9 @@ export const useSettings = () => {
     // Also listen for storage changes in case settings are updated in another tab
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'settingsUpdated') {
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('cachedSettings');
+        }
         loadSettings();
       }
     };
