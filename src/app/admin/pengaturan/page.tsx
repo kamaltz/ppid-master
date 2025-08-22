@@ -19,6 +19,18 @@ interface Slide {
   cleanImage?: boolean;
 }
 
+interface DropdownItem {
+  label: string;
+  url: string;
+}
+
+interface MenuItem {
+  label: string;
+  url: string;
+  hasDropdown: boolean;
+  dropdownItems: DropdownItem[];
+}
+
 interface HeroSettings {
   title: string;
   subtitle: string;
@@ -154,15 +166,19 @@ export default function AdminPengaturanPage() {
       // Validate and clean header settings
       const cleanedHeaderSettings = {
         ...headerSettings,
-        menuItems: (headerSettings.menuItems || []).map(item => ({
-          label: item.label || 'Menu',
-          url: item.url || '/',
-          hasDropdown: Boolean(item.hasDropdown),
-          dropdownItems: (item.dropdownItems || []).map(dropItem => ({
-            label: dropItem.label || 'Sub Menu',
-            url: dropItem.url || '/'
+        menuItems: (headerSettings.menuItems || [])
+          .filter(item => item.label && item.label.trim() !== '') // Only save items with labels
+          .map(item => ({
+            label: item.label.trim(),
+            url: item.url || '/',
+            hasDropdown: Boolean(item.hasDropdown),
+            dropdownItems: (item.dropdownItems || [])
+              .filter(dropItem => dropItem.label && dropItem.label.trim() !== '') // Only save dropdown items with labels
+              .map(dropItem => ({
+                label: dropItem.label.trim(),
+                url: dropItem.url || '/'
+              }))
           }))
-        }))
       };
 
       // Save all settings
@@ -275,10 +291,13 @@ export default function AdminPengaturanPage() {
           }
         }
         
-        // Reload settings without full page reload
-        setTimeout(() => {
-          loadSettings();
-        }, 500);
+        // Reload settings and force header refresh
+        setTimeout(async () => {
+          await loadSettings();
+          // Force header component to refresh
+          window.dispatchEvent(new CustomEvent('settingsChanged'));
+          console.log('Settings reloaded and header refreshed');
+        }, 1000);
       } else {
         alert(
           "❌ Gagal menyimpan pengaturan. Database tidak tersedia (Error 503). Silakan coba lagi nanti atau hubungi administrator."
@@ -316,9 +335,35 @@ export default function AdminPengaturanPage() {
       console.log("Loaded settings:", result);
 
       if (result.success) {
-        if (result.data.general) setSettings(result.data.general);
-        if (result.data.header) setHeaderSettings(result.data.header);
-        if (result.data.footer) setFooterSettings(result.data.footer);
+        if (result.data.general) {
+          console.log('Loading general settings:', result.data.general);
+          setSettings(result.data.general);
+        }
+        if (result.data.header) {
+          console.log('Loading header settings:', result.data.header);
+          // Ensure menuItems is always an array with proper structure
+          const headerData = {
+            ...result.data.header,
+            menuItems: Array.isArray(result.data.header.menuItems) 
+              ? result.data.header.menuItems.map((item: MenuItem) => ({
+                  label: item.label || '',
+                  url: item.url || '/',
+                  hasDropdown: Boolean(item.hasDropdown),
+                  dropdownItems: Array.isArray(item.dropdownItems) 
+                    ? item.dropdownItems.map((dropItem: DropdownItem) => ({
+                        label: dropItem.label || '',
+                        url: dropItem.url || '/'
+                      }))
+                    : []
+                }))
+              : []
+          };
+          setHeaderSettings(headerData);
+        }
+        if (result.data.footer) {
+          console.log('Loading footer settings:', result.data.footer);
+          setFooterSettings(result.data.footer);
+        }
         if (result.data.hero) {
           const heroData = result.data.hero;
           const slidesWithDefaults = (heroData.slides || []).map(

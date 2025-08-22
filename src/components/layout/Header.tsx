@@ -91,7 +91,7 @@ const Header = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-6">
-          {(settings?.header?.menuItems && settings.header.menuItems.length > 0) ? 
+          {settings?.header?.menuItems && Array.isArray(settings.header.menuItems) && settings.header.menuItems.length > 0 ? 
             settings.header.menuItems.map((item: MenuItem, index: number) => (
               <div key={`${item.label}-${index}`} className="relative group">
                 {item.hasDropdown ? (
@@ -222,7 +222,7 @@ const Header = () => {
 
             {/* Mobile Navigation */}
             <nav className="space-y-2">
-              {(settings?.header?.menuItems && settings.header.menuItems.length > 0) ?
+              {settings?.header?.menuItems && Array.isArray(settings.header.menuItems) && settings.header.menuItems.length > 0 ?
                 settings.header.menuItems.map((item: MenuItem, index: number) => (
                   <div key={`mobile-${item.label}-${index}`}>
                     {item.hasDropdown ? (
