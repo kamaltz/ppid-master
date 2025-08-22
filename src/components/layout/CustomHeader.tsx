@@ -35,9 +35,9 @@ export default function CustomHeader() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-3">
-              {((settings?.general?.logo && settings.general.logo.startsWith('/')) || (settings?.header?.logo && settings.header.logo.startsWith('/'))) && (
+              {settings?.general?.logo && settings.general.logo.startsWith('/') && (
                 <Image 
-                  src={(settings?.general?.logo && settings.general.logo.startsWith('/')) ? settings.general.logo : (settings?.header?.logo && settings.header.logo.startsWith('/')) ? settings.header.logo : '/logo-garut.svg'} 
+                  src={settings.general.logo} 
                   alt="Logo" 
                   width={40}
                   height={40}
