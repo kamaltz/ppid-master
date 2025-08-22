@@ -294,46 +294,6 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Install certbot first
-log_info "Installing certbot..."
-sudo apt update -qq
-sudo apt install -y snapd
-sudo snap install core; sudo snap refresh core
-sudo snap install --classic certbot
-sudo ln -sf /snap/bin/certbot /usr/bin/certbot
-
-# Verify domain is pointing to this server
-log_info "Verifying domain configuration..."
-DOMAIN_IP=$(dig +short ppid.garutkab.go.id)
-SERVER_IP=$(curl -s ifconfig.me)
-if [[ "$DOMAIN_IP" != "$SERVER_IP" ]]; then
-    log_warn "Domain ppid.garutkab.go.id ($DOMAIN_IP) does not point to this server ($SERVER_IP)"
-    log_warn "Please update DNS records and run: sudo certbot --nginx -d ppid.garutkab.go.id"
-else
-    log_info "Domain correctly points to this server"
-    
-    # Setup SSL with Let's Encrypt
-    log_info "Setting up SSL certificate..."
-    if sudo certbot --nginx -d ppid.garutkab.go.id --non-interactive --agree-tos --email cs@kamaltz.fun --redirect; then
-        log_info "SSL certificate installed successfully"
-        
-        # Test auto-renewal
-        sudo certbot renew --dry-run
-        
-        # Setup auto-renewal cron job
-        echo "0 12 * * * /usr/bin/certbot renew --quiet && systemctl reload nginx" | sudo crontab -
-        log_info "Auto-renewal configured"
-        
-        # Restart nginx to apply SSL
-        sudo systemctl restart nginx
-    else
-        log_warn "SSL certificate installation failed"
-        log_info "You can manually run: sudo certbot --nginx -d ppid.garutkab.go.id"
-    fi
-fi
-
-
-
 
 # Save credentials securely
 log_info "Saving credentials..."
