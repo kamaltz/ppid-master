@@ -92,6 +92,13 @@ if [[ -z "${JWT_SECRET:-}" ]] || [[ -z "${POSTGRES_PASSWORD:-}" ]]; then
     exit 1
 fi
 
+# Create environment file
+log_info "Creating environment configuration..."
+cat > .env << EOF
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+JWT_SECRET=${JWT_SECRET}
+EOF
+
 # Create PPID docker-compose
 log_info "Creating PPID configuration..."
 tee docker-compose.yml > /dev/null << EOF
@@ -101,24 +108,27 @@ services:
     environment:
       POSTGRES_DB: ppid_garut
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=md5 --auth-local=md5"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ppid_garut"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   app:
     image: kamaltz/ppid-master:latest
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
-      JWT_SECRET: "${JWT_SECRET}"
+      DATABASE_URL: "postgresql://postgres:\${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public&connect_timeout=60&pool_timeout=60"
+      JWT_SECRET: "\${JWT_SECRET}"
       NEXT_PUBLIC_API_URL: "https://ppid.garutkab.go.id/api"
+      NODE_ENV: "production"
       DOCKER_ENV: "true"
     depends_on:
       postgres:
@@ -126,6 +136,12 @@ services:
     volumes:
       - /opt/ppid/uploads:/app/uploads
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 volumes:
   postgres_data:
@@ -274,25 +290,64 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Setup database
+# Setup database with retry logic
 log_info "Setting up database..."
-$COMPOSE_CMD exec -T app npx prisma generate
-$COMPOSE_CMD exec -T app npx prisma migrate deploy
+for i in {1..5}; do
+    if $COMPOSE_CMD exec -T app npx prisma generate; then
+        log_info "Prisma client generated successfully"
+        break
+    fi
+    if [ $i -eq 5 ]; then
+        log_error "Failed to generate Prisma client after 5 attempts"
+        exit 1
+    fi
+    log_warn "Prisma generate failed, retrying in 10 seconds... ($i/5)"
+    sleep 10
+done
+
+for i in {1..5}; do
+    if $COMPOSE_CMD exec -T app npx prisma migrate deploy; then
+        log_info "Database migrations completed successfully"
+        break
+    fi
+    if [ $i -eq 5 ]; then
+        log_error "Failed to run migrations after 5 attempts"
+        exit 1
+    fi
+    log_warn "Migration failed, retrying in 15 seconds... ($i/5)"
+    sleep 15
+done
+
+# Restart app to ensure clean state
 $COMPOSE_CMD restart app
+sleep 10
 
 # Wait for app to be ready
 log_info "Waiting for application to start..."
-for i in {1..30}; do
+for i in {1..60}; do
     if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
         log_info "Application is ready"
         break
     fi
-    if [ $i -eq 30 ]; then
-        log_error "Application failed to start"
+    if [ $i -eq 60 ]; then
+        log_error "Application failed to start after 2 minutes"
+        log_info "Checking application logs..."
+        $COMPOSE_CMD logs app --tail=20
         exit 1
     fi
     sleep 2
 done
+
+# Verify domain points to server
+log_info "Verifying domain configuration..."
+DOMAIN_IP=$(dig +short ppid.garutkab.go.id)
+SERVER_IP=$(curl -s ifconfig.me)
+if [[ "$DOMAIN_IP" != "$SERVER_IP" ]]; then
+    log_warn "Domain ppid.garutkab.go.id ($DOMAIN_IP) does not point to this server ($SERVER_IP)"
+    log_warn "Please update DNS records and run: sudo certbot --nginx -d ppid.garutkab.go.id"
+else
+    log_info "Domain correctly points to this server"
+    
 
 
 # Save credentials securely
