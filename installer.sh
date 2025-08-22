@@ -129,8 +129,13 @@ sudo apt update -qq
 sudo apt install -y nginx dnsutils
 sudo systemctl enable nginx
 
+# Clean up any existing configurations
+sudo rm -f /etc/nginx/sites-enabled/ppid.garut.go.id
+sudo rm -f /etc/nginx/sites-available/ppid.garut.go.id
+
 # Add rate limiting to nginx.conf
 log_info "Configuring rate limiting..."
+sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
 sudo sed -i '/http {/a\    # PPID Rate Limiting\n    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/m;\n    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;' /etc/nginx/nginx.conf
 
 # Remove default nginx site
@@ -179,7 +184,7 @@ server {
     location /uploads/ {
         alias /opt/ppid/uploads/;
         expires 1y;
-        add_header Cache-Control "public, immutable";
+        add_header Cache-Control "public";
         try_files $uri $uri/ =404;
     }
 
