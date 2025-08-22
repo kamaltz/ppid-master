@@ -246,45 +246,38 @@ else
     exit 1
 fi
 
-# Start PPID services
-log_info "Starting PPID Master..."
-# Try docker compose plugin first, then fallback to standalone
-if docker compose version &> /dev/null; then
-    log_info "Using Docker Compose plugin"
-    docker compose pull
-    docker compose up -d
-elif [ -x "/usr/local/bin/docker-compose" ]; then
-    log_info "Using standalone docker-compose"
-    /usr/local/bin/docker-compose pull
-    /usr/local/bin/docker-compose up -d
-else
-    log_error "Docker Compose not available"
-    log_info "Installing Docker Compose plugin..."
-    # Install Docker Compose plugin as fallback
-    sudo apt update
-    sudo apt install -y docker-compose-plugin
-    docker compose pull
-    docker compose up -d
-fi
-
-# Wait for services to be ready
-log_info "Waiting for services to start..."
-# Determine which compose command to use
+# Determine compose command first
 if docker compose version &> /dev/null; then
     COMPOSE_CMD="docker compose"
 elif [ -x "/usr/local/bin/docker-compose" ]; then
     COMPOSE_CMD="/usr/local/bin/docker-compose"
 else
+    log_info "Installing Docker Compose plugin..."
+    sudo apt update
+    sudo apt install -y docker-compose-plugin
     COMPOSE_CMD="docker compose"
 fi
 
-for i in {1..30}; do
-    if $COMPOSE_CMD exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+# Stop any existing containers and reset database volume
+log_info "Resetting database for fresh installation..."
+$COMPOSE_CMD down 2>/dev/null || true
+docker volume rm ppid_postgres_data 2>/dev/null || true
+
+# Start PPID services
+log_info "Starting PPID Master..."
+$COMPOSE_CMD pull
+$COMPOSE_CMD up -d
+
+# Wait for services to be ready
+log_info "Waiting for services to start..."
+for i in {1..60}; do
+    if $COMPOSE_CMD exec -T postgres pg_isready -U postgres -d ppid_garut > /dev/null 2>&1; then
         log_info "Database is ready"
         break
     fi
-    if [ $i -eq 30 ]; then
-        log_error "Database failed to start"
+    if [ $i -eq 60 ]; then
+        log_error "Database failed to start after 2 minutes"
+        $COMPOSE_CMD logs postgres --tail=10
         exit 1
     fi
     sleep 2
@@ -338,6 +331,7 @@ for i in {1..60}; do
     sleep 2
 done
 
+
 # Verify domain points to server
 log_info "Verifying domain configuration..."
 DOMAIN_IP=$(dig +short ppid.garutkab.go.id)
@@ -348,7 +342,6 @@ if [[ "$DOMAIN_IP" != "$SERVER_IP" ]]; then
 else
     log_info "Domain correctly points to this server"
     
-
 
 # Save credentials securely
 log_info "Saving credentials..."
