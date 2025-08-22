@@ -18,9 +18,30 @@ interface UserPermissions {
 
 export const useUserPermissions = () => {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
-  const { token, user } = useAuth();
+  const { token, user, getUserRole } = useAuth();
+  const userRole = getUserRole();
 
   useEffect(() => {
+    // Admin gets immediate full access
+    if (userRole === 'Admin') {
+      const adminPermissions: UserPermissions = {
+        informasi: true,
+        kategori: true,
+        chat: true,
+        permohonan: true,
+        keberatan: true,
+        kelola_akun: true,
+        manajemen_role: true,
+        kelola_akses: true,
+        log_aktivitas: true,
+        pengaturan: true,
+        media: true,
+        profile: true
+      };
+      setPermissions(adminPermissions);
+      return;
+    }
+
     const fetchPermissions = async () => {
       if (!token || !user) return;
 
@@ -39,9 +60,11 @@ export const useUserPermissions = () => {
     };
 
     fetchPermissions();
-  }, [token, user]);
+  }, [token, user, userRole]);
 
   const hasPermission = (permission: keyof UserPermissions): boolean => {
+    // Admin always has permission
+    if (userRole === 'Admin') return true;
     if (!permissions) return false;
     return permissions[permission];
   };

@@ -163,6 +163,8 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (!item.permission) return true; // Dashboard always visible
+    // Admin has full access to all menus immediately
+    if (userRole === 'Admin') return true;
     return hasPermission(item.permission as PermissionKey);
   });
 

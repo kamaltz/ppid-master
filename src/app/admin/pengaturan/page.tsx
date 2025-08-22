@@ -151,13 +151,29 @@ export default function AdminPengaturanPage() {
     setIsSaving(true);
 
     try {
+      // Validate and clean header settings
+      const cleanedHeaderSettings = {
+        ...headerSettings,
+        menuItems: (headerSettings.menuItems || []).map(item => ({
+          label: item.label || 'Menu',
+          url: item.url || '/',
+          hasDropdown: Boolean(item.hasDropdown),
+          dropdownItems: (item.dropdownItems || []).map(dropItem => ({
+            label: dropItem.label || 'Sub Menu',
+            url: dropItem.url || '/'
+          }))
+        }))
+      };
+
       // Save all settings
       const settingsToSave = [
         { key: "general", value: settings },
-        { key: "header", value: headerSettings },
+        { key: "header", value: cleanedHeaderSettings },
         { key: "footer", value: footerSettings },
         { key: "hero", value: heroSettings },
       ];
+      
+      console.log('Saving header settings:', cleanedHeaderSettings);
 
       let allSuccess = true;
 
@@ -516,35 +532,47 @@ export default function AdminPengaturanPage() {
 
   const addMenuItem = () => {
     const newItem = {
-      label: "",
-      url: "",
+      label: "Menu Baru",
+      url: "/",
       hasDropdown: false,
       dropdownItems: [],
     };
     setHeaderSettings((prev) => ({
       ...prev,
-      menuItems: [...prev.menuItems, newItem],
+      menuItems: [...(prev.menuItems || []), newItem],
     }));
   };
 
   const updateMenuItem = (index: number, field: string, value: unknown) => {
     setHeaderSettings((prev) => ({
       ...prev,
-      menuItems: prev.menuItems.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
+      menuItems: prev.menuItems.map((item, i) => {
+        if (i === index) {
+          const updatedItem = { ...item, [field]: value };
+          // Ensure dropdownItems is always an array
+          if (!updatedItem.dropdownItems) {
+            updatedItem.dropdownItems = [];
+          }
+          // If hasDropdown is false, clear dropdown items
+          if (field === 'hasDropdown' && !value) {
+            updatedItem.dropdownItems = [];
+          }
+          return updatedItem;
+        }
+        return item;
+      }),
     }));
   };
 
   const addDropdownItem = (menuIndex: number) => {
-    const newDropdownItem = { label: "", url: "" };
+    const newDropdownItem = { label: "Sub Menu", url: "/" };
     setHeaderSettings((prev) => ({
       ...prev,
       menuItems: prev.menuItems.map((item, i) =>
         i === menuIndex
           ? {
               ...item,
-              dropdownItems: [...item.dropdownItems, newDropdownItem],
+              dropdownItems: [...(item.dropdownItems || []), newDropdownItem],
             }
           : item
       ),
