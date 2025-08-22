@@ -11,6 +11,7 @@ RUN npm ci --only=production --ignore-scripts
 # Builder
 FROM base AS builder
 COPY package*.json ./
+COPY prisma ./prisma/
 RUN npm install --legacy-peer-deps
 COPY . .
 
