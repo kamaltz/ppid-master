@@ -72,6 +72,34 @@ async function main() {
   });
   console.log("Pemohon user created.");
 
+  // Seed Kategori Informasi
+  const categories = [
+    {
+      nama: "Informasi Berkala",
+      slug: "informasi-berkala",
+      deskripsi: "Informasi yang wajib disediakan dan diumumkan secara berkala"
+    },
+    {
+      nama: "Informasi Serta Merta", 
+      slug: "informasi-serta-merta",
+      deskripsi: "Informasi yang wajib diumumkan serta merta"
+    },
+    {
+      nama: "Informasi Setiap Saat",
+      slug: "informasi-setiap-saat", 
+      deskripsi: "Informasi yang wajib tersedia setiap saat"
+    }
+  ];
+
+  for (const category of categories) {
+    await prisma.kategoriInformasi.upsert({
+      where: { slug: category.slug },
+      update: {},
+      create: category
+    });
+  }
+  console.log("Categories created.");
+
   console.log(`Seeding finished.`);
 }
 

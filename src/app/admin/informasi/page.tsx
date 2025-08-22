@@ -73,18 +73,25 @@ export default function AdminInformasiPage() {
   
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch('/api/kategori');
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/kategori', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
-      if (data.success) {
+      console.log('Categories loaded:', data);
+      if (data.success && data.data) {
         setCategories(data.data);
-        if (data.data.length > 0 && !formData.klasifikasi) {
+        // Set default category only when creating new item
+        if (data.data.length > 0 && !editId && !formData.klasifikasi) {
           setFormData(prev => ({ ...prev, klasifikasi: data.data[0].slug }));
         }
       }
-    } catch {
-      console.error('Failed to fetch categories');
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
     }
-  }, [formData.klasifikasi]);
+  }, [editId, formData.klasifikasi]);
 
   const fetchAllInformasi = useCallback(async () => {
     try {
@@ -530,7 +537,10 @@ export default function AdminInformasiPage() {
           </RoleGuard>
           <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
             <button 
-              onClick={() => setShowForm(true)}
+              onClick={async () => {
+                await fetchCategories(); // Ensure categories are loaded
+                setShowForm(true);
+              }}
               className="bg-blue-800 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
             >
               Tambah Informasi
@@ -675,7 +685,10 @@ export default function AdminInformasiPage() {
               <label className="block text-sm font-medium mb-1">Kategori</label>
               <select
                 value={formData.klasifikasi || ''}
-                onChange={(e) => setFormData({...formData, klasifikasi: e.target.value})}
+                onChange={(e) => {
+                  console.log('Category selected:', e.target.value);
+                  setFormData({...formData, klasifikasi: e.target.value});
+                }}
                 className="w-full border rounded px-3 py-2"
                 required
               >
@@ -686,6 +699,24 @@ export default function AdminInformasiPage() {
                   </option>
                 ))}
               </select>
+              {categories.length === 0 ? (
+                <div className="mt-2">
+                  <p className="text-xs text-red-500 mb-2">
+                    Tidak ada kategori tersedia.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={fetchCategories}
+                    className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                  >
+                    Muat Ulang Kategori
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  {categories.length} kategori tersedia
+                </p>
+              )}
             </div>
             
             <div>
