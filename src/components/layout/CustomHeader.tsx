@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSettings } from '@/hooks/useSettings';
 
 interface MenuItem {
   label: string;
@@ -11,29 +12,13 @@ interface MenuItem {
   dropdownItems: { label: string; url: string; }[];
 }
 
-interface HeaderSettings {
-  logo: string;
-  menuItems: MenuItem[];
-}
-
 export default function CustomHeader() {
-  const [headerSettings, setHeaderSettings] = useState<HeaderSettings>({
-    logo: '',
-    menuItems: []
-  });
-  const [generalSettings, setGeneralSettings] = useState({
-    namaInstansi: 'PPID Garut',
-    logo: ''
-  });
-
-
+  const { settings, refetch } = useSettings();
+  
+  // Listen for settings changes
   useEffect(() => {
-    loadHeaderSettings();
-    
-    // Listen for settings changes
     const handleSettingsChange = () => {
-      console.log('Settings changed event received, reloading header...');
-      loadHeaderSettings();
+      refetch();
     };
     
     window.addEventListener('settingsChanged', handleSettingsChange);
@@ -41,59 +26,7 @@ export default function CustomHeader() {
     return () => {
       window.removeEventListener('settingsChanged', handleSettingsChange);
     };
-  }, []);
-
-  const loadHeaderSettings = async () => {
-    try {
-      const response = await fetch(`/api/settings?t=${Date.now()}`);
-      const result = await response.json();
-      
-      console.log('Header loading settings:', result);
-      
-      if (result.success) {
-        if (result.data.header) {
-          console.log('Setting header from API:', result.data.header);
-          setHeaderSettings(result.data.header);
-        }
-        if (result.data.general) {
-          console.log('Setting general from API:', result.data.general);
-          setGeneralSettings(result.data.general);
-        }
-      } else {
-        console.log('Using default header settings');
-        // Set default menu items if no settings found
-        setHeaderSettings({
-          logo: '',
-          menuItems: [
-            { label: 'Beranda', url: '/', hasDropdown: false, dropdownItems: [] },
-            { label: 'Profil', url: '/profil', hasDropdown: true, dropdownItems: [
-              { label: 'Tentang PPID', url: '/profil' },
-              { label: 'Visi Misi', url: '/visi-misi' },
-              { label: 'Struktur Organisasi', url: '/struktur' }
-            ]},
-            { label: 'Informasi Publik', url: '/informasi', hasDropdown: false, dropdownItems: [] },
-            { label: 'Layanan', url: '/layanan', hasDropdown: true, dropdownItems: [
-              { label: 'Permohonan Informasi', url: '/permohonan' },
-              { label: 'Keberatan', url: '/keberatan' }
-            ]}
-          ]
-        });
-      }
-    } catch (error) {
-      console.error('Error loading header settings:', error);
-      // Set default menu items on error
-      setHeaderSettings({
-        logo: '',
-        menuItems: [
-          { label: 'Beranda', url: '/', hasDropdown: false, dropdownItems: [] },
-          { label: 'Profil', url: '/profil', hasDropdown: true, dropdownItems: [
-            { label: 'Tentang PPID', url: '/profil' },
-            { label: 'Visi Misi', url: '/visi-misi' }
-          ]}
-        ]
-      });
-    }
-  };
+  }, [refetch]);
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -102,9 +35,9 @@ export default function CustomHeader() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-3">
-              {((generalSettings.logo && generalSettings.logo.startsWith('/')) || (headerSettings.logo && headerSettings.logo.startsWith('/'))) && (
+              {((settings?.general?.logo && settings.general.logo.startsWith('/')) || (settings?.header?.logo && settings.header.logo.startsWith('/'))) && (
                 <Image 
-                  src={(generalSettings.logo && generalSettings.logo.startsWith('/')) ? generalSettings.logo : (headerSettings.logo && headerSettings.logo.startsWith('/')) ? headerSettings.logo : '/logo-garut.svg'} 
+                  src={(settings?.general?.logo && settings.general.logo.startsWith('/')) ? settings.general.logo : (settings?.header?.logo && settings.header.logo.startsWith('/')) ? settings.header.logo : '/logo-garut.svg'} 
                   alt="Logo" 
                   width={40}
                   height={40}
@@ -112,14 +45,14 @@ export default function CustomHeader() {
                 />
               )}
               <span className="text-xl font-bold text-gray-800">
-                {generalSettings.namaInstansi || 'PPID Garut'}
+                {settings?.general?.namaInstansi || 'PPID Garut'}
               </span>
             </Link>
           </div>
 
           {/* Navigation Menu */}
           <nav className="hidden md:flex items-center space-x-8">
-            {headerSettings.menuItems.map((item, index) => (
+            {(settings?.header?.menuItems || []).map((item: MenuItem, index: number) => (
               <div
                 key={index}
                 className="relative group"

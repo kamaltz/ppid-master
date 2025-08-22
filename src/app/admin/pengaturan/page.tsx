@@ -189,7 +189,7 @@ export default function AdminPengaturanPage() {
         { key: "hero", value: heroSettings },
       ];
       
-      console.log('Saving header settings:', cleanedHeaderSettings);
+      console.log('Saving settings with', cleanedHeaderSettings.menuItems?.length || 0, 'menu items');
 
       let allSuccess = true;
 
@@ -278,8 +278,21 @@ export default function AdminPengaturanPage() {
           if (userRole) localStorage.setItem('user_role', userRole);
           if (userId) localStorage.setItem('user_id', userId);
 
-          // Broadcast settings change to all components
+          // Multiple event dispatches to ensure all components receive the update
           window.dispatchEvent(new CustomEvent("settingsChanged"));
+          
+          // Delayed broadcasts to catch any components that might load later
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("settingsChanged"));
+          }, 500);
+          
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("settingsChanged"));
+          }, 1000);
+          
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("settingsChanged"));
+          }, 2000);
 
           // Trigger storage event for cross-tab updates
           localStorage.setItem("settingsUpdated", Date.now().toString());
@@ -291,13 +304,10 @@ export default function AdminPengaturanPage() {
           }
         }
         
-        // Reload settings and force header refresh
+        // Reload settings and force component refresh
         setTimeout(async () => {
           await loadSettings();
-          // Force header component to refresh
-          window.dispatchEvent(new CustomEvent('settingsChanged'));
-          console.log('Settings reloaded and header refreshed');
-        }, 1000);
+        }, 1500);
       } else {
         alert(
           "❌ Gagal menyimpan pengaturan. Database tidak tersedia (Error 503). Silakan coba lagi nanti atau hubungi administrator."
@@ -336,11 +346,9 @@ export default function AdminPengaturanPage() {
 
       if (result.success) {
         if (result.data.general) {
-          console.log('Loading general settings:', result.data.general);
           setSettings(result.data.general);
         }
         if (result.data.header) {
-          console.log('Loading header settings:', result.data.header);
           // Ensure menuItems is always an array with proper structure
           const headerData = {
             ...result.data.header,
@@ -356,12 +364,33 @@ export default function AdminPengaturanPage() {
                       }))
                     : []
                 }))
-              : []
+              : [
+                  { label: "Beranda", url: "/", hasDropdown: false, dropdownItems: [] },
+                  {
+                    label: "Profil",
+                    url: "/profil",
+                    hasDropdown: true,
+                    dropdownItems: [
+                      { label: "Tentang PPID", url: "/profil" },
+                      { label: "Visi Misi", url: "/visi-misi" },
+                      { label: "Struktur Organisasi", url: "/struktur" }
+                    ]
+                  },
+                  { label: "Informasi Publik", url: "/informasi", hasDropdown: false, dropdownItems: [] },
+                  {
+                    label: "Layanan",
+                    url: "/layanan",
+                    hasDropdown: true,
+                    dropdownItems: [
+                      { label: "Permohonan Informasi", url: "/permohonan" },
+                      { label: "Keberatan", url: "/keberatan" }
+                    ]
+                  }
+                ]
           };
           setHeaderSettings(headerData);
         }
         if (result.data.footer) {
-          console.log('Loading footer settings:', result.data.footer);
           setFooterSettings(result.data.footer);
         }
         if (result.data.hero) {

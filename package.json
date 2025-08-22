@@ -29,7 +29,10 @@
     "db:migrate": "npx prisma migrate dev",
     "seed": "npx prisma db seed",
     "reset-admin": "node lib/scripts/resetAdminPassword.ts",
-    "fix-roles": "node scripts/fix-roles.js"
+    "fix-roles": "node scripts/fix-roles.js",
+    "fix-settings": "node scripts/fix-settings-deployment.js",
+    "postinstall": "prisma generate",
+    "deploy": "npm run fix-settings && npm run build"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

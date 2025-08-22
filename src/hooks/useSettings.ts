@@ -96,12 +96,12 @@ export const useSettings = () => {
       const result = await response.json();
       
       if (result.success && result.data) {
-        console.log('Settings loaded successfully:', result.data);
-        // Ensure header data is properly structured
-        if (result.data.header && result.data.header.menuItems) {
-          console.log('Header menu items found:', result.data.header.menuItems.length, 'items');
-        }
         setSettings(result.data);
+        
+        // Force re-render by dispatching a custom event
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('settingsLoaded', { detail: result.data }));
+        }, 100);
       } else {
         console.warn('Settings API returned invalid data:', result);
       }

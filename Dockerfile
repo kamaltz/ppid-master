@@ -44,9 +44,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 COPY --chown=nextjs:nodejs start.sh ./
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 
 # Set proper permissions
-RUN chmod +x start.sh && chown -R nextjs:nodejs /app
+RUN chmod +x start.sh docker-entrypoint.sh && chown -R nextjs:nodejs /app
 
 # Switch to nextjs user for security
 USER nextjs

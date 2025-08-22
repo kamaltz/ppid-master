@@ -1,13 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { MapPin, Phone, Mail, Clock, ExternalLink, Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
 
 const Footer = () => {
-  const { settings } = useSettings();
+  const { settings, refetch } = useSettings();
   const footer = settings?.footer as Record<string, unknown> | undefined;
+  
+  // Listen for settings changes
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      refetch();
+    };
+    
+    window.addEventListener('settingsChanged', handleSettingsChange);
+    
+    return () => {
+      window.removeEventListener('settingsChanged', handleSettingsChange);
+    };
+  }, [refetch]);
   
   const description = footer?.description 
     ? String(footer.description) 
