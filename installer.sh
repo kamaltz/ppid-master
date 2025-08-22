@@ -232,23 +232,37 @@ fi
 
 # Start PPID services
 log_info "Starting PPID Master..."
-if command -v docker-compose &> /dev/null; then
-    docker-compose pull
-    docker-compose up -d
+# Try docker compose plugin first, then fallback to standalone
+if docker compose version &> /dev/null; then
+    log_info "Using Docker Compose plugin"
+    docker compose pull
+    docker compose up -d
+elif [ -x "/usr/local/bin/docker-compose" ]; then
+    log_info "Using standalone docker-compose"
+    /usr/local/bin/docker-compose pull
+    /usr/local/bin/docker-compose up -d
 else
+    log_error "Docker Compose not available"
+    log_info "Installing Docker Compose plugin..."
+    # Install Docker Compose plugin as fallback
+    sudo apt update
+    sudo apt install -y docker-compose-plugin
     docker compose pull
     docker compose up -d
 fi
 
 # Wait for services to be ready
 log_info "Waiting for services to start..."
+# Determine which compose command to use
+if docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose"
+elif [ -x "/usr/local/bin/docker-compose" ]; then
+    COMPOSE_CMD="/usr/local/bin/docker-compose"
+else
+    COMPOSE_CMD="docker compose"
+fi
+
 for i in {1..30}; do
-    if command -v docker-compose &> /dev/null; then
-        COMPOSE_CMD="docker-compose"
-    else
-        COMPOSE_CMD="docker compose"
-    fi
-    
     if $COMPOSE_CMD exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
         log_info "Database is ready"
         break
@@ -262,12 +276,6 @@ done
 
 # Setup database
 log_info "Setting up database..."
-if command -v docker-compose &> /dev/null; then
-    COMPOSE_CMD="docker-compose"
-else
-    COMPOSE_CMD="docker compose"
-fi
-
 $COMPOSE_CMD exec -T app npx prisma generate
 $COMPOSE_CMD exec -T app npx prisma migrate deploy
 $COMPOSE_CMD restart app
@@ -343,10 +351,17 @@ log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
 
 echo ""
 log_info "Management Commands:"
-echo "  View logs: docker-compose -f /opt/ppid/docker-compose.yml logs -f"
-echo "  Restart:   docker-compose -f /opt/ppid/docker-compose.yml restart"
-echo "  Stop:      docker-compose -f /opt/ppid/docker-compose.yml down"
-echo "  Update:    docker-compose -f /opt/ppid/docker-compose.yml pull && docker-compose -f /opt/ppid/docker-compose.yml up -d"
+if docker compose version &> /dev/null; then
+    echo "  View logs: docker compose -f /opt/ppid/docker-compose.yml logs -f"
+    echo "  Restart:   docker compose -f /opt/ppid/docker-compose.yml restart"
+    echo "  Stop:      docker compose -f /opt/ppid/docker-compose.yml down"
+    echo "  Update:    docker compose -f /opt/ppid/docker-compose.yml pull && docker compose -f /opt/ppid/docker-compose.yml up -d"
+else
+    echo "  View logs: /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml logs -f"
+    echo "  Restart:   /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml restart"
+    echo "  Stop:      /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml down"
+    echo "  Update:    /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml pull && /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml up -d"
+fi
 echo "  Health:    curl https://ppid.garutkab.go.id/api/health"
 echo ""
 log_info "🔒 Security: Firewall enabled, SSL configured, rate limiting active"
