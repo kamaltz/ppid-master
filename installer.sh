@@ -17,7 +17,7 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 log_info "🚀 PPID Master - Production Deployment"
-log_info "Domain: ppids.kamaltz.fun"
+log_info "Domain: ppid.garutkab.go.id"
 log_info "SSL: Automatic HTTPS"
 echo ""
 
@@ -103,7 +103,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
-      NEXT_PUBLIC_API_URL: "https://ppids.kamaltz.fun/api"
+      NEXT_PUBLIC_API_URL: "https://ppid.garutkab.go.id/api"
       DOCKER_ENV: "true"
     depends_on:
       postgres:
@@ -141,7 +141,7 @@ log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 server {
     listen 80;
-    server_name ppids.kamaltz.fun;
+    server_name ppid.garutkab.go.id;
     client_max_body_size 50M;
     
     # Security headers
@@ -261,17 +261,17 @@ sudo ln -sf /snap/bin/certbot /usr/bin/certbot
 
 # Verify domain is pointing to this server
 log_info "Verifying domain configuration..."
-DOMAIN_IP=$(dig +short ppids.kamaltz.fun)
+DOMAIN_IP=$(dig +short ppid.garutkab.go.id)
 SERVER_IP=$(curl -s ifconfig.me)
 if [[ "$DOMAIN_IP" != "$SERVER_IP" ]]; then
-    log_warn "Domain ppids.kamaltz.fun ($DOMAIN_IP) does not point to this server ($SERVER_IP)"
-    log_warn "Please update DNS records and run: sudo certbot --nginx -d ppids.kamaltz.fun"
+    log_warn "Domain ppid.garutkab.go.id ($DOMAIN_IP) does not point to this server ($SERVER_IP)"
+    log_warn "Please update DNS records and run: sudo certbot --nginx -d ppid.garutkab.go.id"
 else
     log_info "Domain correctly points to this server"
     
     # Setup SSL with Let's Encrypt
     log_info "Setting up SSL certificate..."
-    if sudo certbot --nginx -d ppids.kamaltz.fun --non-interactive --agree-tos --email cs@kamaltz.fun --redirect; then
+    if sudo certbot --nginx -d ppid.garutkab.go.id --non-interactive --agree-tos --email cs@kamaltz.fun --redirect; then
         log_info "SSL certificate installed successfully"
         
         # Test auto-renewal
@@ -285,7 +285,7 @@ else
         sudo systemctl restart nginx
     else
         log_warn "SSL certificate installation failed"
-        log_info "You can manually run: sudo certbot --nginx -d ppids.kamaltz.fun"
+        log_info "You can manually run: sudo certbot --nginx -d ppid.garutkab.go.id"
     fi
 fi
 
@@ -302,7 +302,7 @@ chmod 600 .env.production
 
 echo ""
 log_info "✅ Installation Complete!"
-log_info "🌐 URL: https://ppids.kamaltz.fun"
+log_info "🌐 URL: https://ppid.garutkab.go.id"
 log_info "📊 Admin: admin@garut.go.id / Garut@2025?"
 log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
 
@@ -312,6 +312,6 @@ echo "  View logs: docker-compose -f /opt/ppid/docker-compose.yml logs -f"
 echo "  Restart:   docker-compose -f /opt/ppid/docker-compose.yml restart"
 echo "  Stop:      docker-compose -f /opt/ppid/docker-compose.yml down"
 echo "  Update:    docker-compose -f /opt/ppid/docker-compose.yml pull && docker-compose -f /opt/ppid/docker-compose.yml up -d"
-echo "  Health:    curl https://ppids.kamaltz.fun/api/health"
+echo "  Health:    curl https://ppid.garutkab.go.id/api/health"
 echo ""
 log_info "🔒 Security: Firewall enabled, SSL configured, rate limiting active"
