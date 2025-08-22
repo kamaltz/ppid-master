@@ -429,6 +429,25 @@ export default function AdminPengaturanPage() {
     }));
   };
 
+  const removeMenuItem = (index: number) => {
+    setHeaderSettings(prev => ({
+      ...prev,
+      menuItems: prev.menuItems.filter((_, i) => i !== index)
+    }));
+  };
+
+  const removeDropdownItem = (menuIndex: number, dropdownIndex: number) => {
+    setHeaderSettings(prev => ({
+      ...prev,
+      menuItems: prev.menuItems.map((item, i) => 
+        i === menuIndex ? {
+          ...item,
+          dropdownItems: item.dropdownItems.filter((_, j) => j !== dropdownIndex)
+        } : item
+      )
+    }));
+  };
+
   const [isResetting, setIsResetting] = useState(false);
   
   const resetToDefault = async () => {
@@ -747,6 +766,15 @@ export default function AdminPengaturanPage() {
                 <div className="space-y-4">
                   {(headerSettings.menuItems || []).map((item, index) => (
                     <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium text-gray-700">Menu {index + 1}</h4>
+                        <button 
+                          onClick={() => removeMenuItem(index)}
+                          className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded"
+                        >
+                          🗑️ Hapus Menu
+                        </button>
+                      </div>
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Label Menu</label>
@@ -791,7 +819,7 @@ export default function AdminPengaturanPage() {
                       {item.hasDropdown && item.dropdownItems.length > 0 && (
                         <div className="ml-4 space-y-2">
                           {(item.dropdownItems || []).map((dropItem, dropIndex) => (
-                            <div key={dropIndex} className="grid grid-cols-2 gap-2">
+                            <div key={dropIndex} className="flex gap-2 items-center">
                               <input 
                                 type="text" 
                                 value={dropItem.label}
@@ -800,7 +828,7 @@ export default function AdminPengaturanPage() {
                                   newDropdownItems[dropIndex] = { ...dropItem, label: e.target.value };
                                   updateMenuItem(index, 'dropdownItems', newDropdownItems);
                                 }}
-                                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
                                 placeholder="Label sub menu"
                               />
                               <input 
@@ -811,9 +839,15 @@ export default function AdminPengaturanPage() {
                                   newDropdownItems[dropIndex] = { ...dropItem, url: e.target.value };
                                   updateMenuItem(index, 'dropdownItems', newDropdownItems);
                                 }}
-                                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
                                 placeholder="URL sub menu"
                               />
+                              <button 
+                                onClick={() => removeDropdownItem(index, dropIndex)}
+                                className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded"
+                              >
+                                🗑️
+                              </button>
                             </div>
                           ))}
                         </div>
