@@ -40,10 +40,25 @@ fi
 
 # Install Docker Compose
 log_info "Installing Docker Compose..."
-if ! command -v docker-compose &> /dev/null; then
-    COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    # Try modern Docker Compose plugin first
+    if docker compose version &> /dev/null; then
+        log_info "Docker Compose plugin already available"
+        # Create alias for compatibility
+        echo 'alias docker-compose="docker compose"' >> ~/.bashrc
+        alias docker-compose="docker compose"
+    else
+        # Install standalone docker-compose
+        COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        
+        # Verify installation
+        if ! /usr/local/bin/docker-compose --version; then
+            log_error "Docker Compose installation failed"
+            exit 1
+        fi
+    fi
 else
     log_info "Docker Compose already installed"
 fi
@@ -217,13 +232,24 @@ fi
 
 # Start PPID services
 log_info "Starting PPID Master..."
-docker-compose pull
-docker-compose up -d
+if command -v docker-compose &> /dev/null; then
+    docker-compose pull
+    docker-compose up -d
+else
+    docker compose pull
+    docker compose up -d
+fi
 
 # Wait for services to be ready
 log_info "Waiting for services to start..."
 for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    else
+        COMPOSE_CMD="docker compose"
+    fi
+    
+    if $COMPOSE_CMD exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
         log_info "Database is ready"
         break
     fi
@@ -236,11 +262,15 @@ done
 
 # Setup database
 log_info "Setting up database..."
-docker-compose exec -T app npx prisma generate
-docker-compose exec -T app npx prisma migrate deploy
+if command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+else
+    COMPOSE_CMD="docker compose"
+fi
 
-
-docker-compose restart app
+$COMPOSE_CMD exec -T app npx prisma generate
+$COMPOSE_CMD exec -T app npx prisma migrate deploy
+$COMPOSE_CMD restart app
 
 # Wait for app to be ready
 log_info "Waiting for application to start..."
