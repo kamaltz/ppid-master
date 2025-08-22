@@ -8,6 +8,10 @@ export const useRoleAccess = () => {
   const userRole = getUserRole();
 
   const hasAccess = (requiredRoles: string[]): boolean => {
+    // Admin has full access to everything
+    if (userRole === 'ADMIN') {
+      return true;
+    }
     return canAccessMenu(userRole, requiredRoles);
   };
 

@@ -32,6 +32,10 @@ export const isAdminRole = (role: string | null): boolean => {
 };
 
 export const canAccessMenu = (role: string | null, menuRoles: string[]): boolean => {
+  // Admin has full access to all menus
+  if (role === ROLES.ADMIN) {
+    return true;
+  }
   return role ? menuRoles.includes(role) : false;
 };
 

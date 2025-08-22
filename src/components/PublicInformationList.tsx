@@ -55,7 +55,8 @@ export default function PublicInformationList() {
       }
     } catch (error) {
       console.error('Error fetching informasi:', error);
-      setError('Gagal memuat informasi publik');
+      // Don't show error to user, just show empty state
+      setError(null);
       setInformasi([]);
       setTotal(0);
     } finally {
@@ -74,7 +75,6 @@ export default function PublicInformationList() {
   };
 
   if (loading) return <p className="text-center">Memuat informasi...</p>;
-  if (error) return <p className="text-center text-red-500">{error}</p>;
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
