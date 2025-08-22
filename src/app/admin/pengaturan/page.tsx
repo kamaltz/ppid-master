@@ -5,6 +5,7 @@ import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
+import { RotateCcw, Save } from "lucide-react";
 
 interface Slide {
   id: number;

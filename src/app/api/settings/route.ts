@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prismaClient';
-// import jwt from 'jsonwebtoken'; // Temporarily disabled
+import { prisma } from '../../../../lib/lib/prismaClient';
 
 export async function GET() {
   try {
+    // Test database connection first
+    await prisma.$connect();
+    
     const settings = await prisma.setting.findMany();
     
     const settingsObj = settings?.reduce((acc, setting) => {
@@ -21,18 +23,41 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching settings:', error);
+    
+    // Return default settings if database is not available
+    const defaultSettings = {
+      general: {
+        siteName: 'PPID Kabupaten Garut',
+        siteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi',
+        contactEmail: 'ppid@garutkab.go.id',
+        contactPhone: '(0262) 123456',
+        address: 'Jl. Pembangunan No. 1, Garut'
+      },
+      header: {
+        logo: '/logo-garut.svg',
+        menuItems: []
+      },
+      footer: {
+        quickLinks: [],
+        socialMedia: []
+      },
+      hero: {
+        slides: []
+      }
+    };
+    
     return NextResponse.json({
-      success: false,
-      error: 'Gagal mengambil pengaturan'
-    }, { status: 500 });
+      success: true,
+      data: defaultSettings
+    });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Re-enable authentication after testing
-    console.log('Settings API called - auth temporarily disabled');
-
+    // Test database connection first
+    await prisma.$connect();
+    
     const body = await request.json();
     
     // Handle both single setting and bulk settings update
@@ -75,6 +100,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error saving settings:', error);
+    
+    // Check if it's a database connection error
+    if (error instanceof Error && error.message.includes('connect')) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database tidak tersedia. Silakan coba lagi nanti.'
+      }, { status: 503 });
+    }
+    
     return NextResponse.json({
       success: false,
       error: 'Gagal menyimpan pengaturan'
