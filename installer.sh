@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -68,8 +68,14 @@ cd /opt/ppid
 
 # Generate secure secrets
 log_info "Generating secure configuration..."
-JWT_SECRET=$(openssl rand -hex 32)
-POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 32)}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)}
+
+# Validate required variables
+if [[ -z "${JWT_SECRET:-}" ]] || [[ -z "${POSTGRES_PASSWORD:-}" ]]; then
+    log_error "Failed to generate required secrets"
+    exit 1
+fi
 
 # Create PPID docker-compose
 log_info "Creating PPID configuration..."
@@ -217,13 +223,16 @@ done
 
 # Setup SSL with Let's Encrypt
 log_info "Setting up SSL certificate..."
-sudo apt install -y certbot python3-certbot-nginx
-if sudo certbot --nginx -d ppids.kamaltz.fun --non-interactive --agree-tos --email cs@kamaltz.fun --expand; then
-    log_info "SSL certificate installed successfully"
-    # Setup auto-renewal
-    echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
+if command -v certbot &> /dev/null || sudo apt install -y certbot python3-certbot-nginx; then
+    if sudo certbot --nginx -d ppids.kamaltz.fun --non-interactive --agree-tos --email cs@kamaltz.fun --expand; then
+        log_info "SSL certificate installed successfully"
+        # Setup auto-renewal
+        (sudo crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | sudo crontab -
+    else
+        log_warn "SSL certificate installation failed, continuing without HTTPS"
+    fi
 else
-    log_warn "SSL certificate installation failed, continuing without HTTPS"
+    log_warn "Failed to install certbot, skipping SSL setup"
 fi
 
 
@@ -241,8 +250,7 @@ echo ""
 log_info "✅ Installation Complete!"
 log_info "🌐 URL: https://ppids.kamaltz.fun"
 log_info "📊 Admin: admin@garut.go.id / Garut@2025?"
-# log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
-log_info "🔐 Credentials saved in: /etc/ssl/ppid-selfsigned"
+log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
 
 echo ""
 log_info "Management Commands:"
