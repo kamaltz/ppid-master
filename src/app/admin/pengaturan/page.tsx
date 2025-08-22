@@ -173,20 +173,23 @@ export default function AdminPengaturanPage() {
         if (typeof window !== 'undefined') {
           // Clear any cached data
           sessionStorage.clear();
-          localStorage.clear();
           
           // Broadcast settings change to all components
           window.dispatchEvent(new CustomEvent('settingsChanged'));
           
-          // Force refresh homepage if hero settings changed
+          // Trigger storage event for cross-tab updates
+          localStorage.setItem('settingsUpdated', Date.now().toString());
+          localStorage.removeItem('settingsUpdated');
+          
+          // Force refresh any open homepage tabs
           if (window.opener) {
             window.opener.location.reload();
           }
           
-          // Reload current page
+          // Reload current page after a short delay to ensure settings are saved
           setTimeout(() => {
             window.location.reload();
-          }, 500);
+          }, 1000);
         }
       } else {
         alert('⚠️ Beberapa pengaturan gagal disimpan. Periksa console untuk detail.');

@@ -27,21 +27,33 @@ export async function GET() {
     // Return default settings if database is not available
     const defaultSettings = {
       general: {
-        siteName: 'PPID Kabupaten Garut',
-        siteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi',
-        contactEmail: 'ppid@garutkab.go.id',
-        contactPhone: '(0262) 123456',
-        address: 'Jl. Pembangunan No. 1, Garut'
+        namaInstansi: 'PPID Kabupaten Garut',
+        logo: '/logo-garut.svg',
+        email: 'ppid@garutkab.go.id',
+        telepon: '(0262) 123456',
+        alamat: 'Jl. Pembangunan No. 1, Garut',
+        websiteTitle: 'PPID Kabupaten Garut',
+        websiteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi'
       },
       header: {
-        logo: '/logo-garut.svg',
-        menuItems: []
+        menuItems: [
+          { label: 'Beranda', url: '/', hasDropdown: false, dropdownItems: [] },
+          { label: 'Profil PPID', url: '/profil', hasDropdown: false, dropdownItems: [] },
+          { label: 'Informasi Publik', url: '/informasi', hasDropdown: false, dropdownItems: [] },
+          { label: 'Permohonan', url: '/permohonan', hasDropdown: false, dropdownItems: [] }
+        ]
       },
       footer: {
         quickLinks: [],
-        socialMedia: []
+        socialMedia: { facebook: '', twitter: '', instagram: '', youtube: '' }
       },
       hero: {
+        title: 'Selamat Datang di PPID Kabupaten Garut',
+        subtitle: 'Pejabat Pengelola Informasi dan Dokumentasi',
+        description: 'Layanan informasi publik yang transparan dan akuntabel',
+        backgroundImage: '',
+        ctaText: 'Ajukan Permohonan',
+        ctaUrl: '/permohonan',
         slides: []
       }
     };
@@ -59,15 +71,17 @@ export async function POST(request: NextRequest) {
     await prisma.$connect();
     
     const body = await request.json();
+    console.log('Saving settings:', body);
     
     // Handle both single setting and bulk settings update
     if (body.key && body.value !== undefined) {
       // Single setting update
-      await prisma.setting.upsert({
+      const result = await prisma.setting.upsert({
         where: { key: body.key },
         update: { value: JSON.stringify(body.value) },
         create: { key: body.key, value: JSON.stringify(body.value) }
       });
+      console.log(`Saved setting ${body.key}:`, result);
     } else {
       // Bulk settings update
       const validKeys = ['general', 'header', 'footer', 'hero'];
@@ -91,7 +105,8 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
       
-      await Promise.all(updates);
+      const results = await Promise.all(updates);
+      console.log('Bulk save results:', results);
     }
     
     return NextResponse.json({

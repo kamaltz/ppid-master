@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
@@ -36,7 +36,17 @@ const Header = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { settings } = useSettings();
+  const { settings, refetch: refetchSettings } = useSettings();
+  
+  // Listen for settings changes and refetch
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      refetchSettings();
+    };
+    
+    window.addEventListener('settingsChanged', handleSettingsChange);
+    return () => window.removeEventListener('settingsChanged', handleSettingsChange);
+  }, [refetchSettings]);
   
 
   
@@ -81,52 +91,54 @@ const Header = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-6">
-          {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
-            <div key={index} className="relative group">
-              {item.hasDropdown ? (
-                <>
-                  <button className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
-                    {item.label}
-                    <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <div className="py-1">
-                      {item.dropdownItems?.map((dropItem: DropdownItem, dropIndex: number) => (
-                        <Link
-                          key={dropIndex}
-                          href={dropItem.url}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800"
-                        >
-                          {dropItem.label}
-                        </Link>
-                      ))}
+          {(settings?.header?.menuItems && settings.header.menuItems.length > 0) ? 
+            settings.header.menuItems.map((item: MenuItem, index: number) => (
+              <div key={`${item.label}-${index}`} className="relative group">
+                {item.hasDropdown ? (
+                  <>
+                    <button className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
+                      {item.label}
+                      <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="py-1">
+                        {item.dropdownItems?.map((dropItem: DropdownItem, dropIndex: number) => (
+                          <Link
+                            key={`${dropItem.label}-${dropIndex}`}
+                            href={dropItem.url}
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800"
+                          >
+                            {dropItem.label}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </>
-              ) : (
-                <Link href={item.url} className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
-                  {item.label}
+                  </>
+                ) : (
+                  <Link href={item.url} className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
+                    {item.label}
+                  </Link>
+                )}
+              </div>
+            )) : (
+              <>
+                <Link href="/" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
+                  <Home className="mr-2 h-4 w-4" /> Beranda
                 </Link>
-              )}
-            </div>
-          )) || (
-            <>
-              <Link href="/" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
-                <Home className="mr-2 h-4 w-4" /> Beranda
-              </Link>
-              <Link href="/profil" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
-                <Info className="mr-2 h-4 w-4" /> Profil PPID
-              </Link>
-              <Link href="/permohonan" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
-                <Scale className="mr-2 h-4 w-4" /> Permohonan
-              </Link>
-              <Link href="/dip" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
-                <BarChart3 className="mr-2 h-4 w-4" /> DIP
-              </Link>
-            </>
-          )}
+                <Link href="/profil" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
+                  <Info className="mr-2 h-4 w-4" /> Profil PPID
+                </Link>
+                <Link href="/permohonan" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
+                  <Scale className="mr-2 h-4 w-4" /> Permohonan
+                </Link>
+                <Link href="/dip" className="flex items-center text-gray-600 hover:text-blue-800 transition-colors">
+                  <BarChart3 className="mr-2 h-4 w-4" /> DIP
+                </Link>
+              </>
+            )
+          }
         </nav>
 
         {/* Mobile Menu Button & Desktop Actions */}
@@ -210,50 +222,52 @@ const Header = () => {
 
             {/* Mobile Navigation */}
             <nav className="space-y-2">
-              {settings?.header?.menuItems?.map((item: MenuItem, index: number) => (
-                <div key={index}>
-                  {item.hasDropdown ? (
-                    <div className="space-y-1">
-                      <div className="font-medium text-gray-800 py-2">{item.label}</div>
-                      <div className="pl-4 space-y-1">
-                        {item.dropdownItems?.map((dropItem: DropdownItem, dropIndex: number) => (
-                          <Link
-                            key={dropIndex}
-                            href={dropItem.url}
-                            className="block py-2 text-sm text-gray-600 hover:text-blue-800"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            {dropItem.label}
-                          </Link>
-                        ))}
+              {(settings?.header?.menuItems && settings.header.menuItems.length > 0) ?
+                settings.header.menuItems.map((item: MenuItem, index: number) => (
+                  <div key={`mobile-${item.label}-${index}`}>
+                    {item.hasDropdown ? (
+                      <div className="space-y-1">
+                        <div className="font-medium text-gray-800 py-2">{item.label}</div>
+                        <div className="pl-4 space-y-1">
+                          {item.dropdownItems?.map((dropItem: DropdownItem, dropIndex: number) => (
+                            <Link
+                              key={`mobile-${dropItem.label}-${dropIndex}`}
+                              href={dropItem.url}
+                              className="block py-2 text-sm text-gray-600 hover:text-blue-800"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              {dropItem.label}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <Link
-                      href={item.url}
-                      className="block py-2 text-gray-600 hover:text-blue-800"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item.label}
+                    ) : (
+                      <Link
+                        href={item.url}
+                        className="block py-2 text-gray-600 hover:text-blue-800"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                  </div>
+                )) : (
+                  <>
+                    <Link href="/" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Home className="mr-2 h-4 w-4" /> Beranda
                     </Link>
-                  )}
-                </div>
-              )) || (
-                <>
-                  <Link href="/" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Home className="mr-2 h-4 w-4" /> Beranda
-                  </Link>
-                  <Link href="/profil" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Info className="mr-2 h-4 w-4" /> Profil PPID
-                  </Link>
-                  <Link href="/permohonan" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Scale className="mr-2 h-4 w-4" /> Permohonan
-                  </Link>
-                  <Link href="/dip" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
-                    <BarChart3 className="mr-2 h-4 w-4" /> DIP
-                  </Link>
-                </>
-              )}
+                    <Link href="/profil" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Info className="mr-2 h-4 w-4" /> Profil PPID
+                    </Link>
+                    <Link href="/permohonan" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Scale className="mr-2 h-4 w-4" /> Permohonan
+                    </Link>
+                    <Link href="/dip" className="flex items-center py-2 text-gray-600 hover:text-blue-800" onClick={() => setIsMobileMenuOpen(false)}>
+                      <BarChart3 className="mr-2 h-4 w-4" /> DIP
+                    </Link>
+                  </>
+                )
+              }
             </nav>
 
             {/* Mobile Auth Buttons */}

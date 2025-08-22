@@ -72,10 +72,12 @@ export const useSettings = () => {
 
   const loadSettings = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`/api/settings?t=${Date.now()}`, {
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         }
       });
       
@@ -93,8 +95,11 @@ export const useSettings = () => {
       
       const result = await response.json();
       
-      if (result.success) {
+      if (result.success && result.data) {
+        console.log('Settings loaded successfully:', result.data);
         setSettings(result.data);
+      } else {
+        console.warn('Settings API returned invalid data:', result);
       }
     } catch (error) {
       console.warn('Failed to load settings, using defaults:', error);
@@ -108,11 +113,25 @@ export const useSettings = () => {
 
     // Listen for settings changes
     const handleSettingsChange = () => {
+      console.log('Settings change event received, reloading...');
       loadSettings();
     };
 
     window.addEventListener('settingsChanged', handleSettingsChange);
-    return () => window.removeEventListener('settingsChanged', handleSettingsChange);
+    
+    // Also listen for storage changes in case settings are updated in another tab
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'settingsUpdated') {
+        loadSettings();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('settingsChanged', handleSettingsChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   return { settings, loading, refetch: loadSettings };
