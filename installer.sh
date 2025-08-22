@@ -103,7 +103,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
-      NEXT_PUBLIC_API_URL: "https://143.198.205.44/api"
+      NEXT_PUBLIC_API_URL: "https://ppids.kamaltz.fun/api"
       DOCKER_ENV: "true"
     depends_on:
       postgres:
@@ -123,10 +123,10 @@ sudo mkdir -p /opt/ppid/uploads/images
 sudo chown -R 1000:1000 /opt/ppid/uploads
 sudo chmod -R 777 /opt/ppid/uploads
 
-# Install and configure Nginx
-log_info "Installing Nginx..."
+# Install required packages
+log_info "Installing required packages..."
 sudo apt update -qq
-sudo apt install -y nginx
+sudo apt install -y nginx dnsutils
 sudo systemctl enable nginx
 
 # Clean nginx.conf first
@@ -134,10 +134,12 @@ sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
 
 
 
+# Remove default nginx site
+sudo rm -f /etc/nginx/sites-enabled/default
+
 # Create Nginx site config
 log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
-
 server {
     listen 80;
     server_name ppids.kamaltz.fun;
@@ -147,6 +149,37 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Rate limiting
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/m;
+    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+
+    location /api/auth/ {
+        limit_req zone=login burst=3 nodelay;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /api/ {
+        limit_req zone=api burst=10 nodelay;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
 
     location /uploads/ {
         alias /opt/ppid/uploads/;
@@ -165,9 +198,11 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
     }
 }
-
 EOF
 
 # Enable site
@@ -221,18 +256,42 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Setup SSL with Let's Encrypt
-log_info "Setting up SSL certificate..."
-if command -v certbot &> /dev/null || sudo apt install -y certbot python3-certbot-nginx; then
-    if sudo certbot --nginx -d ppids.kamaltz.fun --non-interactive --agree-tos --email cs@kamaltz.fun --expand; then
-        log_info "SSL certificate installed successfully"
-        # Setup auto-renewal
-        (sudo crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | sudo crontab -
-    else
-        log_warn "SSL certificate installation failed, continuing without HTTPS"
-    fi
+# Install certbot first
+log_info "Installing certbot..."
+sudo apt update -qq
+sudo apt install -y snapd
+sudo snap install core; sudo snap refresh core
+sudo snap install --classic certbot
+sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+
+# Verify domain is pointing to this server
+log_info "Verifying domain configuration..."
+DOMAIN_IP=$(dig +short ppids.kamaltz.fun)
+SERVER_IP=$(curl -s ifconfig.me)
+if [[ "$DOMAIN_IP" != "$SERVER_IP" ]]; then
+    log_warn "Domain ppids.kamaltz.fun ($DOMAIN_IP) does not point to this server ($SERVER_IP)"
+    log_warn "Please update DNS records and run: sudo certbot --nginx -d ppids.kamaltz.fun"
 else
-    log_warn "Failed to install certbot, skipping SSL setup"
+    log_info "Domain correctly points to this server"
+    
+    # Setup SSL with Let's Encrypt
+    log_info "Setting up SSL certificate..."
+    if sudo certbot --nginx -d ppids.kamaltz.fun --non-interactive --agree-tos --email cs@kamaltz.fun --redirect; then
+        log_info "SSL certificate installed successfully"
+        
+        # Test auto-renewal
+        sudo certbot renew --dry-run
+        
+        # Setup auto-renewal cron job
+        echo "0 12 * * * /usr/bin/certbot renew --quiet && systemctl reload nginx" | sudo crontab -
+        log_info "Auto-renewal configured"
+        
+        # Restart nginx to apply SSL
+        sudo systemctl restart nginx
+    else
+        log_warn "SSL certificate installation failed"
+        log_info "You can manually run: sudo certbot --nginx -d ppids.kamaltz.fun"
+    fi
 fi
 
 
