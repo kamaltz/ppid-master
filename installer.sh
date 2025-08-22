@@ -129,10 +129,9 @@ sudo apt update -qq
 sudo apt install -y nginx dnsutils
 sudo systemctl enable nginx
 
-# Clean nginx.conf first
-sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
-
-
+# Add rate limiting to nginx.conf
+log_info "Configuring rate limiting..."
+sudo sed -i '/http {/a\    # PPID Rate Limiting\n    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/m;\n    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;' /etc/nginx/nginx.conf
 
 # Remove default nginx site
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -150,10 +149,6 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/m;
-    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 
     location /api/auth/ {
         limit_req zone=login burst=3 nodelay;
