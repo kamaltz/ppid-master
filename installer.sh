@@ -130,75 +130,39 @@ sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
 
 # Create Nginx site config
 log_info "Configuring Nginx..."
-sudo tee /etc/nginx/sites-available/default << EOF
+sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 
 server {
     listen 80;
-    server_name 143.198.205.44;
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name 143.198.205.44;
-
-    ssl_certificate $CERT_FILE;
-    ssl_certificate_key $KEY_FILE;
-
+    server_name ppids.kamaltz.fun;
     client_max_body_size 50M;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
 
     location /uploads/ {
         alias /opt/ppid/uploads/;
         expires 1y;
         add_header Cache-Control "public, immutable";
-        try_files \$uri \$uri/ =404;
+        try_files $uri $uri/ =404;
     }
 
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
     }
 }
 
 EOF
-
-
-# server {
-#     listen 80;
-#     server_name domain.com;
-#     client_max_body_size 50M;
-    
-#     # Security headers
-#     add_header X-Frame-Options "SAMEORIGIN" always;
-#     add_header X-Content-Type-Options "nosniff" always;
-#     add_header X-XSS-Protection "1; mode=block" always;
-
-#     location /uploads/ {
-#         alias /opt/ppid/uploads/;
-#         expires 1y;
-#         add_header Cache-Control "public, immutable";
-#         try_files $uri $uri/ =404;
-#     }
-
-#     location / {
-#         proxy_pass http://127.0.0.1:3000;
-#         proxy_http_version 1.1;
-#         proxy_set_header Upgrade $http_upgrade;
-#         proxy_set_header Connection 'upgrade';
-#         proxy_set_header Host $host;
-#         proxy_set_header X-Real-IP $remote_addr;
-#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-#         proxy_set_header X-Forwarded-Proto $scheme;
-#         proxy_cache_bypass $http_upgrade;
-#     }
-# }
 
 # Enable site
 sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
