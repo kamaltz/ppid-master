@@ -162,42 +162,62 @@ export default function AdminPengaturanPage() {
       let allSuccess = true;
 
       for (const setting of settingsToSave) {
-        try {
-          const response = await fetch("/api/settings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(setting),
-          });
+        let retries = 3;
+        let saved = false;
+        
+        while (retries > 0 && !saved) {
+          try {
+            const response = await fetch("/api/settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(setting),
+            });
 
-          if (response.status === 503) {
-            console.error(`Database unavailable for ${setting.key}`);
-            allSuccess = false;
-            continue;
+            if (response.status === 503) {
+              console.warn(`Database unavailable for ${setting.key}, retrying... (${retries} left)`);
+              retries--;
+              if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+              } else {
+                console.error(`Failed to save ${setting.key} after retries`);
+                allSuccess = false;
+                break;
+              }
+            }
+
+            if (!response.ok) {
+              console.error(`Failed to save ${setting.key}:`, response.status);
+              allSuccess = false;
+              break;
+            }
+
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              console.error(`Non-JSON response for ${setting.key}`);
+              allSuccess = false;
+              break;
+            }
+
+            const result = await response.json();
+            console.log(`Saved ${setting.key}:`, result);
+
+            if (!result.success) {
+              console.error(`API error for ${setting.key}:`, result.error);
+              allSuccess = false;
+              break;
+            }
+            
+            saved = true;
+          } catch (error) {
+            console.error(`Error saving ${setting.key}:`, error);
+            retries--;
+            if (retries === 0) {
+              allSuccess = false;
+            } else {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
           }
-
-          if (!response.ok) {
-            console.error(`Failed to save ${setting.key}:`, response.status);
-            allSuccess = false;
-            continue;
-          }
-
-          const contentType = response.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            console.error(`Non-JSON response for ${setting.key}`);
-            allSuccess = false;
-            continue;
-          }
-
-          const result = await response.json();
-          console.log(`Saved ${setting.key}:`, result);
-
-          if (!result.success) {
-            console.error(`API error for ${setting.key}:`, result.error);
-            allSuccess = false;
-          }
-        } catch (error) {
-          console.error(`Error saving ${setting.key}:`, error);
-          allSuccess = false;
         }
       }
 
@@ -645,14 +665,38 @@ export default function AdminPengaturanPage() {
 
     try {
       for (const [key, value] of Object.entries(defaultSettings)) {
-        const response = await fetch("/api/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key, value }),
-        });
+        let retries = 3;
+        let success = false;
+        
+        while (retries > 0 && !success) {
+          try {
+            const response = await fetch("/api/settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ key, value }),
+            });
 
-        if (!response.ok) {
-          throw new Error(`Failed to reset ${key}`);
+            if (response.status === 503) {
+              console.warn(`Database unavailable for reset ${key}, retrying...`);
+              retries--;
+              if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+              }
+            }
+
+            if (!response.ok) {
+              throw new Error(`Failed to reset ${key}: ${response.status}`);
+            }
+            
+            success = true;
+          } catch (error) {
+            retries--;
+            if (retries === 0) {
+              throw new Error(`Failed to reset ${key} after retries: ${error}`);
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
       }
 
