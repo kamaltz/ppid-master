@@ -10,15 +10,13 @@ export default function DynamicLayout() {
   useEffect(() => {
     const handleSettingsChange = () => {
       console.log('Settings changed event received');
-      // Clear browser cache and force complete refresh
-      setTimeout(() => {
-        // Clear localStorage cache
-        sessionStorage.removeItem('cachedSettings');
-        localStorage.removeItem('faviconCache');
-        
-        // Force hard reload
-        window.location.reload();
-      }, 500);
+      // Only reload if not in favicon update cycle
+      if (!window.location.href.includes('favicon_update=')) {
+        setTimeout(() => {
+          sessionStorage.removeItem('cachedSettings');
+          window.location.reload();
+        }, 500);
+      }
     };
 
     window.addEventListener('settingsChanged', handleSettingsChange);
@@ -95,24 +93,8 @@ export default function DynamicLayout() {
           }, index * 50);
         });
         
-        // Force complete page refresh for favicon update (aggressive approach)
-        setTimeout(() => {
-          // Clear all caches
-          if ('caches' in window) {
-            caches.keys().then(names => {
-              names.forEach(name => caches.delete(name));
-            });
-          }
-          
-          // Add meta tag to prevent caching
-          const noCacheMeta = document.createElement('meta');
-          noCacheMeta.httpEquiv = 'Cache-Control';
-          noCacheMeta.content = 'no-cache, no-store, must-revalidate';
-          document.head.appendChild(noCacheMeta);
-          
-          console.log('Forcing complete page refresh for favicon update');
-          window.location.href = window.location.href.split('?')[0] + '?favicon_update=' + timestamp;
-        }, 500);
+        // Update favicon without page reload to prevent infinite loop
+        console.log('Favicon updated successfully without page reload');
       }
     }
   }, [settings]);

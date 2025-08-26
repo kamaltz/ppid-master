@@ -266,11 +266,12 @@ export default function AdminPengaturanPage() {
         if (settings.favicon) {
           console.log('Forcing favicon update to:', settings.favicon);
           
-          // Immediate hard refresh to bypass all caches
-          setTimeout(() => {
-            // Force complete page reload with cache bypass
-            window.location.reload(true);
-          }, 500);
+          // Only reload if not already in a favicon update cycle
+          if (!window.location.href.includes('favicon_update=')) {
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          }
         }
       } else {
         alert(
