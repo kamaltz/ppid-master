@@ -34,7 +34,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Create uploads directory with proper permissions
-RUN mkdir -p /app/public/uploads/images && chown -R nextjs:nodejs /app/public
+RUN mkdir -p /app/public/uploads/images && chmod -R 777 /app/public/uploads && chown -R nextjs:nodejs /app/public
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

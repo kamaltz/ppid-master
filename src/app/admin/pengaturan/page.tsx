@@ -262,42 +262,15 @@ export default function AdminPengaturanPage() {
         // Reload settings immediately
         await loadSettings();
         
-        // Force favicon update if favicon was changed
+        // Force favicon update with aggressive cache busting
         if (settings.favicon) {
           console.log('Forcing favicon update to:', settings.favicon);
-          const timestamp = new Date().getTime();
           
-          // Remove all existing favicon links
-          const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
-          existingFavicons.forEach(favicon => favicon.remove());
-          
-          // Add multiple favicon formats for better browser support
-          const faviconFormats = [
-            { rel: 'icon', type: 'image/x-icon' },
-            { rel: 'shortcut icon', type: 'image/x-icon' },
-            { rel: 'apple-touch-icon', type: 'image/png' }
-          ];
-          
-          faviconFormats.forEach(format => {
-            const favicon = document.createElement('link');
-            favicon.rel = format.rel;
-            favicon.type = format.type;
-            favicon.href = `${settings.favicon}?v=${timestamp}&t=${Math.random()}`;
-            document.head.appendChild(favicon);
-          });
-          
-          // Clear browser cache and force reload
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-              registrations.forEach(registration => registration.unregister());
-            });
-          }
-          
-          // Force page reload after 1 second
+          // Immediate hard refresh to bypass all caches
           setTimeout(() => {
-            console.log('Reloading page to update favicon');
-            window.location.href = window.location.href.split('?')[0] + '?v=' + timestamp;
-          }, 1000);
+            // Force complete page reload with cache bypass
+            window.location.reload(true);
+          }, 500);
         }
       } else {
         alert(

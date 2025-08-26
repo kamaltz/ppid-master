@@ -31,10 +31,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const faviconUrl = (settingsObj?.favicon as string) || '/logo-garut.svg';
   metadata.icons = {
     icon: [
-      { url: `/api/favicon?v=${timestamp}`, type: 'image/x-icon' },
-      { url: `${faviconUrl}?v=${timestamp}`, type: 'image/x-icon' }
+      { url: `/favicon.ico?v=${timestamp}`, type: 'image/x-icon' },
+      { url: `/api/favicon?v=${timestamp}`, type: 'image/x-icon' }
     ],
-    shortcut: `${faviconUrl}?v=${timestamp}`,
+    shortcut: `/favicon.ico?v=${timestamp}`,
     apple: `${faviconUrl}?v=${timestamp}`,
   };
 
