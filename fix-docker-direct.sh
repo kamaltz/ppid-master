@@ -22,7 +22,11 @@ chmod 755 uploads/images
 
 # Build new image
 echo "🔨 Building new image..."
-docker build -t ppid-master-app:latest .
+if ! docker build -t ppid-master-app:latest . ; then
+  echo "❌ Build failed! Check Dockerfile and dependencies"
+  exit 1
+fi
+echo "✅ Build completed successfully"
 
 # Start PostgreSQL
 echo "🗄️ Starting PostgreSQL..."
