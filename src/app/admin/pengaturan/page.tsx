@@ -271,18 +271,33 @@ export default function AdminPengaturanPage() {
           const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
           existingFavicons.forEach(favicon => favicon.remove());
           
-          // Add new favicon
-          const newFavicon = document.createElement('link');
-          newFavicon.rel = 'icon';
-          newFavicon.type = settings.favicon.endsWith('.png') ? 'image/png' : 'image/x-icon';
-          newFavicon.href = `${settings.favicon}?v=${timestamp}`;
-          document.head.appendChild(newFavicon);
+          // Add multiple favicon formats for better browser support
+          const faviconFormats = [
+            { rel: 'icon', type: 'image/x-icon' },
+            { rel: 'shortcut icon', type: 'image/x-icon' },
+            { rel: 'apple-touch-icon', type: 'image/png' }
+          ];
           
-          // Force page reload after 2 seconds to ensure favicon updates
+          faviconFormats.forEach(format => {
+            const favicon = document.createElement('link');
+            favicon.rel = format.rel;
+            favicon.type = format.type;
+            favicon.href = `${settings.favicon}?v=${timestamp}&t=${Math.random()}`;
+            document.head.appendChild(favicon);
+          });
+          
+          // Clear browser cache and force reload
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              registrations.forEach(registration => registration.unregister());
+            });
+          }
+          
+          // Force page reload after 1 second
           setTimeout(() => {
             console.log('Reloading page to update favicon');
-            window.location.reload();
-          }, 2000);
+            window.location.href = window.location.href.split('?')[0] + '?v=' + timestamp;
+          }, 1000);
         }
       } else {
         alert(
@@ -860,11 +875,17 @@ export default function AdminPengaturanPage() {
                         Preview Logo:
                       </p>
                       <Image
-                        src={settings.logo}
+                        src={`${settings.logo}?v=${Date.now()}`}
                         alt="Logo Preview"
                         width={64}
                         height={64}
                         className="h-16 w-auto border rounded-lg"
+                        unoptimized
+                        onError={(e) => {
+                          console.log('Logo preview error:', e);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => console.log('Logo preview loaded:', settings.logo)}
                       />
                     </div>
                   )}
@@ -984,11 +1005,12 @@ export default function AdminPengaturanPage() {
                         Preview Favicon:
                       </p>
                       <Image
-                        src={settings.favicon}
+                        src={`${settings.favicon}?v=${Date.now()}`}
                         alt="Favicon Preview"
                         width={32}
                         height={32}
                         className="h-8 w-8 border rounded"
+                        unoptimized
                         onError={(e) => {
                           console.log('Favicon preview error:', e);
                           e.currentTarget.style.display = 'none';

@@ -9,10 +9,16 @@ export default function DynamicLayout() {
   // Force favicon refresh when settings change
   useEffect(() => {
     const handleSettingsChange = () => {
-      // Force favicon refresh after settings update
+      console.log('Settings changed event received');
+      // Clear browser cache and force complete refresh
       setTimeout(() => {
+        // Clear localStorage cache
+        sessionStorage.removeItem('cachedSettings');
+        localStorage.removeItem('faviconCache');
+        
+        // Force hard reload
         window.location.reload();
-      }, 1000);
+      }, 500);
     };
 
     window.addEventListener('settingsChanged', handleSettingsChange);
@@ -59,47 +65,54 @@ export default function DynamicLayout() {
         ogDescription.setAttribute('content', settings.general.websiteDescription);
       }
 
-      // Update favicon
+      // Update favicon with aggressive cache busting
       if (settings.general.favicon) {
         const faviconUrl = settings.general.favicon;
-        const timestamp = new Date().getTime();
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(7);
         
         console.log('Updating favicon to:', faviconUrl);
         
-        // Remove existing favicon links
-        const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
-        existingFavicons.forEach(favicon => favicon.remove());
+        // Remove ALL existing favicon and icon links
+        const existingIcons = document.querySelectorAll('link[rel*="icon"], link[href*="favicon"]');
+        existingIcons.forEach(icon => icon.remove());
 
-        // Add new favicon with cache busting
-        const favicon = document.createElement('link');
-        favicon.rel = 'icon';
-        favicon.type = faviconUrl.endsWith('.svg') ? 'image/svg+xml' : 
-                      faviconUrl.endsWith('.png') ? 'image/png' : 'image/x-icon';
-        favicon.href = `${faviconUrl}?v=${timestamp}`;
-        document.head.appendChild(favicon);
-
-        // Add shortcut icon
-        const shortcutIcon = document.createElement('link');
-        shortcutIcon.rel = 'shortcut icon';
-        shortcutIcon.href = `${faviconUrl}?v=${timestamp}`;
-        document.head.appendChild(shortcutIcon);
-
-        // Add apple-touch-icon for mobile devices
-        const appleTouchIcon = document.createElement('link');
-        appleTouchIcon.rel = 'apple-touch-icon';
-        appleTouchIcon.href = `${faviconUrl}?v=${timestamp}`;
-        document.head.appendChild(appleTouchIcon);
+        // Create multiple favicon formats for maximum compatibility
+        const faviconTypes = [
+          { rel: 'icon', type: 'image/x-icon' },
+          { rel: 'shortcut icon', type: 'image/x-icon' },
+          { rel: 'apple-touch-icon', type: 'image/png' },
+          { rel: 'apple-touch-icon-precomposed', type: 'image/png' }
+        ];
         
-        // Force browser refresh of favicon
+        faviconTypes.forEach((iconType, index) => {
+          setTimeout(() => {
+            const link = document.createElement('link');
+            link.rel = iconType.rel;
+            link.type = iconType.type;
+            link.href = `${faviconUrl}?v=${timestamp}&r=${randomId}&i=${index}`;
+            document.head.appendChild(link);
+          }, index * 50);
+        });
+        
+        // Force complete page refresh for favicon update (aggressive approach)
         setTimeout(() => {
-          const link = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-          if (link) {
-            const newLink = link.cloneNode(true) as HTMLLinkElement;
-            newLink.href = `${faviconUrl}?v=${Date.now()}`;
-            document.head.removeChild(link);
-            document.head.appendChild(newLink);
+          // Clear all caches
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => caches.delete(name));
+            });
           }
-        }, 100);
+          
+          // Add meta tag to prevent caching
+          const noCacheMeta = document.createElement('meta');
+          noCacheMeta.httpEquiv = 'Cache-Control';
+          noCacheMeta.content = 'no-cache, no-store, must-revalidate';
+          document.head.appendChild(noCacheMeta);
+          
+          console.log('Forcing complete page refresh for favicon update');
+          window.location.href = window.location.href.split('?')[0] + '?favicon_update=' + timestamp;
+        }, 500);
       }
     }
   }, [settings]);

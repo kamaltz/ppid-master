@@ -26,12 +26,16 @@ export async function generateMetadata(): Promise<Metadata> {
     },
   };
 
-  // Add favicon
+  // Add dynamic favicon with cache busting
+  const timestamp = Date.now();
   const faviconUrl = (settingsObj?.favicon as string) || '/logo-garut.svg';
   metadata.icons = {
-    icon: faviconUrl,
-    shortcut: faviconUrl,
-    apple: faviconUrl,
+    icon: [
+      { url: `/api/favicon?v=${timestamp}`, type: 'image/x-icon' },
+      { url: `${faviconUrl}?v=${timestamp}`, type: 'image/x-icon' }
+    ],
+    shortcut: `${faviconUrl}?v=${timestamp}`,
+    apple: `${faviconUrl}?v=${timestamp}`,
   };
 
   return metadata;

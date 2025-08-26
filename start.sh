@@ -42,7 +42,11 @@ fi
 
 echo "📁 Creating uploads directory..."
 mkdir -p /app/public/uploads/images
+mkdir -p /app/uploads/images
+# Create symlink for backward compatibility
+ln -sf /app/public/uploads /app/uploads 2>/dev/null || echo "Symlink already exists"
 chown -R nextjs:nodejs /app/public/uploads 2>/dev/null || echo "⚠️ Could not change uploads ownership (running as non-root)"
+chmod -R 755 /app/public/uploads 2>/dev/null || echo "⚠️ Could not change uploads permissions"
 
 echo "🚀 Starting application..."
 exec node server.js

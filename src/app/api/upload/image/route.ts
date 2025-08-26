@@ -7,7 +7,7 @@ import { existsSync } from 'fs';
 function getUploadDir() {
   // Check if running in Docker container
   if (existsSync('/.dockerenv') || process.env.DOCKER_ENV === 'true') {
-    return '/app/uploads/images';
+    return '/app/public/uploads/images';
   }
   // Development or non-Docker production
   return join(process.cwd(), 'public/uploads/images');
@@ -61,12 +61,15 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to save file: ${(fsError as Error).message}`);
     }
 
+    // Return URL that works in both Docker and development
+    const baseUrl = process.env.NODE_ENV === 'production' ? '/api/uploads' : '/uploads';
+    
     return NextResponse.json({ 
       success: true, 
       filename,
       originalName: file.name,
       size: file.size,
-      url: `/uploads/images/${filename}`
+      url: `${baseUrl}/images/${filename}`
     });
   } catch (error) {
     console.error('Upload error:', error);
