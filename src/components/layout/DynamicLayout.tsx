@@ -60,31 +60,47 @@ export default function DynamicLayout() {
       }
 
       // Update favicon
-      const faviconUrl = settings.general.favicon || '/logo-garut.svg';
-      const timestamp = new Date().getTime();
-      
-      // Remove existing favicon links
-      const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
-      existingFavicons.forEach(favicon => favicon.remove());
+      if (settings.general.favicon) {
+        const faviconUrl = settings.general.favicon;
+        const timestamp = new Date().getTime();
+        
+        console.log('Updating favicon to:', faviconUrl);
+        
+        // Remove existing favicon links
+        const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
+        existingFavicons.forEach(favicon => favicon.remove());
 
-      // Add new favicon with cache busting
-      const favicon = document.createElement('link');
-      favicon.rel = 'icon';
-      favicon.type = faviconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/x-icon';
-      favicon.href = `${faviconUrl}?v=${timestamp}`;
-      document.head.appendChild(favicon);
+        // Add new favicon with cache busting
+        const favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        favicon.type = faviconUrl.endsWith('.svg') ? 'image/svg+xml' : 
+                      faviconUrl.endsWith('.png') ? 'image/png' : 'image/x-icon';
+        favicon.href = `${faviconUrl}?v=${timestamp}`;
+        document.head.appendChild(favicon);
 
-      // Add shortcut icon
-      const shortcutIcon = document.createElement('link');
-      shortcutIcon.rel = 'shortcut icon';
-      shortcutIcon.href = `${faviconUrl}?v=${timestamp}`;
-      document.head.appendChild(shortcutIcon);
+        // Add shortcut icon
+        const shortcutIcon = document.createElement('link');
+        shortcutIcon.rel = 'shortcut icon';
+        shortcutIcon.href = `${faviconUrl}?v=${timestamp}`;
+        document.head.appendChild(shortcutIcon);
 
-      // Add apple-touch-icon for mobile devices
-      const appleTouchIcon = document.createElement('link');
-      appleTouchIcon.rel = 'apple-touch-icon';
-      appleTouchIcon.href = `${faviconUrl}?v=${timestamp}`;
-      document.head.appendChild(appleTouchIcon);
+        // Add apple-touch-icon for mobile devices
+        const appleTouchIcon = document.createElement('link');
+        appleTouchIcon.rel = 'apple-touch-icon';
+        appleTouchIcon.href = `${faviconUrl}?v=${timestamp}`;
+        document.head.appendChild(appleTouchIcon);
+        
+        // Force browser refresh of favicon
+        setTimeout(() => {
+          const link = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+          if (link) {
+            const newLink = link.cloneNode(true) as HTMLLinkElement;
+            newLink.href = `${faviconUrl}?v=${Date.now()}`;
+            document.head.removeChild(link);
+            document.head.appendChild(newLink);
+          }
+        }, 100);
+      }
     }
   }, [settings]);
 

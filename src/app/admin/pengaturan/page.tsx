@@ -264,13 +264,25 @@ export default function AdminPengaturanPage() {
         
         // Force favicon update if favicon was changed
         if (settings.favicon) {
+          console.log('Forcing favicon update to:', settings.favicon);
           const timestamp = new Date().getTime();
+          
+          // Remove all existing favicon links
           const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
-          existingFavicons.forEach(favicon => {
-            const link = favicon as HTMLLinkElement;
-            const baseUrl = link.href.split('?')[0];
-            link.href = `${baseUrl}?v=${timestamp}`;
-          });
+          existingFavicons.forEach(favicon => favicon.remove());
+          
+          // Add new favicon
+          const newFavicon = document.createElement('link');
+          newFavicon.rel = 'icon';
+          newFavicon.type = settings.favicon.endsWith('.png') ? 'image/png' : 'image/x-icon';
+          newFavicon.href = `${settings.favicon}?v=${timestamp}`;
+          document.head.appendChild(newFavicon);
+          
+          // Force page reload after 2 seconds to ensure favicon updates
+          setTimeout(() => {
+            console.log('Reloading page to update favicon');
+            window.location.reload();
+          }, 2000);
         }
       } else {
         alert(
@@ -977,6 +989,11 @@ export default function AdminPengaturanPage() {
                         width={32}
                         height={32}
                         className="h-8 w-8 border rounded"
+                        onError={(e) => {
+                          console.log('Favicon preview error:', e);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => console.log('Favicon preview loaded:', settings.favicon)}
                       />
                     </div>
                   )}
