@@ -31,17 +31,35 @@ if ! docker pull $IMAGE_NAME:latest; then
     fi
 fi
 
-echo "🔄 Stopping old containers..."
-docker stop $(docker ps -q --filter ancestor=$IMAGE_NAME) 2>/dev/null || echo "No containers to stop"
-docker rm $(docker ps -aq --filter ancestor=$IMAGE_NAME) 2>/dev/null || echo "No containers to remove"
+# Get existing container info
+EXISTING_CONTAINER=$(docker ps -q --filter name=ppid-app)
+if [ ! -z "$EXISTING_CONTAINER" ]; then
+    echo "📋 Getting config from existing container..."
+    NETWORK=$(docker inspect $EXISTING_CONTAINER --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+    VOLUME_MOUNT=$(docker inspect $EXISTING_CONTAINER --format '{{range .Mounts}}{{if eq .Destination "/app/public/uploads"}}{{.Source}}{{end}}{{end}}')
+    
+    echo "🔄 Stopping existing container..."
+    docker stop $EXISTING_CONTAINER
+    docker rm $EXISTING_CONTAINER
+else
+    echo "⚠️ No existing container found, using defaults..."
+    NETWORK="ppid_default"
+    VOLUME_MOUNT="/opt/ppid/uploads"
+fi
 
 echo "🚀 Starting new container..."
+if [ ! -z "$VOLUME_MOUNT" ] && [ "$VOLUME_MOUNT" != "" ]; then
+    VOLUME_ARG="-v $VOLUME_MOUNT:/app/public/uploads"
+else
+    VOLUME_ARG="-v /opt/ppid/uploads:/app/public/uploads"
+fi
+
 docker run -d \
-    --name $CONTAINER_NAME-$(date +%s) \
-    --network $(docker network ls --filter name=ppid --format "{{.Name}}" | head -1) \
-    -p 3000:3000 \
-    -v $(docker volume ls --filter name=uploads --format "{{.Name}}" | head -1):/app/public/uploads \
-    -e DATABASE_URL="postgresql://postgres:postgres@$(docker ps --filter name=postgres --format "{{.Names}}" | head -1):5432/ppid_garut?schema=public" \
+    --name ppid-app-1 \
+    --network $NETWORK \
+    -p 127.0.0.1:3000:3000 \
+    $VOLUME_ARG \
+    -e DATABASE_URL="postgresql://postgres:postgres@ppid-postgres-1:5432/ppid_garut?schema=public" \
     -e JWT_SECRET="${JWT_SECRET:-your-secure-jwt-secret}" \
     -e NEXT_PUBLIC_API_URL="/api" \
     --restart unless-stopped \
