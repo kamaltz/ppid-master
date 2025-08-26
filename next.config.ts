@@ -38,6 +38,10 @@ const nextConfig: NextConfig = {
             key: 'Expires',
             value: '0',
           },
+          {
+            key: 'Content-Security-Policy',
+            value: "img-src 'self' data: blob: *; default-src 'self' 'unsafe-inline' 'unsafe-eval' *;",
+          },
         ],
       },
       {
@@ -46,6 +50,10 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "img-src 'self' data: blob: *;",
           },
         ],
       },
