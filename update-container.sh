@@ -13,32 +13,44 @@ IMAGE_NAME="ppid-master"
 BACKUP_DIR="./backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
+# Detect docker compose command
+if command -v "docker compose" &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    echo "❌ Docker Compose not found. Please install Docker Compose."
+    exit 1
+fi
+
+echo "📋 Using: $DOCKER_COMPOSE"
+
 # Create backup directory
 mkdir -p $BACKUP_DIR
 
 echo "📦 Pulling latest image..."
-docker-compose -f docker-compose.deploy.yml pull
+$DOCKER_COMPOSE -f docker-compose.deploy.yml pull
 
 echo "💾 Creating database backup..."
-docker-compose -f docker-compose.deploy.yml exec -T postgres pg_dump -U postgres ppid_garut > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
+$DOCKER_COMPOSE -f docker-compose.deploy.yml exec -T postgres pg_dump -U postgres ppid_garut > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
 
 echo "📁 Backing up uploads..."
-docker cp $(docker-compose -f docker-compose.deploy.yml ps -q app):/app/public/uploads "$BACKUP_DIR/uploads_$TIMESTAMP" 2>/dev/null || echo "No uploads to backup"
+docker cp $($DOCKER_COMPOSE -f docker-compose.deploy.yml ps -q app):/app/public/uploads "$BACKUP_DIR/uploads_$TIMESTAMP" 2>/dev/null || echo "No uploads to backup"
 
 echo "🔄 Stopping application container..."
-docker-compose -f docker-compose.deploy.yml stop app
+$DOCKER_COMPOSE -f docker-compose.deploy.yml stop app
 
 echo "🗑️ Removing old application container..."
-docker-compose -f docker-compose.deploy.yml rm -f app
+$DOCKER_COMPOSE -f docker-compose.deploy.yml rm -f app
 
 echo "🚀 Starting updated container..."
-docker-compose -f docker-compose.deploy.yml up -d app
+$DOCKER_COMPOSE -f docker-compose.deploy.yml up -d app
 
 echo "⏳ Waiting for container to be ready..."
 sleep 10
 
 echo "🔍 Checking container health..."
-docker-compose -f docker-compose.deploy.yml logs --tail=20 app
+$DOCKER_COMPOSE -f docker-compose.deploy.yml logs --tail=20 app
 
 echo "✅ Update completed successfully!"
 echo "📊 Backup files created:"

@@ -7,14 +7,24 @@ set -e
 
 echo "⚡ Quick update starting..."
 
+# Detect docker compose command
+if command -v "docker compose" &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    echo "❌ Docker Compose not found. Please install Docker Compose."
+    exit 1
+fi
+
 echo "📦 Pulling latest image..."
-docker-compose -f docker-compose.deploy.yml pull app
+$DOCKER_COMPOSE -f docker-compose.deploy.yml pull app
 
 echo "🔄 Recreating container..."
-docker-compose -f docker-compose.deploy.yml up -d --force-recreate app
+$DOCKER_COMPOSE -f docker-compose.deploy.yml up -d --force-recreate app
 
 echo "⏳ Waiting for startup..."
 sleep 5
 
 echo "✅ Quick update completed!"
-docker-compose -f docker-compose.deploy.yml ps
+$DOCKER_COMPOSE -f docker-compose.deploy.yml ps
