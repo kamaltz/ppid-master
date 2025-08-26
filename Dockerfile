@@ -19,8 +19,7 @@ COPY . .
 ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=true
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppid_garut?schema=public"
-ARG JWT_SECRET_BUILD="build-time-secret"
-ENV JWT_SECRET=$JWT_SECRET_BUILD
+ENV JWT_SECRET="build-time-secret"
 ENV NEXT_PUBLIC_API_URL="/api"
 
 # Generate Prisma client first
@@ -47,10 +46,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 COPY --chown=nextjs:nodejs start.sh ./
-COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 
 # Set proper permissions
-RUN chmod +x start.sh docker-entrypoint.sh && chown -R nextjs:nodejs /app
+RUN chmod +x start.sh && chown -R nextjs:nodejs /app
 
 # Switch to nextjs user for security
 USER nextjs
