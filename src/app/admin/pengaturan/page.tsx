@@ -261,6 +261,17 @@ export default function AdminPengaturanPage() {
         
         // Reload settings immediately
         await loadSettings();
+        
+        // Force favicon update if favicon was changed
+        if (settings.favicon) {
+          const timestamp = new Date().getTime();
+          const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
+          existingFavicons.forEach(favicon => {
+            const link = favicon as HTMLLinkElement;
+            const baseUrl = link.href.split('?')[0];
+            link.href = `${baseUrl}?v=${timestamp}`;
+          });
+        }
       } else {
         alert(
           "❌ Gagal menyimpan pengaturan. Database tidak tersedia (Error 503). Silakan coba lagi nanti atau hubungi administrator."

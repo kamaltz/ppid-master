@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getGeneralSettings();
   const settingsObj = settings as Record<string, unknown>;
   
-  return {
+  const metadata: Metadata = {
     title: (settingsObj?.websiteTitle as string) || "PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik",
     description: (settingsObj?.websiteDescription as string) || "Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut. Layanan informasi publik yang transparan, akuntabel, dan mudah diakses sesuai UU No. 14 Tahun 2008.",
     keywords: "PPID, Diskominfo, Kabupaten Garut, Informasi Publik, Transparansi, Akuntabilitas",
@@ -25,6 +25,16 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
     },
   };
+
+  // Add favicon
+  const faviconUrl = (settingsObj?.favicon as string) || '/logo-garut.svg';
+  metadata.icons = {
+    icon: faviconUrl,
+    shortcut: faviconUrl,
+    apple: faviconUrl,
+  };
+
+  return metadata;
 }
 
 export const viewport = {
