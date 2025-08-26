@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   // Add dynamic favicon with cache busting
   const timestamp = Date.now();
-  const faviconUrl = (settingsObj?.favicon as string) || '/logo-garut.svg';
+  const faviconUrl = (settingsObj?.favicon as string) || '/favicon.ico';
   metadata.icons = {
     icon: [
       { url: `/favicon.ico?v=${timestamp}`, type: 'image/x-icon' },

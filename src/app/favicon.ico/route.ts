@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    return NextResponse.redirect(new URL('/logo-garut.svg', request.url));
+    return NextResponse.redirect(new URL('/favicon.ico', request.url));
   } catch (error) {
     console.error('Error serving favicon:', error);
-    return NextResponse.redirect(new URL('/logo-garut.svg', request.url));
+    return NextResponse.redirect(new URL('/favicon.ico', request.url));
   }
 }

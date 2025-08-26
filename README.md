@@ -242,14 +242,6 @@ npm run db:migrate   # Run database migrations
 npm run seed         # Seed initial data
 npm run reset-admin  # Reset admin password
 
-# Testing
-npm run test         # Run all tests
-npm run test:watch   # Run tests in watch mode
-npm run test:coverage # Run tests with coverage
-npm run test:auth    # Run authentication tests
-npm run test:admin   # Run admin tests
-npm run test:requests # Run request tests
-
 # Code Quality
 npm run lint         # Run ESLint
 ```
@@ -404,24 +396,6 @@ Aplikasi menggunakan PostgreSQL dengan Prisma ORM. Schema utama:
 - **Page** - Halaman dinamis
 - **Kategori** - Kategori informasi
 
-## 🧪 Testing
-
-Aplikasi dilengkapi dengan comprehensive test suite:
-
-```bash
-# Run specific test suites
-npm run test:auth          # Authentication tests
-npm run test:admin         # Admin functionality tests
-npm run test:requests      # Request management tests
-npm run test:information   # Information management tests
-npm run test:objections    # Objection management tests
-npm run test:categories    # Category management tests
-npm run test:uploads       # File upload tests
-npm run test:settings      # Settings management tests
-npm run test:integration   # Integration tests
-npm run test:utils         # Utility function tests
-```
-
 ## 🔧 Development Tools
 
 - **Prisma Studio** - Database GUI: `npx prisma studio`
@@ -438,13 +412,6 @@ Setiap push ke branch `main` akan otomatis:
 1. **Build Docker Image** - Multi-stage optimized build
 2. **Push to Docker Hub** - Tagged dengan `latest` dan commit SHA
 3. **Create Deployment Package** - Ready-to-deploy files
-
-### GitHub Secrets Required
-
-Untuk CI/CD, tambahkan secrets berikut di GitHub repository:
-
-- `DOCKERHUB_USERNAME` - Username Docker Hub Anda
-- `DOCKERHUB_TOKEN` - Access token Docker Hub
 
 ### Production Deployment
 
