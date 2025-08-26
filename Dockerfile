@@ -19,7 +19,6 @@ COPY . .
 ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=true
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppid_garut?schema=public"
-ENV JWT_SECRET="build-time-secret"
 ENV NEXT_PUBLIC_API_URL="/api"
 
 # Generate Prisma client first
