@@ -47,15 +47,42 @@ export const useUserPermissions = () => {
 
       try {
         const response = await fetch('/api/user/permissions', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          // Add timeout to prevent hanging
+          signal: AbortSignal.timeout(5000)
         });
         
         if (response.ok) {
           const data = await response.json();
           setPermissions(data.permissions);
+        } else {
+          console.warn('Permission API failed, using fallback permissions');
+          // Set fallback permissions based on role
+          setFallbackPermissions();
         }
       } catch (error) {
-        console.error('Failed to fetch permissions:', error);
+        console.error('Failed to fetch permissions, using fallback:', error);
+        setFallbackPermissions();
+      }
+    };
+    
+    const setFallbackPermissions = () => {
+      if (userRole === 'PPID' || userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
+        const fallbackPermissions: UserPermissions = {
+          informasi: true,
+          kategori: true,
+          chat: true,
+          permohonan: true,
+          keberatan: true,
+          kelola_akun: false,
+          manajemen_role: false,
+          kelola_akses: false,
+          log_aktivitas: false,
+          pengaturan: false,
+          media: false,
+          profile: true
+        };
+        setPermissions(fallbackPermissions);
       }
     };
 
@@ -65,7 +92,17 @@ export const useUserPermissions = () => {
   const hasPermission = (permission: keyof UserPermissions): boolean => {
     // Admin always has permission
     if (userRole === 'Admin') return true;
-    if (!permissions) return false;
+    
+    // Fallback permissions when database is unstable
+    if (!permissions) {
+      // Basic permissions for PPID roles when database is down
+      if (userRole === 'PPID' || userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
+        const basicPermissions = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile'];
+        return basicPermissions.includes(permission);
+      }
+      return false;
+    }
+    
     return permissions[permission];
   };
 
