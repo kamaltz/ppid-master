@@ -28,13 +28,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
   // Add dynamic favicon with cache busting
   const timestamp = Date.now();
-  const faviconUrl = (settingsObj?.favicon as string) || '/favicon.ico';
+  const faviconUrl = (settingsObj?.favicon as string) || '/icon';
   metadata.icons = {
     icon: [
-      { url: `/favicon.ico?v=${timestamp}`, type: 'image/x-icon' },
+      { url: `/icon?v=${timestamp}`, type: 'image/png' },
       { url: `/api/favicon?v=${timestamp}`, type: 'image/x-icon' }
     ],
-    shortcut: `/favicon.ico?v=${timestamp}`,
+    shortcut: `/icon?v=${timestamp}`,
     apple: `${faviconUrl}?v=${timestamp}`,
   };
 

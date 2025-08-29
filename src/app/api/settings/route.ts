@@ -29,7 +29,7 @@ export async function GET() {
       general: {
         namaInstansi: 'PPID Kabupaten Garut',
         logo: '/logo-garut.svg',
-        favicon: '/favicon.ico',
+        favicon: '/logo-garut.svg',
         email: 'ppid@garutkab.go.id',
         telepon: '(0262) 123456',
         alamat: 'Jl. Pembangunan No. 1, Garut',
