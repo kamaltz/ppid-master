@@ -17,8 +17,7 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 log_info "🚀 PPID Master - Production Deployment"
-log_info "Domain: 167.172.83.55
-
+log_info "Domain: 167.172.83.55"
 log_info "SSL: Automatic HTTPS"
 echo ""
 
