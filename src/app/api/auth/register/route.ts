@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, nama, role, no_telepon, alamat, no_pegawai, nik } = body;
+    const { email, password, nama, role, no_telepon, alamat, no_pegawai, nik, pekerjaan } = body;
     
     // Sanitize inputs
     const sanitizedData = {
@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
       no_telepon: sanitizeInput(no_telepon || ''),
       alamat: sanitizeInput(alamat || ''),
       no_pegawai: sanitizeInput(no_pegawai || ''),
-      nik: sanitizeInput(nik || '')
+      nik: sanitizeInput(nik || ''),
+      pekerjaan: sanitizeInput(pekerjaan || '')
     };
     
     // Enhanced validation
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
             nik: sanitizedData.nik,
             no_telepon: sanitizedData.no_telepon || null,
             alamat: sanitizedData.alamat || null,
+            pekerjaan: sanitizedData.pekerjaan || null,
             is_approved: false
           }
         });

@@ -286,6 +286,10 @@ done
 echo ""
 
 log_info "Applying post-deployment fixes..."
+# Fix database schema issues
+log_info "Fixing database schema..."
+docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan VARCHAR(255);" 2>/dev/null || true
+
 # Fix API endpoints that might be failing
 docker-compose exec -T app npx prisma db push --accept-data-loss || true
 
@@ -293,7 +297,7 @@ docker-compose exec -T app npx prisma db push --accept-data-loss || true
 docker-compose restart app
 
 # Wait for app to be fully ready after restart
-sleep 10
+sleep 15
 
 log_info "Saving credentials..."
 cat > .env.production << CRED_EOF
@@ -342,11 +346,27 @@ docker-compose up -d --force-recreate
 sleep 10
 docker-compose exec -T app npx prisma generate
 docker-compose exec -T app npx prisma migrate deploy
+# Fix database schema
+docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan VARCHAR(255);" || true
 docker-compose exec -T app npx prisma db seed
 docker-compose restart app
+sleep 15
 echo "Fix completed! Try accessing: https://167.172.83.55"
 FIX_EOF
 chmod +x fix-deployment.sh
+
+# Create database schema fix script
+cat > fix-database-schema.sh << SCHEMA_EOF
+#!/bin/bash
+set -e
+cd /opt/ppid
+echo "Fixing database schema..."
+docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan VARCHAR(255);" || true
+docker-compose restart app
+sleep 10
+echo "Database schema fix completed!"
+SCHEMA_EOF
+chmod +x fix-database-schema.sh
 
 echo ""
 log_info "Management Commands:"

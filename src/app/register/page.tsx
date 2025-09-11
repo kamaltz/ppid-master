@@ -12,7 +12,10 @@ export default function RegisterPage() {
     nik: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    no_telepon: "",
+    alamat: "",
+    pekerjaan: ""
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [success, setSuccess] = useState<string | null>(null);
@@ -205,6 +208,60 @@ export default function RegisterPage() {
               placeholder="Ulangi password"
             />
             {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
+          </div>
+
+          <div>
+            <label
+              htmlFor="no_telepon"
+              className="block text-sm font-medium text-gray-700"
+            >
+              No. Telepon (Opsional)
+            </label>
+            <input
+              type="tel"
+              name="no_telepon"
+              value={formData.no_telepon}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="08xxxxxxxxxx"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="alamat"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Alamat (Opsional)
+            </label>
+            <textarea
+              name="alamat"
+              value={formData.alamat}
+              onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+              disabled={isLoading}
+              rows={2}
+              className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Alamat lengkap"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="pekerjaan"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Pekerjaan (Opsional)
+            </label>
+            <input
+              type="text"
+              name="pekerjaan"
+              value={formData.pekerjaan}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Pekerjaan/Profesi"
+            />
           </div>
 
           <button
