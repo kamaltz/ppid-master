@@ -1,10 +1,34 @@
 "use client";
 
 import { TrendingUp, FileCheck, Clock, FileText } from "lucide-react";
-import { usePublicStats } from '@/hooks/usePublicStats';
+import { useState, useEffect } from 'react';
 
 const StatsSection = () => {
-  const { stats, isLoading } = usePublicStats();
+  const [stats, setStats] = useState({
+    permintaanSelesai: 0,
+    rataRataHari: 0,
+    totalInformasi: 0,
+    aksesOnline: '24/7'
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats/public');
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchStats();
+  }, []);
 
   const statsData = [
     {
@@ -27,7 +51,7 @@ const StatsSection = () => {
     },
     {
       icon: <TrendingUp className="h-8 w-8 text-white" />,
-      number: "24/7",
+      number: stats.aksesOnline,
       label: "Akses Online",
       description: "Portal informasi tersedia"
     }

@@ -744,6 +744,7 @@ export default function AdminPengaturanPage() {
     { id: "header", label: "📋 Header & Menu", icon: "📋" },
     { id: "footer", label: "📄 Footer", icon: "📄" },
     { id: "hero", label: "🖼️ Hero Section", icon: "🖼️" },
+    { id: "stats", label: "📊 Statistik Homepage", icon: "📊" },
   ];
 
   return (
@@ -1670,6 +1671,16 @@ export default function AdminPengaturanPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === "stats" && (
+          <div>
+            <iframe
+              src="/admin/pengaturan/statistik"
+              className="w-full h-[600px] border-0 rounded-lg"
+              title="Pengaturan Statistik"
+            />
           </div>
         )}
 
