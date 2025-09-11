@@ -1,34 +1,30 @@
 #!/bin/bash
 set -euo pipefail
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# Allow root for production deployment
 if [[ $EUID -eq 0 ]]; then
    log_warn "Running as root - ensure this is a production server"
 fi
 
-log_info "🚀 PPID Master - Production Deployment"
+log_info "PPID Master - Production Deployment"
 log_info "Domain: 167.172.83.55"
 log_info "SSL: Automatic HTTPS"
 echo ""
 
-# Check system requirements
 log_info "Checking system requirements..."
 if ! command -v curl &> /dev/null; then
     log_error "curl is required but not installed"
     exit 1
 fi
 
-# Install Docker
 log_info "Installing Docker..."
 if ! command -v docker &> /dev/null; then
     curl -fsSL https://get.docker.com | sh
@@ -38,7 +34,6 @@ else
     log_info "Docker already installed"
 fi
 
-# Install Docker Compose
 log_info "Installing Docker Compose..."
 if ! command -v docker-compose &> /dev/null; then
     COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
@@ -48,7 +43,6 @@ else
     log_info "Docker Compose already installed"
 fi
 
-# Configure firewall
 log_info "Configuring firewall..."
 if command -v ufw &> /dev/null; then
     sudo ufw --force enable
@@ -60,20 +54,17 @@ else
     log_warn "UFW not available, skipping firewall configuration"
 fi
 
-# Create directories with proper permissions
 log_info "Setting up directories..."
 sudo mkdir -p /opt/ppid
 sudo chown $USER:$USER /opt/ppid
 cd /opt/ppid
 
-# Generate secure secrets
 log_info "Generating secure configuration..."
 JWT_SECRET=$(openssl rand -hex 32)
 POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
 
-# Create PPID docker-compose
 log_info "Creating PPID configuration..."
-tee docker-compose.yml > /dev/null << 'EOF'
+cat > docker-compose.yml << COMPOSE_EOF
 services:
   postgres:
     image: postgres:15-alpine
@@ -108,25 +99,18 @@ services:
 
 volumes:
   postgres_data:
-EOF
+COMPOSE_EOF
 
-# Replace variables in docker-compose.yml
-sed -i "s/\${POSTGRES_PASSWORD}/${POSTGRES_PASSWORD}/g" docker-compose.yml
-sed -i "s/\${JWT_SECRET}/${JWT_SECRET}/g" docker-compose.yml
-
-# Setup uploads with proper security
 log_info "Setting up file storage..."
 sudo mkdir -p /opt/ppid/uploads/{images,documents,attachments}
 sudo chown -R 1000:1000 /opt/ppid/uploads
 sudo chmod -R 755 /opt/ppid/uploads
 
-# Install and configure Nginx
 log_info "Installing Nginx..."
 sudo apt update -qq
 sudo apt install -y nginx openssl
 sudo systemctl enable nginx
 
-# Setup self-signed SSL certificate
 log_info "Setting up self-signed SSL certificate..."
 SSL_DIR="/etc/ssl/ppid-selfsigned"
 CERT_FILE="$SSL_DIR/selfsigned.crt"
@@ -145,9 +129,8 @@ else
     log_info "Existing self-signed certificate found, skipping generation."
 fi
 
-# Create Nginx site config
 log_info "Configuring Nginx..."
-sudo tee /etc/nginx/sites-available/default > /dev/null << EOF
+sudo cat > /etc/nginx/sites-available/default << NGINX_EOF
 server {
     listen 80;
     server_name 167.172.83.55;
@@ -182,9 +165,8 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 }
-EOF
+NGINX_EOF
 
-# Enable site and test nginx config
 sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
 if sudo nginx -t; then
     sudo systemctl reload nginx
@@ -194,12 +176,10 @@ else
     exit 1
 fi
 
-# Start PPID services
 log_info "Starting PPID Master..."
 docker-compose pull
 docker-compose up -d
 
-# Wait for services to be ready
 log_info "Waiting for services to start..."
 for i in {1..30}; do
     if docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
@@ -213,12 +193,10 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Setup database
 log_info "Setting up database..."
 docker-compose exec -T app npx prisma generate
 docker-compose exec -T app npx prisma migrate deploy
 
-# Check for custom database import
 if [ -f "ppid_db.sql" ]; then
     log_info "Found ppid_db.sql - importing custom database..."
     docker-compose exec -T postgres psql -U postgres -d ppid_garut < ppid_db.sql
@@ -230,7 +208,6 @@ fi
 
 docker-compose restart app
 
-# Wait for app to be ready
 log_info "Waiting for application to start..."
 for i in {1..30}; do
     if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
@@ -244,19 +221,18 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Save credentials securely
 log_info "Saving credentials..."
-cat > .env.production << EOF
+cat > .env.production << CRED_EOF
 JWT_SECRET=${JWT_SECRET}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-EOF
+CRED_EOF
 chmod 600 .env.production
 
 echo ""
-log_info "✅ Installation Complete!"
-log_info "🌐 URL: https://167.172.83.55"
-log_info "📊 Admin: admin@garut.go.id / Garut@2025?"
-log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
+log_info "Installation Complete!"
+log_info "URL: https://167.172.83.55"
+log_info "Admin: admin@garut.go.id / Garut@2025?"
+log_info "Credentials saved in: /opt/ppid/.env.production"
 
 echo ""
 log_info "Management Commands:"
@@ -266,4 +242,4 @@ echo "  Stop:      docker-compose -f /opt/ppid/docker-compose.yml down"
 echo "  Update:    docker-compose -f /opt/ppid/docker-compose.yml pull && docker-compose -f /opt/ppid/docker-compose.yml up -d"
 echo "  Health:    curl https://167.172.83.55/api/health"
 echo ""
-log_info "🔒 Security: Firewall enabled, SSL configured"
+log_info "Security: Firewall enabled, SSL configured"
