@@ -65,12 +65,15 @@ export default function ChatPpidPage() {
   const fetchMessages = async (ppidId: number) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/admin/chat-ppid/${ppidId}`, {
+      const response = await fetch('/api/ppid-chat', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
       if (data.success) {
-        setMessages(data.data);
+        const filteredMessages = data.data.filter((msg: ChatMessage) => 
+          (msg.sender_id === ppidId || msg.receiver_id === ppidId)
+        );
+        setMessages(filteredMessages);
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error);
@@ -83,14 +86,14 @@ export default function ChatPpidPage() {
     setSending(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/admin/chat-ppid', {
+      const response = await fetch('/api/ppid-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          receiver_id: selectedPpid.id,
+          receiverId: selectedPpid.id,
           message: newMessage.trim()
         })
       });
@@ -98,6 +101,8 @@ export default function ChatPpidPage() {
       if (response.ok) {
         setNewMessage('');
         fetchMessages(selectedPpid.id);
+        // Refresh chat list to show updated conversation
+        window.dispatchEvent(new Event('ppid-chat-updated'));
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -121,13 +126,8 @@ export default function ChatPpidPage() {
   }, [ppidList]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1);
-      setPpidList([]);
-      fetchPpidList(searchTerm, 1);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, fetchPpidList]);
+    fetchPpidList('', 1);
+  }, []);
 
   useEffect(() => {
     if (selectedPpid) {
@@ -146,12 +146,33 @@ export default function ChatPpidPage() {
           {/* PPID List */}
           <div className="bg-white rounded-lg shadow-md">
             <div className="p-4 border-b">
-              <h3 className="font-semibold mb-3">Pilih PPID</h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold">Pilih PPID</h3>
+                <button
+                  onClick={() => {
+                    setCurrentPage(1);
+                    setPpidList([]);
+                    fetchPpidList(searchTerm, 1);
+                  }}
+                  className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                >
+                  Refresh
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="Cari PPID..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  if (e.target.value.trim()) {
+                    setTimeout(() => {
+                      setCurrentPage(1);
+                      setPpidList([]);
+                      fetchPpidList(e.target.value, 1);
+                    }, 300);
+                  }
+                }}
                 className="w-full border rounded-lg px-3 py-2"
               />
             </div>

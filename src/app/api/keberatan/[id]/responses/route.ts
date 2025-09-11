@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../../../../lib/lib/prismaClient';
+import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,9 +24,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+
     const { id: paramId } = await params;
     const id = parseInt(paramId);
-    const userId = '1';
 
     const keberatan = await prisma.keberatan.findUnique({
       where: { id }
@@ -41,21 +49,32 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
     }
 
-    const roleNames = {
-      'Pemohon': 'Pemohon',
-      'Admin': 'Admin',
-      'PPID_UTAMA': 'PPID Utama',
-      'PPID_PELAKSANA': 'PPID Pelaksana',
-      'ATASAN_PPID': 'Atasan PPID',
-      'System': 'System'
-    };
+    // Get user name based on role
+    let userName = decoded.nama || 'Unknown User';
+    const userRole = user_role || decoded.role;
+    
+    if (['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(userRole)) {
+      try {
+        let userRecord = null;
+        if (userRole === 'ADMIN') {
+          userRecord = await prisma.admin.findUnique({ where: { id: parseInt(decoded.id) } });
+        } else {
+          userRecord = await prisma.ppid.findUnique({ where: { id: parseInt(decoded.id) } });
+        }
+        if (userRecord) {
+          userName = userRecord.nama;
+        }
+      } catch (error) {
+        console.log('Error fetching user name:', error);
+      }
+    }
 
     const response = await prisma.keberatanResponse.create({
       data: {
         keberatan_id: id,
-        user_id: userId,
-        user_role: user_role || 'PPID_UTAMA',
-        user_name: roleNames[user_role as keyof typeof roleNames] || 'PPID Officer',
+        user_id: decoded.id.toString(),
+        user_role: userRole,
+        user_name: userName,
         message,
         attachments: attachments ? JSON.stringify(attachments) : null,
         message_type: message_type || 'text'

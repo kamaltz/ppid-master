@@ -16,11 +16,13 @@ interface Response {
 
 interface KeberatanChatProps {
   keberatanId: number;
-  currentUserRole: string;
+  userRole?: string;
+  currentUserRole?: string;
   isAdmin?: boolean;
 }
 
-export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = false }: KeberatanChatProps) {
+export default function KeberatanChat({ keberatanId, userRole, currentUserRole, isAdmin = false }: KeberatanChatProps) {
+  const actualUserRole = userRole || currentUserRole || 'PEMOHON';
   const [responses, setResponses] = useState<Response[]>([]);
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -52,32 +54,32 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
           setChatActive(isResumed || !isEnded);
           
           // Check if pemohon can send message
-          if (currentUserRole === 'Pemohon') {
-            const pemohonMessages = data.data.filter((msg: Response) => msg.user_role === 'Pemohon');
-            const adminMessages = data.data.filter((msg: Response) => ['Admin', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
+          if (actualUserRole === 'PEMOHON') {
+            const pemohonMessages = data.data.filter((msg: Response) => msg.user_role === 'PEMOHON');
+            const adminMessages = data.data.filter((msg: Response) => ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
             
             // Check if keberatan is completed
             const isCompleted = data.data.some((msg: Response) => msg.message_type === 'system' && msg.message.includes('Selesai'));
             
-            // Pemohon can only send if: not ended, not completed, and (no messages yet OR admin has replied)
-            const canSend = !isEnded && !isCompleted && (pemohonMessages.length === 0 || adminMessages.length > pemohonMessages.length);
+            // Pemohon can send first message freely, then must wait for reply
+            const canSend = !isEnded && !isCompleted && (pemohonMessages.length === 0 || adminMessages.length >= pemohonMessages.length);
             setCanSendMessage(canSend);
           } else {
-            setCanSendMessage(!isEnded || isAdmin || currentUserRole === 'PPID_PELAKSANA');
+            setCanSendMessage(!isEnded || isAdmin || actualUserRole === 'PPID_PELAKSANA');
           }
         }
       }
     } catch (error) {
       console.error('Failed to fetch keberatan responses:', error);
     }
-  }, [keberatanId, currentUserRole, isAdmin]);
+  }, [keberatanId, actualUserRole, isAdmin]);
 
   const sendResponse = async () => {
-    if (currentUserRole === 'Pemohon' && !canSendMessage) {
+    if (actualUserRole === 'PEMOHON' && !canSendMessage) {
       alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
       return;
     }
-    if (!chatActive && !isAdmin && currentUserRole !== 'PPID_PELAKSANA') {
+    if (!chatActive && !isAdmin && actualUserRole !== 'PPID_PELAKSANA') {
       alert('Chat telah diakhiri.');
       return;
     }
@@ -107,15 +109,17 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
         }
       }
 
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/keberatan/${keberatanId}/responses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           message: message.trim(),
           attachments: uploadedFiles,
-          user_role: currentUserRole
+          user_role: actualUserRole
         })
       });
 
@@ -123,26 +127,36 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
         setMessage('');
         setAttachments([]);
         
-        // Send system notification for pemohon after first message
-        if (currentUserRole === 'Pemohon') {
-          setTimeout(async () => {
-            await fetch(`/api/keberatan/${keberatanId}/responses`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                message: '✅ Pesan Anda telah terkirim. Mohon tunggu balasan dari PPID.',
-                attachments: [],
-                user_role: 'System',
-                message_type: 'system'
-              })
-            });
-            fetchResponses();
-          }, 1000);
+        // Send system notification for pemohon after first message only
+        if (actualUserRole === 'PEMOHON') {
+          const pemohonMessages = responses.filter(msg => msg.user_role === 'PEMOHON');
+          if (pemohonMessages.length === 0) {
+            setTimeout(async () => {
+              const token = localStorage.getItem('auth_token');
+              await fetch(`/api/keberatan/${keberatanId}/responses`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  message: '✅ Pesan Anda telah terkirim. Mohon tunggu balasan dari PPID.',
+                  attachments: [],
+                  user_role: 'System',
+                  message_type: 'system'
+                })
+              });
+              fetchResponses();
+            }, 1000);
+          }
         }
         
         await fetchResponses();
+        // Refresh chat list to show updated conversation
+        setTimeout(() => {
+          window.dispatchEvent(new Event('ppid-chat-updated'));
+          localStorage.setItem('chat-refresh', Date.now().toString());
+        }, 1000);
       } else {
         alert('Gagal mengirim pesan');
       }
@@ -161,10 +175,12 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
     setCanSendMessage(false);
     
     try {
+      const token = localStorage.getItem('auth_token');
       await fetch(`/api/keberatan/${keberatanId}/responses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           message: 'Chat telah diakhiri oleh admin.',
@@ -187,10 +203,12 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
     setCanSendMessage(true);
     
     try {
+      const token = localStorage.getItem('auth_token');
       await fetch(`/api/keberatan/${keberatanId}/responses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           message: 'Chat telah dilanjutkan oleh admin.',
@@ -293,7 +311,7 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
       'PPID_UTAMA': 'bg-blue-500 text-white',
       'PPID_PELAKSANA': 'bg-green-500 text-white',
       'ATASAN_PPID': 'bg-purple-500 text-white',
-      'Pemohon': 'bg-indigo-500 text-white',
+      'PEMOHON': 'bg-indigo-500 text-white',
       'System': 'bg-orange-500 text-white'
     };
     return colors[role as keyof typeof colors] || 'bg-gray-500 text-white';
@@ -311,7 +329,7 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
           {!chatActive && (
             <span className="text-sm text-red-600 font-medium">Chat Diakhiri</span>
           )}
-          {(isAdmin || currentUserRole === 'PPID_PELAKSANA') && (
+          {(isAdmin || actualUserRole === 'PPID_PELAKSANA') && (
             <div className="flex gap-2">
               {chatActive ? (
                 <button
@@ -354,7 +372,10 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
             <div key={resp.id} className={`flex flex-col space-y-2 ${isSystemMessage ? 'items-center' : ''}`}>
               <div className="flex items-center space-x-2">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(resp.user_role)}`}>
-                  {resp.user_name}
+                  {resp.user_role === 'PPID_PELAKSANA' ? resp.user_name : 
+                   resp.user_role === 'PPID_UTAMA' ? resp.user_name :
+                   resp.user_role === 'ATASAN_PPID' ? resp.user_name :
+                   resp.user_role}
                 </span>
                 <span className="text-xs text-gray-500">
                   {new Date(resp.created_at).toLocaleString('id-ID')}
@@ -403,7 +424,7 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
       </div>
       
       <div className="p-4 border-t">
-        {!chatActive && !isAdmin && currentUserRole !== 'PPID_PELAKSANA' ? (
+        {!chatActive && !isAdmin && actualUserRole !== 'PPID_PELAKSANA' ? (
           <div className="text-center py-4 text-gray-500">
             <p>Chat telah diakhiri. Tidak dapat mengirim pesan baru.</p>
           </div>
@@ -467,16 +488,16 @@ export default function KeberatanChat({ keberatanId, currentUserRole, isAdmin = 
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={
                   !chatActive ? "Chat telah diakhiri" :
-                  currentUserRole === 'Pemohon' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
+                  actualUserRole === 'PEMOHON' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
                   "Tulis pesan keberatan..."
                 }
                 className="flex-1 border rounded-lg px-3 py-2"
                 onKeyPress={(e) => e.key === 'Enter' && sendResponse()}
-                disabled={(currentUserRole === 'Pemohon' && (!chatActive || !canSendMessage)) || (currentUserRole !== 'Pemohon' && !chatActive && !['Admin', 'PPID_PELAKSANA'].includes(currentUserRole))}
+                disabled={(actualUserRole === 'PEMOHON' && (!chatActive || !canSendMessage)) || (actualUserRole !== 'PEMOHON' && !chatActive && !['ADMIN', 'PPID_PELAKSANA'].includes(actualUserRole))}
               />
               <button
                 onClick={sendResponse}
-                disabled={isLoading || (!message.trim() && attachments.length === 0) || (currentUserRole === 'Pemohon' && !canSendMessage) || (!chatActive && !isAdmin && currentUserRole !== 'PPID_PELAKSANA')}
+                disabled={isLoading || (!message.trim() && attachments.length === 0) || (actualUserRole === 'PEMOHON' && !canSendMessage) || (!chatActive && !isAdmin && actualUserRole !== 'PPID_PELAKSANA')}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />

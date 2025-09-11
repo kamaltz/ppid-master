@@ -3,9 +3,9 @@ import { prisma } from '../../../../../lib/lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
+  id: string;
   role: string;
-  userId: number;
-  email: string;
+  userId?: number;
 }
 
 export async function GET(request: NextRequest) {
@@ -17,9 +17,83 @@ export async function GET(request: NextRequest) {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-
-    // Mock unread chat count - replace with actual logic
-    const unreadCount = Math.floor(Math.random() * 5); // Random 0-4 for demo
+    
+    const userId = parseInt(decoded.id);
+    const userRole = decoded.role;
+    let unreadCount = 0;
+    
+    if (['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(userRole)) {
+      // For admin and PPID roles, count chats where they have participated and there are new messages from pemohon
+      const requestsWithNewMessages = await prisma.request.findMany({
+        where: {
+          responses: {
+            some: {
+              user_id: decoded.id,
+              user_role: userRole
+            }
+          }
+        },
+        include: {
+          responses: {
+            orderBy: { created_at: 'desc' },
+            take: 1
+          }
+        }
+      });
+      
+      const keberatanWithNewMessages = await prisma.keberatan.findMany({
+        where: {
+          responses: {
+            some: {
+              user_id: decoded.id,
+              user_role: userRole
+            }
+          }
+        },
+        include: {
+          responses: {
+            orderBy: { created_at: 'desc' },
+            take: 1
+          }
+        }
+      });
+      
+      // Count chats where last message is from pemohon (indicating unread)
+      unreadCount = requestsWithNewMessages.filter(req => 
+        req.responses[0]?.user_role === 'Pemohon'
+      ).length + keberatanWithNewMessages.filter(keb => 
+        keb.responses[0]?.user_role === 'Pemohon'
+      ).length;
+      
+    } else if (userRole === 'Pemohon') {
+      // For pemohon, count chats where last message is from PPID/Admin (indicating unread)
+      const requestsWithNewMessages = await prisma.request.findMany({
+        where: { pemohon_id: userId },
+        include: {
+          responses: {
+            orderBy: { created_at: 'desc' },
+            take: 1
+          }
+        }
+      });
+      
+      const keberatanWithNewMessages = await prisma.keberatan.findMany({
+        where: { pemohon_id: userId },
+        include: {
+          responses: {
+            orderBy: { created_at: 'desc' },
+            take: 1
+          }
+        }
+      });
+      
+      // Count chats where last message is from PPID/Admin (indicating unread)
+      unreadCount = requestsWithNewMessages.filter(req => 
+        req.responses[0] && ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(req.responses[0].user_role)
+      ).length + keberatanWithNewMessages.filter(keb => 
+        keb.responses[0] && ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(keb.responses[0].user_role)
+      ).length;
+    }
 
     return NextResponse.json({
       success: true,

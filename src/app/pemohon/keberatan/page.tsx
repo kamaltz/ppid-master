@@ -116,6 +116,10 @@ export default function KeberatanPage() {
       if (data.success) {
         setShowSuccessModal(true);
         setFormData({ permintaan_id: "", judul: "", alasan_keberatan: "" });
+        
+        // Trigger chat refresh
+        window.dispatchEvent(new Event('keberatan-created'));
+        localStorage.setItem('new-keberatan-created', Date.now().toString());
       } else {
         console.error('API Error:', data);
         setErrors({ general: data.error || "Gagal mengajukan keberatan" });
@@ -317,10 +321,10 @@ export default function KeberatanPage() {
         isOpen={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          router.push("/pemohon/dashboard");
+          router.push("/pemohon/chat");
         }}
         title="Keberatan Berhasil Diajukan"
-        message="Keberatan Anda telah berhasil diajukan dan akan diproses oleh PPID."
+        message="Keberatan Anda telah berhasil diajukan dan akan diproses oleh PPID. Anda akan diarahkan ke halaman chat."
       />
     </div>
   );

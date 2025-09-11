@@ -58,19 +58,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const id = parseInt(requestId);
     const { message, attachments, messageType = 'text' } = await request.json();
     
-    console.log('Sending message for request ID:', id, 'User:', decoded.nama);
+    console.log('Sending message for request ID:', id, 'User:', decoded.nama, 'Role:', decoded.role);
     
     if (!message?.trim() && (!attachments || attachments.length === 0)) {
       return NextResponse.json({ error: 'Message or attachment required' }, { status: 400 });
     }
+
+    // Get user name based on role
+    let userName = decoded.nama || 'Unknown User';
+    if (['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(decoded.role)) {
+      try {
+        let userRecord = null;
+        if (decoded.role === 'ADMIN') {
+          userRecord = await prisma.admin.findUnique({ where: { id: parseInt(decoded.id) } });
+        } else {
+          userRecord = await prisma.ppid.findUnique({ where: { id: parseInt(decoded.id) } });
+        }
+        if (userRecord) {
+          userName = userRecord.nama;
+        }
+      } catch (error) {
+        console.log('Error fetching user name:', error);
+      }
+    }
     
-    // Skip session check for now, just create the message
+    // Create the message
     const response = await prisma.requestResponse.create({
       data: {
         request_id: id,
         user_id: decoded.id.toString(),
         user_role: decoded.role,
-        user_name: decoded.nama || 'Unknown User',
+        user_name: userName,
         message: message?.trim() || '',
         message_type: messageType || 'text',
         attachments: attachments && attachments.length > 0 ? JSON.stringify(attachments) : null

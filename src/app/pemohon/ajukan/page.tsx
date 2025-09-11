@@ -43,6 +43,10 @@ export default function AjukanPermohonanPage() {
     try {
       await createRequest(formData, token!);
       setShowSuccessModal(true);
+      
+      // Trigger chat refresh
+      window.dispatchEvent(new Event('request-created'));
+      localStorage.setItem('new-request-created', Date.now().toString());
     } catch (err: unknown) {
       setError(
         (err as { error?: string })?.error || "Terjadi kesalahan saat mengirim permohonan."
@@ -132,10 +136,10 @@ export default function AjukanPermohonanPage() {
         isOpen={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          router.push("/pemohon/dashboard");
+          router.push("/pemohon/chat");
         }}
         title="🎉 Berhasil Dikirim!"
-        message="Permohonan berhasil dikirim dan akan diproses oleh PPID!"
+        message="Permohonan berhasil dikirim dan akan diproses oleh PPID! Anda akan diarahkan ke halaman chat."
       />
     </div>
   );

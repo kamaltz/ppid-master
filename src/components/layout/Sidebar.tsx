@@ -206,22 +206,22 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       {/* Mobile Toggle Button - Arrow Style */}
       <button
         onClick={onToggle}
-        className={`lg:hidden fixed top-1/2 -translate-y-1/2 z-50 p-2 bg-white rounded-r-lg shadow-md hover:bg-gray-50 transition-all duration-300 ${
+        className={`lg:hidden fixed top-1/2 -translate-y-1/2 z-[60] p-2 bg-white rounded-r-lg shadow-lg border hover:bg-gray-50 transition-all duration-300 ${
           isOpen ? "left-64" : "left-0"
         }`}
         title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
       >
         {isOpen ? (
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
+          <ChevronLeft className="w-5 h-5 text-gray-700" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-gray-600" />
+          <ChevronRight className="w-5 h-5 text-gray-700" />
         )}
       </button>
 
       {/* Sidebar */}
       <div
         className={`
-        fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white shadow-lg transform transition-all duration-300 ease-in-out flex flex-col overflow-hidden
+        fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white shadow-lg transform transition-all duration-300 ease-in-out flex flex-col
         ${
           isOpen
             ? "w-64 translate-x-0 z-50"
@@ -239,11 +239,11 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
         >
           <div className="flex items-center justify-between">
             {isOpen ? (
-              <div className="flex-1">
-                <h2 className="text-lg font-bold text-gray-800 text-truncate">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-gray-800 truncate">
                   {getRoleDisplayName(userRole)}
                 </h2>
-                <p className="text-xs text-gray-600 text-truncate">
+                <p className="text-xs text-gray-600 truncate">
                   {userRole === "PPID"
                     ? "PPID Utama"
                     : userRole === "PPID_Pelaksana"
@@ -261,23 +261,23 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
             )}
 
             {/* Desktop Toggle Button - Integrated */}
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 onClick={refreshNotifications}
                 className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
                 title="Refresh Notifications"
               >
-                <RefreshCw className="w-3 h-3 text-gray-600" />
+                <RefreshCw className="w-4 h-4 text-gray-600" />
               </button>
               <button
                 onClick={onToggle}
-                className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
+                className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors z-10"
                 title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
               >
                 {isOpen ? (
-                  <ChevronLeft className="w-4 h-4 text-gray-600" />
+                  <ChevronLeft className="w-5 h-5 text-gray-700" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                  <ChevronRight className="w-5 h-5 text-gray-700" />
                 )}
               </button>
             </div>
@@ -285,7 +285,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-2 flex-1 overflow-y-auto px-2">
+        <nav className="mt-2 flex-1 overflow-y-auto overflow-x-hidden px-2">
           {(() => {
             let lastCategory = "";
             return visibleMenuItems.map((item, index) => {
@@ -346,10 +346,10 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                       }`}
                     />
                     <span
-                      className={`text-truncate transition-all duration-300 ${
+                      className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${
                         isOpen
-                          ? "opacity-100"
-                          : "opacity-0 lg:opacity-0 w-0 lg:w-0"
+                          ? "opacity-100 max-w-full"
+                          : "opacity-0 lg:opacity-0 max-w-0 lg:max-w-0"
                       }`}
                     >
                       {item.label}

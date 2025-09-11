@@ -1,749 +1,492 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Search, MessageCircle, Eye, EyeOff, Trash2, StopCircle, EyeOffIcon, Send } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { MessageCircle, Clock, User, FileText, AlertTriangle, Users } from 'lucide-react';
+import Link from 'next/link';
 
 interface ChatItem {
   id: number;
-  judul?: string;
-  rincian_informasi: string;
+  type: 'request' | 'keberatan';
+  title: string;
+  subtitle: string;
+  pemohon?: string;
+  email?: string;
   status: string;
-  created_at: string;
-  assigned_ppid_id?: number;
-  pemohon: {
-    nama: string;
-    email: string;
-  };
-  assigned_ppid?: {
-    id: number;
-    nama: string;
-    role: string;
-  };
-  lastMessage?: {
-    message: string;
-    created_at: string;
-  };
-  messageCount: number;
+  lastMessage: string;
+  lastMessageTime: string;
+  lastMessageFrom: string;
+  url: string;
+  assignedPpid?: string;
+  isAssignedToMe?: boolean;
 }
 
-interface PpidUser {
+interface PPIDChat {
   id: number;
-  nama: string;
-  email: string;
-  no_pegawai: string;
-}
-
-interface PpidChat {
-  id: number;
-  subject: string;
+  sender_id: number;
+  receiver_id: number;
   message: string;
   created_at: string;
-  is_read: boolean;
-  sender: {
-    id: number;
-    nama: string;
-    role: string;
-  };
-  receiver: {
-    id: number;
-    nama: string;
-    role: string;
-  };
+  sender: { id: number; nama: string; role: string };
+  receiver: { id: number; nama: string; role: string };
 }
 
-export default function AdminChatPage() {
+export default function ChatListPage() {
+  const { getUserRole } = useAuth();
   const [chats, setChats] = useState<ChatItem[]>([]);
-  const [filteredChats, setFilteredChats] = useState<ChatItem[]>([]);
-  const [ppidChats, setPpidChats] = useState<PpidChat[]>([]);
-  const [ppidList, setPpidList] = useState<PpidUser[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [chatType, setChatType] = useState<'requests' | 'ppid'>('requests');
-  const [hiddenChats, setHiddenChats] = useState<Set<number>>(new Set());
-  const [showHidden, setShowHidden] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedChats, setSelectedChats] = useState<Set<number>>(new Set());
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
-  const [showPpidChatModal, setShowPpidChatModal] = useState(false);
-  const [newMessage, setNewMessage] = useState({ receiverId: '', subject: '', message: '' });
-  const [ppidSearchTerm, setPpidSearchTerm] = useState('');
-  const [ppidCurrentPage, setPpidCurrentPage] = useState(1);
-  const [ppidHasMore, setPpidHasMore] = useState(true);
-  const [ppidLoading, setPpidLoading] = useState(false);
-  const [selectedPpid, setSelectedPpid] = useState<PpidUser | null>(null);
-  const { token, getUserRole } = useAuth();
-  const userRole = getUserRole();
+  const [ppidChats, setPpidChats] = useState<PPIDChat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pemohon' | 'ppid'>('pemohon');
+  const [filter, setFilter] = useState<'all' | 'request' | 'keberatan'>('all');
+  const [viewedChats, setViewedChats] = useState<Set<string>>(new Set());
+  const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
 
-  const fetchChats = useCallback(async () => {
+  const getViewedChats = () => {
+    const saved = localStorage.getItem('viewedChats');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  };
+
+  const markChatAsViewed = (chatId: string) => {
+    const viewed = getViewedChats();
+    viewed.add(chatId);
+    localStorage.setItem('viewedChats', JSON.stringify([...viewed]));
+    setViewedChats(viewed);
+  };
+
+  const isUnread = (chat: ChatItem) => {
+    const chatKey = `${chat.type}-${chat.id}`;
+    return !viewedChats.has(chatKey) && chat.lastMessageFrom !== 'System' && !['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(chat.lastMessageFrom);
+  };
+
+  const isPpidChatUnread = (chat: PPIDChat) => {
+    const currentUserId = parseInt(localStorage.getItem('user_id') || '0');
+    const chatKey = `ppid-${chat.id}`;
+    return !viewedChats.has(chatKey) && chat.sender_id !== currentUserId;
+  };
+
+  const fetchChats = async () => {
     try {
-      let endpoint = "/api/permintaan";
-      if (userRole === 'PPID_PELAKSANA') {
-        endpoint += "?status=Diproses";
-      } else if (userRole === 'PPID_UTAMA') {
-        // Get all requests for PPID_UTAMA to filter those with responses
-        endpoint += "";
-      } else if (userRole === 'ADMIN') {
-        endpoint += "?status=Diproses";
+      const token = localStorage.getItem('auth_token');
+      const [pemohonResponse, ppidResponse] = await Promise.all([
+        fetch('/api/chat-list', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/ppid-chat', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+      
+      if (pemohonResponse.ok) {
+        const data = await pemohonResponse.json();
+        setChats(data.data || []);
       }
       
-      const response = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      if (data?.success) {
-        // Filter chats based on user role
-        let filteredData = (data?.data || []);
-        if (userRole === 'PPID_UTAMA') {
-          // Show requests that have been responded to by PPID (have messages)
-          filteredData = (data?.data || []).filter((chat: ChatItem) => chat.messageCount > 0);
-        }
-        setChats(filteredData);
-        setFilteredChats(filteredData);
+      if (ppidResponse.ok) {
+        const data = await ppidResponse.json();
+        const currentUserId = parseInt(localStorage.getItem('user_id') || '0');
+        
+        const uniqueChats = new Map();
+        data.data.forEach((chat: PPIDChat) => {
+          const partnerId = chat.sender_id === currentUserId ? chat.receiver_id : chat.sender_id;
+          if (!uniqueChats.has(partnerId) || new Date(chat.created_at) > new Date(uniqueChats.get(partnerId).created_at)) {
+            uniqueChats.set(partnerId, chat);
+          }
+        });
+        
+        setPpidChats(Array.from(uniqueChats.values()));
       }
     } catch (error) {
-      console.error("Failed to fetch chats:", error);
+      console.error('Failed to fetch chats:', error);
     } finally {
-      setIsLoading(false);
-    }
-  }, [token, userRole]);
-
-  const fetchPpidChats = useCallback(async () => {
-    try {
-      const response = await fetch("/api/ppid-chat", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      if (data?.success) {
-        setPpidChats((data?.data || []));
-      }
-    } catch (error) {
-      console.error("Failed to fetch PPID chats:", error);
-    }
-  }, [token]);
-
-  const fetchPpidList = useCallback(async (search = '', page = 1) => {
-    if (ppidLoading || !token) return;
-    setPpidLoading(true);
-    try {
-      const url = `/api/admin/assign-ppid?search=${encodeURIComponent(search)}&page=${page}&limit=10`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
-      if (data?.success) {
-        if (page === 1) {
-          setPpidList((data?.data || []) || []);
-        } else {
-          setPpidList(prev => [...prev, ...((data?.data || []) || [])]);
-        }
-        setPpidHasMore(data.pagination?.hasMore || false);
-        setPpidCurrentPage(page);
-      }
-    } catch (error) {
-      console.error("Failed to fetch PPID list:", error);
-      // Set empty state on error
-      if (page === 1) {
-        setPpidList([]);
-        setPpidHasMore(false);
-      }
-    } finally {
-      setPpidLoading(false);
-    }
-  }, [token, ppidLoading]);
-
-  const loadMorePpid = () => {
-    if (ppidHasMore && !ppidLoading) {
-      fetchPpidList(ppidSearchTerm, ppidCurrentPage + 1);
+      setLoading(false);
     }
   };
 
-  const assignToPpid = async (requestId: number, ppidId: number) => {
-    try {
-      const response = await fetch("/api/admin/assign-ppid", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          requestId,
-          ppidId,
-          type: 'request'
-        })
-      });
-      
-      if (response.ok) {
+  useEffect(() => {
+    setViewedChats(getViewedChats());
+    fetchChats();
+    const interval = setInterval(fetchChats, 30000);
+    
+    const handleChatUpdate = () => fetchChats();
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'chat-refresh') {
         fetchChats();
-        setShowAssignModal(false);
-        setSelectedRequestId(null);
       }
-    } catch (error) {
-      console.error("Failed to assign PPID:", error);
-    }
-  };
-
-  const sendPpidMessage = async () => {
-    if (!selectedPpid) return;
-    try {
-      const response = await fetch("/api/admin/chat-ppid", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          receiver_id: selectedPpid.id,
-          message: `${newMessage.subject}: ${newMessage.message}`
-        })
-      });
-      
-      if (response.ok) {
-        fetchPpidChats();
-        setShowPpidChatModal(false);
-        setNewMessage({ receiverId: '', subject: '', message: '' });
-        setSelectedPpid(null);
-        setPpidSearchTerm('');
-        setPpidList([]);
-      }
-    } catch (error) {
-      console.error("Failed to send message:", error);
-    }
-  };
-
-  const toggleHideChat = (chatId: number) => {
-    const newHidden = new Set(hiddenChats);
-    if (newHidden.has(chatId)) {
-      newHidden.delete(chatId);
-    } else {
-      newHidden.add(chatId);
-    }
-    setHiddenChats(newHidden);
-  };
-
-  const toggleSelectChat = (chatId: number) => {
-    const newSelected = new Set(selectedChats);
-    if (newSelected.has(chatId)) {
-      newSelected.delete(chatId);
-    } else {
-      newSelected.add(chatId);
-    }
-    setSelectedChats(newSelected);
-  };
-
-  const selectAllChats = () => {
-    if (selectedChats.size === filteredChats.length) {
-      setSelectedChats(new Set());
-    } else {
-      setSelectedChats(new Set(filteredChats.map(chat => chat.id)));
-    }
-  };
-
-  const bulkAction = async (action: 'hide' | 'end' | 'delete') => {
-    if (selectedChats.size === 0) return;
+    };
     
-    const actionText = action === 'hide' ? 'sembunyikan' : action === 'end' ? 'akhiri' : 'hapus';
-    if (!confirm(`Yakin ingin ${actionText} ${selectedChats.size} chat yang dipilih?`)) return;
+    window.addEventListener('ppid-chat-updated', handleChatUpdate);
+    window.addEventListener('storage', handleStorageChange);
     
-    setIsProcessing(true);
-    try {
-      for (const chatId of selectedChats) {
-        if (action === 'hide') {
-          toggleHideChat(chatId);
-        } else if (action === 'end') {
-          await fetch(`/api/permintaan/${chatId}/responses`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              message: 'Chat telah diakhiri oleh admin.',
-              attachments: [],
-              message_type: 'system'
-            })
-          });
-        } else if (action === 'delete') {
-          await fetch(`/api/permintaan/${chatId}/responses`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-        }
-      }
-      setSelectedChats(new Set());
-      if (action !== 'hide') fetchChats();
-    } catch (error) {
-      console.error(`Failed to ${action} chats:`, error);
-    } finally {
-      setIsProcessing(false);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('ppid-chat-updated', handleChatUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const filteredChats = chats.filter(chat => {
+    if (filter === 'all') return true;
+    return chat.type === filter;
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Diajukan': return 'bg-yellow-100 text-yellow-800';
+      case 'Diteruskan': return 'bg-blue-100 text-blue-800';
+      case 'Diproses': return 'bg-blue-100 text-blue-800';
+      case 'Selesai': return 'bg-green-100 text-green-800';
+      case 'Ditolak': return 'bg-red-100 text-red-800';
+      case 'Ditanggapi': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  useEffect(() => {
-    if (token) {
-      fetchChats();
-      fetchPpidChats();
+  const formatTime = (timeString: string) => {
+    const date = new Date(timeString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      return 'Baru saja';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} jam lalu`;
+    } else {
+      return date.toLocaleDateString('id-ID');
     }
-  }, [token, userRole, fetchChats, fetchPpidChats]);
-
-  useEffect(() => {
-    if (showPpidChatModal && token) {
-      fetchPpidList('', 1);
-    }
-  }, [showPpidChatModal, token]);
-
-  useEffect(() => {
-    if (showPpidChatModal && token) {
-      const timeoutId = setTimeout(() => {
-        setPpidCurrentPage(1);
-        setPpidList([]);
-        fetchPpidList(ppidSearchTerm, 1);
-      }, 300);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [ppidSearchTerm, showPpidChatModal, token]);
-
-  useEffect(() => {
-    if (chatType === 'requests') {
-      const filtered = chats.filter(chat => {
-        const matchesSearch = 
-          chat.judul?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          chat.pemohon?.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          chat.pemohon?.email?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesStatus = statusFilter === "all" || chat.status === statusFilter;
-        const isHidden = hiddenChats.has(chat.id);
-        const matchesVisibility = showHidden || !isHidden;
-        
-        return matchesSearch && matchesStatus && matchesVisibility;
-      });
-      
-      setFilteredChats(filtered);
-    }
-  }, [chats, searchTerm, statusFilter, showHidden, hiddenChats, chatType]);
+  };
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Kelola Chat</h1>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => setChatType('requests')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                chatType === 'requests' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Chat Permohonan
-            </button>
-            <button
-              onClick={() => setChatType('ppid')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                chatType === 'ppid' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Chat PPID
-            </button>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">💬 Daftar Chat</h1>
+            <p className="text-gray-600">Kelola percakapan dengan pemohon dan sesama PPID</p>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {chatType === 'ppid' && (
-            <button
-              onClick={() => setShowPpidChatModal(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              Kirim Pesan
-            </button>
-          )}
-          {selectedChats.size > 0 && chatType === 'requests' && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">{selectedChats.size} dipilih</span>
+          {selectedChats.size > 0 && activeTab === 'pemohon' && (
+            <div className="flex gap-2">
               <button
-                onClick={() => bulkAction('hide')}
-                disabled={isProcessing}
-                className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 disabled:opacity-50"
+                onClick={async () => {
+                  if (confirm(`Hapus ${selectedChats.size} chat yang dipilih?`)) {
+                    try {
+                      const token = localStorage.getItem('auth_token');
+                      const chatIds = Array.from(selectedChats);
+                      
+                      await Promise.all(chatIds.map(async (chatKey) => {
+                        const [type, id] = chatKey.split('-');
+                        const endpoint = type === 'request' ? 'permintaan' : 'keberatan';
+                        
+                        await fetch(`/api/${endpoint}/${id}/delete-chat`, {
+                          method: 'DELETE',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                      }));
+                      
+                      setSelectedChats(new Set());
+                      fetchChats();
+                    } catch (error) {
+                      console.error('Error deleting chats:', error);
+                      alert('Gagal menghapus chat');
+                    }
+                  }
+                }}
+                className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
               >
-                <EyeOffIcon className="w-4 h-4 inline mr-1" />
-                Sembunyikan
+                Hapus ({selectedChats.size})
               </button>
               <button
-                onClick={() => bulkAction('end')}
-                disabled={isProcessing}
-                className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 disabled:opacity-50"
+                onClick={async () => {
+                  if (confirm(`Hentikan ${selectedChats.size} chat yang dipilih?`)) {
+                    try {
+                      const token = localStorage.getItem('auth_token');
+                      const chatIds = Array.from(selectedChats);
+                      
+                      await Promise.all(chatIds.map(async (chatKey) => {
+                        const [type, id] = chatKey.split('-');
+                        const endpoint = type === 'request' ? 'permintaan' : 'keberatan';
+                        
+                        await fetch(`/api/${endpoint}/${id}/end-chat`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                      }));
+                      
+                      setSelectedChats(new Set());
+                      fetchChats();
+                    } catch (error) {
+                      console.error('Error stopping chats:', error);
+                      alert('Gagal menghentikan chat');
+                    }
+                  }
+                }}
+                className="px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
               >
-                <StopCircle className="w-4 h-4 inline mr-1" />
-                Akhiri
+                Hentikan ({selectedChats.size})
               </button>
               <button
-                onClick={() => bulkAction('delete')}
-                disabled={isProcessing}
-                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50"
+                onClick={() => {
+                  setSelectedChats(new Set());
+                }}
+                className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
               >
-                <Trash2 className="w-4 h-4 inline mr-1" />
-                Hapus
+                Batal
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {chatType === 'requests' && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Pencarian</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Cari berdasarkan judul, nama, atau email..."
-                  className="w-full pl-10 pr-3 py-2 border rounded-lg"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="all">Semua Status</option>
-                <option value="Diajukan">Diajukan</option>
-                <option value="Diproses">Diproses</option>
-                <option value="Selesai">Selesai</option>
-              </select>
-            </div>
-            
-            <div className="flex items-end gap-4">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={selectedChats.size === filteredChats.length && filteredChats.length > 0}
-                  onChange={selectAllChats}
-                  className="mr-2"
-                />
-                <span className="text-sm">Pilih Semua</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={showHidden}
-                  onChange={(e) => setShowHidden(e.target.checked)}
-                  className="mr-2"
-                />
-                <span className="text-sm">Tampilkan tersembunyi</span>
-              </label>
-            </div>
-          </div>
+      {/* Main Tabs */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('pemohon')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 relative ${
+                activeTab === 'pemohon'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chat Pemohon ({chats.length})
+              {(() => {
+                const unreadCount = chats.filter(c => isUnread(c)).length;
+                return unreadCount > 0 ? (
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1">
+                    {unreadCount}
+                  </span>
+                ) : null;
+              })()}
+            </button>
+            <button
+              onClick={() => setActiveTab('ppid')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 relative ${
+                activeTab === 'ppid'
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Chat PPID ({ppidChats.length})
+              {(() => {
+                const unreadCount = ppidChats.filter(c => isPpidChatUnread(c)).length;
+                return unreadCount > 0 ? (
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1">
+                    {unreadCount}
+                  </span>
+                ) : null;
+              })()}
+            </button>
+          </nav>
         </div>
-      )}
+      </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Memuat chat...</div>
-        ) : chatType === 'requests' ? (
-          filteredChats.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">Tidak ada chat ditemukan</div>
+      {/* Chat Content */}
+      {activeTab === 'pemohon' && (
+        <div className="space-y-4">
+          {/* Filter Tabs */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'all'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Semua ({chats.length})
+            </button>
+            <button
+              onClick={() => setFilter('request')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'request'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Permohonan ({chats.filter(c => c.type === 'request').length})
+            </button>
+            <button
+              onClick={() => setFilter('keberatan')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'keberatan'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Keberatan ({chats.filter(c => c.type === 'keberatan').length})
+            </button>
+          </div>
+
+          {/* Chat List */}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Memuat chat...</p>
+            </div>
+          ) : filteredChats.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Belum ada chat tersedia</p>
+            </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="space-y-3">
               {filteredChats.map((chat) => {
-                const isHidden = hiddenChats.has(chat.id);
+                const chatKey = `${chat.type}-${chat.id}`;
                 return (
-                  <div key={chat.id} className={`p-6 hover:bg-gray-50 ${isHidden ? 'opacity-60' : ''} ${selectedChats.has(chat.id) ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        <input
-                          type="checkbox"
-                          checked={selectedChats.has(chat.id)}
-                          onChange={() => toggleSelectChat(chat.id)}
-                          className="rounded"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 truncate">
-                              {chat.judul || 'Permintaan Informasi'}
-                            </h3>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              chat.status === 'Diproses' ? 'bg-blue-100 text-blue-800' :
-                              chat.status === 'Selesai' ? 'bg-green-100 text-green-800' :
-                              'bg-yellow-100 text-yellow-800'
+                  <div
+                    key={chatKey}
+                    className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow ${
+                      isUnread(chat) ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          {chat.type === 'request' ? (
+                            <FileText className="w-4 h-4 text-blue-600" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-orange-600" />
+                          )}
+                          <h3 className="font-medium text-gray-900">{chat.title}</h3>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(chat.status)}`}>
+                            {chat.status}
+                          </span>
+                          {chat.assignedPpid && (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              chat.isAssignedToMe ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {chat.status}
+                              {chat.isAssignedToMe ? 'Ditugaskan ke Anda' : `Ditugaskan: ${chat.assignedPpid}`}
                             </span>
-                            {chat.assigned_ppid && (
-                              <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
-                                {chat.assigned_ppid.nama}
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="text-sm text-gray-600 mb-2">
-                            <strong>Pemohon:</strong> {chat.pemohon?.nama} ({chat.pemohon?.email})
-                          </div>
-                          
-                          <div className="text-sm text-gray-500 mb-3">
-                            <strong>Informasi:</strong> {chat.rincian_informasi?.substring(0, 100)}...
-                          </div>
-                          
-                          {chat.lastMessage && (
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <div className="text-sm text-gray-700 mb-1">
-                                {chat.lastMessage.message?.substring(0, 150)}...
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(chat.lastMessage.created_at).toLocaleString('id-ID')}
-                              </div>
-                            </div>
+                          )}
+                          {isUnread(chat) && (
+                            <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                              !
+                            </span>
                           )}
                         </div>
+                        <p className="text-sm text-gray-600 mb-2">{chat.subtitle}</p>
+                        {chat.pemohon && (
+                          <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                            <span className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {chat.pemohon}
+                            </span>
+                            {chat.email && <span>{chat.email}</span>}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">{chat.lastMessageFrom}:</span> {chat.lastMessage}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Clock className="w-3 h-3" />
+                            {formatTime(chat.lastMessageTime)}
+                          </div>
+                        </div>
                       </div>
-                      
-                      <div className="flex items-center gap-2 mt-4">
-                        <Link href={`/admin/permohonan/${chat.id}`}>
-                          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                            <MessageCircle className="w-4 h-4" />
-                            Buka Chat
-                          </button>
-                        </Link>
-                        
-                        <button
-                          onClick={() => toggleHideChat(chat.id)}
-                          className={`p-2 rounded-lg text-sm ${
-                            isHidden 
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                          title={isHidden ? 'Tampilkan' : 'Sembunyikan'}
+                      <div className="flex gap-2 ml-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedChats.has(chatKey)}
+                          onChange={(e) => {
+                            const newSelected = new Set(selectedChats);
+                            if (e.target.checked) {
+                              newSelected.add(chatKey);
+                            } else {
+                              newSelected.delete(chatKey);
+                            }
+                            setSelectedChats(newSelected);
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <Link
+                          href={chat.url}
+                          onClick={() => {
+                            markChatAsViewed(chatKey);
+                          }}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
                         >
-                          {isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                        </button>
+                          Buka Chat
+                        </Link>
                       </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )
-        ) : (
-          // PPID Chat View
-          ppidChats.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">Tidak ada pesan PPID</div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {ppidChats.map((chat) => (
-                <div key={chat.id} className="p-6 hover:bg-gray-50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {chat.subject}
-                        </h3>
-                        {!chat.is_read && (
-                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        )}
-                      </div>
-                      
-                      <div className="text-sm text-gray-600 mb-2">
-                        <strong>Dari:</strong> {chat.sender.nama} ({chat.sender.role})
-                      </div>
-                      
-                      <div className="text-sm text-gray-500 mb-3">
-                        {chat.message.substring(0, 200)}...
-                      </div>
-                      
-                      <div className="text-xs text-gray-400">
-                        {new Date(chat.created_at).toLocaleString('id-ID')}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Link href={`/admin/chat-ppid?ppid=${chat.sender.id}`}>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
-                          <MessageCircle className="w-4 h-4" />
-                          Buka Chat
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        )}
-      </div>
-
-      {/* PPID Assignment Modal */}
-      {showAssignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Tugaskan ke PPID Pelaksana</h3>
-            <div className="space-y-4">
-              {ppidList.map((ppid) => (
-                <button
-                  key={ppid.id}
-                  onClick={() => selectedRequestId && assignToPpid(selectedRequestId, ppid.id)}
-                  className="w-full text-left p-3 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="font-medium">{ppid.nama}</div>
-                  <div className="text-sm text-gray-500">{ppid.email}</div>
-                  <div className="text-xs text-gray-400">{ppid.no_pegawai}</div>
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => {
-                  setShowAssignModal(false);
-                  setSelectedRequestId(null);
-                }}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                Batal
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
-      {/* PPID Chat Modal */}
-      {showPpidChatModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-lg w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Kirim Pesan ke PPID</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Penerima</label>
-                {selectedPpid ? (
-                  <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50">
-                    <div>
-                      <div className="font-medium">{selectedPpid.nama}</div>
-                      <div className="text-sm text-gray-500">{selectedPpid.email}</div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedPpid(null)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Cari PPID..."
-                      value={ppidSearchTerm}
-                      onChange={(e) => setPpidSearchTerm(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2 mb-2"
-                    />
-                    <div 
-                      className="border rounded-lg max-h-40 overflow-y-auto"
-                      onScroll={(e) => {
-                        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-                        if (scrollHeight - scrollTop === clientHeight && ppidHasMore && !ppidLoading) {
-                          loadMorePpid();
-                        }
-                      }}
-                    >
-                      {ppidList.length === 0 && !ppidLoading ? (
-                        <p className="text-gray-500 text-center py-4">Tidak ada PPID ditemukan</p>
-                      ) : (
-                        ppidList.map((ppid) => (
-                          <button
-                            key={ppid.id}
-                            onClick={() => setSelectedPpid(ppid)}
-                            className="w-full text-left p-3 border-b hover:bg-gray-50 last:border-b-0"
-                          >
-                            <div className="font-medium">{ppid.nama}</div>
-                            <div className="text-sm text-gray-500">{ppid.email}</div>
-                          </button>
-                        ))
-                      )}
-                      {ppidLoading && (
-                        <div className="text-center py-2">
-                          <span className="text-gray-500">Loading...</span>
+      {activeTab === 'ppid' && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Memuat chat PPID...</p>
+            </div>
+          ) : ppidChats.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Belum ada chat PPID tersedia</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ppidChats.map((chat) => {
+                const currentUserId = parseInt(localStorage.getItem('user_id') || '0');
+                const partner = chat.sender_id === currentUserId ? chat.receiver : chat.sender;
+                return (
+                  <div
+                    key={chat.id}
+                    className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow ${
+                      isPpidChatUnread(chat) ? 'border-green-200 bg-green-50' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users className="w-4 h-4 text-green-600" />
+                          <h3 className="font-medium text-gray-900">
+                            Chat dengan {partner.nama}
+                          </h3>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {partner.role.replace('_', ' ')}
+                          </span>
+                          {isPpidChatUnread(chat) && (
+                            <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                              !
+                            </span>
+                          )}
                         </div>
-                      )}
-                      {!ppidHasMore && ppidList.length > 0 && (
-                        <div className="text-center py-2">
-                          <span className="text-gray-400 text-sm">Semua PPID telah dimuat</span>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">{chat.sender.nama}:</span> {chat.message}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Clock className="w-3 h-3" />
+                            {formatTime(chat.created_at)}
+                          </div>
                         </div>
-                      )}
+                      </div>
+                      <div className="ml-4">
+                        <Link
+                          href={`/admin/ppid-chat/${partner.id}`}
+                          onClick={() => {
+                            markChatAsViewed(`ppid-${chat.id}`);
+                          }}
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                        >
+                          Buka Chat
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Subjek</label>
-                <input
-                  type="text"
-                  value={newMessage.subject}
-                  onChange={(e) => setNewMessage({...newMessage, subject: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2"
-                  placeholder="Subjek pesan"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Pesan</label>
-                <textarea
-                  value={newMessage.message}
-                  onChange={(e) => setNewMessage({...newMessage, message: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 h-32"
-                  placeholder="Tulis pesan..."
-                />
-              </div>
+                );
+              })}
             </div>
-            
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => {
-                  setShowPpidChatModal(false);
-                  setNewMessage({ receiverId: '', subject: '', message: '' });
-                  setSelectedPpid(null);
-                  setPpidSearchTerm('');
-                  setPpidList([]);
-                }}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                Batal
-              </button>
-              <button
-                onClick={sendPpidMessage}
-                disabled={!selectedPpid || !newMessage.message}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                Kirim
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>

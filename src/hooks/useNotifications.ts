@@ -114,9 +114,13 @@ export const useNotifications = () => {
           // Silent fail for pending accounts
         }
 
-        // Fetch new requests with history tracking
+        // Fetch new requests with history tracking (only unassigned for Admin/PPID_UTAMA)
         try {
-          const requestsResponse = await fetch('/api/permintaan?status=Diajukan', {
+          const requestsUrl = role === 'PPID_PELAKSANA' 
+            ? '/api/permintaan?assigned=true&status=Diajukan'
+            : '/api/permintaan?unassigned=true&status=Diajukan';
+          
+          const requestsResponse = await fetch(requestsUrl, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (requestsResponse.ok) {
@@ -153,9 +157,13 @@ export const useNotifications = () => {
           // Silent fail
         }
 
-        // Fetch new objections with history tracking
+        // Fetch new objections with history tracking (only unassigned for Admin/PPID_UTAMA)
         try {
-          const objectionsResponse = await fetch('/api/keberatan?status=Diajukan', {
+          const objectionsUrl = role === 'PPID_PELAKSANA'
+            ? '/api/keberatan?assigned=true&status=Diajukan'
+            : '/api/keberatan?unassigned=true&status=Diajukan';
+          
+          const objectionsResponse = await fetch(objectionsUrl, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (objectionsResponse.ok) {
@@ -194,12 +202,31 @@ export const useNotifications = () => {
       }
 
       // Fetch new chats for all roles
-      const chatsResponse = await fetch('/api/chat/unread', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (chatsResponse.ok) {
-        const chatsData = await chatsResponse.json();
-        setCounts(prev => ({ ...prev, newChats: chatsData.count || 0 }));
+      try {
+        const [pemohonChatsResponse, ppidChatsResponse] = await Promise.all([
+          fetch('/api/chat/unread', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch('/api/ppid-chat/unread', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+        
+        let totalUnread = 0;
+        
+        if (pemohonChatsResponse.ok) {
+          const data = await pemohonChatsResponse.json();
+          totalUnread += data.count || 0;
+        }
+        
+        if (ppidChatsResponse.ok) {
+          const data = await ppidChatsResponse.json();
+          totalUnread += data.count || 0;
+        }
+        
+        setCounts(prev => ({ ...prev, newChats: totalUnread }));
+      } catch (error) {
+        // Silent fail for chats
       }
 
     } catch (error) {
@@ -237,7 +264,7 @@ export const useNotifications = () => {
   useEffect(() => {
     const token = getToken();
     const role = getUserRole();
-    if (token && (role === 'ADMIN' || role === 'PPID' || role === 'PPID_UTAMA')) {
+    if (token && role) {
       fetchNotifications();
       const interval = setInterval(fetchNotifications, 60000); // Check every 1 minute
       return () => clearInterval(interval);
