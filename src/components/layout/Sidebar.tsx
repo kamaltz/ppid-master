@@ -215,7 +215,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white shadow-lg transform transition-all duration-300 ease-in-out
+        fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white shadow-lg transform transition-all duration-300 ease-in-out flex flex-col overflow-hidden
         ${
           isOpen
             ? "w-64 translate-x-0 z-50"
@@ -270,7 +270,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-2 flex-1 overflow-y-auto">
+        <nav className="mt-2 flex-1 overflow-y-auto px-2">
           {(() => {
             let lastCategory = "";
             return visibleMenuItems.map((item, index) => {

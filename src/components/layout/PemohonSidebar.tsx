@@ -51,7 +51,7 @@ const PemohonSidebar = () => {
     <div
       className={`${
         isCollapsed ? "w-16" : "w-64"
-      } bg-white shadow-md h-screen transition-all duration-300`}
+      } bg-white shadow-md h-screen transition-all duration-300 flex flex-col overflow-hidden`}
     >
       {!isCollapsed && (
         <div className="p-4 border-b border-gray-200">
@@ -79,7 +79,7 @@ const PemohonSidebar = () => {
         </button>
       </div>
 
-      <nav className="px-2 space-y-2">
+      <nav className="px-2 space-y-2 flex-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
