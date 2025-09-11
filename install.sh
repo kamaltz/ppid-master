@@ -73,7 +73,7 @@ POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
 
 # Create PPID docker-compose
 log_info "Creating PPID configuration..."
-tee docker-compose.yml > /dev/null << EOF
+tee docker-compose.yml > /dev/null << 'EOF'
 services:
   postgres:
     image: postgres:15-alpine
@@ -98,7 +98,6 @@ services:
       DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
       NEXT_PUBLIC_API_URL: "https://167.172.83.55/api"
-
       DOCKER_ENV: "true"
     depends_on:
       postgres:
@@ -111,41 +110,36 @@ volumes:
   postgres_data:
 EOF
 
+# Replace variables in docker-compose.yml
+sed -i "s/\${POSTGRES_PASSWORD}/${POSTGRES_PASSWORD}/g" docker-compose.yml
+sed -i "s/\${JWT_SECRET}/${JWT_SECRET}/g" docker-compose.yml
+
 # Setup uploads with proper security
 log_info "Setting up file storage..."
 sudo mkdir -p /opt/ppid/uploads/{images,documents,attachments}
-# Set ownership to node user (UID 1000) and make writable
 sudo chown -R 1000:1000 /opt/ppid/uploads
 sudo chmod -R 755 /opt/ppid/uploads
-# Make sure nginx can read the files
-sudo usermod -a -G 1000 www-data
 
 # Install and configure Nginx
 log_info "Installing Nginx..."
 sudo apt update -qq
-sudo apt install -y nginx
+sudo apt install -y nginx openssl
 sudo systemctl enable nginx
-
-# Clean nginx.conf first
-sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
 
 # Setup self-signed SSL certificate
 log_info "Setting up self-signed SSL certificate..."
-
 SSL_DIR="/etc/ssl/ppid-selfsigned"
 CERT_FILE="$SSL_DIR/selfsigned.crt"
 KEY_FILE="$SSL_DIR/selfsigned.key"
 
-# Buat folder jika belum ada
 sudo mkdir -p $SSL_DIR
 
-# Generate cert jika belum ada
 if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
     log_info "Generating new self-signed certificate..."
     sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout "$KEY_FILE" \
         -out "$CERT_FILE" \
-        -subj "/C=ID/ST=West Java/L=Garut/O=PPID/OU=IT/CN=143.198.205.44"
+        -subj "/C=ID/ST=West Java/L=Garut/O=PPID/OU=IT/CN=167.172.83.55"
     log_info "Self-signed certificate generated at $SSL_DIR"
 else
     log_info "Existing self-signed certificate found, skipping generation."
@@ -153,8 +147,7 @@ fi
 
 # Create Nginx site config
 log_info "Configuring Nginx..."
-sudo tee /etc/nginx/sites-available/default << EOF
-
+sudo tee /etc/nginx/sites-available/default > /dev/null << EOF
 server {
     listen 80;
     server_name 167.172.83.55;
@@ -163,7 +156,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name 143.198.205.44;
+    server_name 167.172.83.55;
 
     ssl_certificate $CERT_FILE;
     ssl_certificate_key $KEY_FILE;
@@ -174,10 +167,6 @@ server {
         alias /opt/ppid/uploads/;
         expires 1y;
         add_header Cache-Control "public, immutable";
-        add_header Content-Disposition "inline";
-        location ~* \.(jpg|jpeg|png|gif|ico|svg|webp|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar)$ {
-            add_header Content-Disposition "attachment";
-        }
         try_files \$uri \$uri/ =404;
     }
 
@@ -193,41 +182,9 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 }
-
 EOF
 
-
-# server {
-#     listen 80;
-#     server_name domain.com;
-#     client_max_body_size 50M;
-    
-#     # Security headers
-#     add_header X-Frame-Options "SAMEORIGIN" always;
-#     add_header X-Content-Type-Options "nosniff" always;
-#     add_header X-XSS-Protection "1; mode=block" always;
-
-#     location /uploads/ {
-#         alias /opt/ppid/uploads/;
-#         expires 1y;
-#         add_header Cache-Control "public, immutable";
-#         try_files $uri $uri/ =404;
-#     }
-
-#     location / {
-#         proxy_pass http://127.0.0.1:3000;
-#         proxy_http_version 1.1;
-#         proxy_set_header Upgrade $http_upgrade;
-#         proxy_set_header Connection 'upgrade';
-#         proxy_set_header Host $host;
-#         proxy_set_header X-Real-IP $remote_addr;
-#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-#         proxy_set_header X-Forwarded-Proto $scheme;
-#         proxy_cache_bypass $http_upgrade;
-#     }
-# }
-
-# Enable site
+# Enable site and test nginx config
 sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
 if sudo nginx -t; then
     sudo systemctl reload nginx
@@ -287,33 +244,6 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Setup SSL with Let's Encrypt
-# log_info "Setting up SSL certificate..."
-# sudo apt install -y certbot python3-certbot-nginx
-# if sudo certbot --nginx -d ppid-garut.kamaltz.fun --non-interactive --agree-tos --email admin@kamaltz.fun --expand; then
-#     log_info "SSL certificate installed successfully"
-#     # Setup auto-renewal
-#     echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
-# else
-#     log_warn "SSL certificate installation failed, continuing without HTTPS"
-# fi
-
-# Setup SSL with self-signed certificate
-log_info "Setting up self-signed SSL certificate..."
-
-SSL_DIR="/etc/ssl/ppid-selfsigned"
-sudo mkdir -p $SSL_DIR
-
-# Generate self-signed cert valid 1 year
-if sudo openssl req -x509 -nodes -days 365 \
-    -newkey rsa:2048 \
-    -keyout $SSL_DIR/selfsigned.key \
-    -out $SSL_DIR/selfsigned.crt \
-    -subj "/C=ID/ST=West Java/L=Garut/O=PPID/OU=IT/CN=143.198.205.44"; then
-    
-    log_info "Self-signed SSL certificate generated successfully"
-fi
-
 # Save credentials securely
 log_info "Saving credentials..."
 cat > .env.production << EOF
@@ -326,8 +256,7 @@ echo ""
 log_info "✅ Installation Complete!"
 log_info "🌐 URL: https://167.172.83.55"
 log_info "📊 Admin: admin@garut.go.id / Garut@2025?"
-# log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
-log_info "🔐 Credentials saved in: /etc/ssl/ppid-selfsigned"
+log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
 
 echo ""
 log_info "Management Commands:"
@@ -335,6 +264,6 @@ echo "  View logs: docker-compose -f /opt/ppid/docker-compose.yml logs -f"
 echo "  Restart:   docker-compose -f /opt/ppid/docker-compose.yml restart"
 echo "  Stop:      docker-compose -f /opt/ppid/docker-compose.yml down"
 echo "  Update:    docker-compose -f /opt/ppid/docker-compose.yml pull && docker-compose -f /opt/ppid/docker-compose.yml up -d"
-echo "  Health:    curl https://ppidgarut.kamaltz.fun/api/health"
+echo "  Health:    curl https://167.172.83.55/api/health"
 echo ""
-log_info "🔒 Security: Firewall enabled, SSL configured, rate limiting active"
+log_info "🔒 Security: Firewall enabled, SSL configured"
