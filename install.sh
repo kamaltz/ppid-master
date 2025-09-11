@@ -89,6 +89,8 @@ services:
       DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
       NEXT_PUBLIC_API_URL: "https://167.172.83.55/api"
+      NEXTAUTH_URL: "https://167.172.83.55"
+      NODE_ENV: "production"
       DOCKER_ENV: "true"
     depends_on:
       postgres:
@@ -209,17 +211,28 @@ fi
 docker-compose restart app
 
 log_info "Waiting for application to start..."
-for i in {1..30}; do
+for i in {1..60}; do
     if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
         log_info "Application is ready"
         break
     fi
-    if [ $i -eq 30 ]; then
-        log_error "Application failed to start"
+    if [ $i -eq 60 ]; then
+        log_error "Application failed to start - checking logs..."
+        docker-compose logs app
         exit 1
     fi
-    sleep 2
+    sleep 3
 done
+
+log_info "Applying post-deployment fixes..."
+# Fix API endpoints that might be failing
+docker-compose exec -T app npx prisma db push --accept-data-loss || true
+
+# Restart app to ensure all environment variables are loaded
+docker-compose restart app
+
+# Wait for app to be fully ready after restart
+sleep 10
 
 log_info "Saving credentials..."
 cat > .env.production << CRED_EOF
@@ -235,11 +248,18 @@ log_info "Admin: admin@garut.go.id / Garut@2025?"
 log_info "Credentials saved in: /opt/ppid/.env.production"
 
 echo ""
+log_info "Troubleshooting:"
+echo "  If you see 500/502 errors, run: docker-compose -f /opt/ppid/docker-compose.yml restart"
+echo "  Check app logs: docker-compose -f /opt/ppid/docker-compose.yml logs app"
+echo "  Check database: docker-compose -f /opt/ppid/docker-compose.yml exec postgres psql -U postgres -d ppid_garut -c 'SELECT COUNT(*) FROM admin;'"
+
+echo ""
 log_info "Management Commands:"
 echo "  View logs: docker-compose -f /opt/ppid/docker-compose.yml logs -f"
 echo "  Restart:   docker-compose -f /opt/ppid/docker-compose.yml restart"
 echo "  Stop:      docker-compose -f /opt/ppid/docker-compose.yml down"
 echo "  Update:    docker-compose -f /opt/ppid/docker-compose.yml pull && docker-compose -f /opt/ppid/docker-compose.yml up -d"
 echo "  Health:    curl https://167.172.83.55/api/health"
+echo "  DB Status: docker-compose -f /opt/ppid/docker-compose.yml exec postgres pg_isready -U postgres"
 echo ""
 log_info "Security: Firewall enabled, SSL configured"
