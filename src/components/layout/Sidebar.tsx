@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useNotifications } from "@/hooks/useNotifications";
+import React from "react";
 
 type PermissionKey =
   | "informasi"
@@ -40,6 +41,7 @@ import {
   Minus,
   BarChart3,
   Globe,
+  RefreshCw
 } from "lucide-react";
 
 const menuItems = [
@@ -168,7 +170,11 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
   const { hasPermission } = useUserPermissions();
-  const { counts, clearNotification, getDisplayCount } = useNotifications();
+  const { counts, clearNotification, getDisplayCount, refreshNotifications } = useNotifications();
+
+
+
+
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (!item.permission) return true; // Dashboard, Kelola Halaman, Laporan always visible
@@ -255,17 +261,26 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
             )}
 
             {/* Desktop Toggle Button - Integrated */}
-            <button
-              onClick={onToggle}
-              className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
-              title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
-            >
-              {isOpen ? (
-                <ChevronLeft className="w-4 h-4 text-gray-600" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-gray-600" />
-              )}
-            </button>
+            <div className="flex gap-1">
+              <button
+                onClick={refreshNotifications}
+                className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
+                title="Refresh Notifications"
+              >
+                <RefreshCw className="w-3 h-3 text-gray-600" />
+              </button>
+              <button
+                onClick={onToggle}
+                className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
+                title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
+              >
+                {isOpen ? (
+                  <ChevronLeft className="w-4 h-4 text-gray-600" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -300,17 +315,17 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                     onClick={() => {
                       // Clear notifications based on menu
                       if (item.label === 'Approve Akun') {
-                        clearNotification('pendingAccounts', '/admin/approve-akun');
+                        clearNotification('pendingAccounts');
                       } else if (item.label === 'Chat') {
-                        clearNotification('newChats', '/admin/chat');
+                        clearNotification('newChats');
                       } else if (item.label === 'Permohonan') {
-                        clearNotification('newRequests', '/admin/permohonan');
+                        clearNotification('newRequests');
                       } else if (item.label === 'Keberatan') {
-                        clearNotification('newObjections', '/admin/keberatan');
+                        clearNotification('newObjections');
                       } else if (item.label === 'Log Aktivitas') {
-                        clearNotification('newLogs', '/admin/logs');
+                        clearNotification('newLogs');
                       } else if (item.label === 'Media') {
-                        clearNotification('newMedia', '/admin/media');
+                        clearNotification('newMedia');
                       }
                       
                       // Close sidebar on mobile after navigation
@@ -343,12 +358,12 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                     {/* Notification Badges */}
                     {(() => {
                       let count = 0;
-                      if (item.label === 'Approve Akun') count = getDisplayCount('pendingAccounts', '/admin/approve-akun');
-                      else if (item.label === 'Chat') count = getDisplayCount('newChats', '/admin/chat');
-                      else if (item.label === 'Permohonan') count = getDisplayCount('newRequests', '/admin/permohonan');
-                      else if (item.label === 'Keberatan') count = getDisplayCount('newObjections', '/admin/keberatan');
-                      else if (item.label === 'Log Aktivitas') count = getDisplayCount('newLogs', '/admin/logs');
-                      else if (item.label === 'Media') count = getDisplayCount('newMedia', '/admin/media');
+                      if (item.label === 'Approve Akun') count = counts.pendingAccounts;
+                      else if (item.label === 'Chat') count = counts.newChats;
+                      else if (item.label === 'Permohonan') count = counts.newRequests;
+                      else if (item.label === 'Keberatan') count = counts.newObjections;
+                      else if (item.label === 'Log Aktivitas') count = counts.newLogs;
+                      else if (item.label === 'Media') count = counts.newMedia;
                       
                       if (count > 0) {
                         return (

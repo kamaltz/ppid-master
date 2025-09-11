@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
 
     // Only Admin and PPID Utama can view pending accounts
-    if (!['ADMIN', 'PPID_UTAMA'].includes(decoded.role)) {
+    if (!['ADMIN', 'PPID', 'PPID_UTAMA'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 

@@ -7,6 +7,7 @@ interface DashboardStats {
   diproses: number;
   selesai: number;
   ditolak: number;
+  pendingAccounts: number;
 }
 
 interface PermintaanData {
@@ -62,7 +63,8 @@ export const useDashboardData = () => {
     diajukan: 0,
     diproses: 0,
     selesai: 0,
-    ditolak: 0
+    ditolak: 0,
+    pendingAccounts: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -142,13 +144,34 @@ export const useDashboardData = () => {
       
       setPermintaan(permintaanData);
 
+      // Fetch pending accounts for admin/ppid
+      let pendingAccountsCount = 0;
+      const userRole = localStorage.getItem('user_role');
+      if (userRole === 'ADMIN' || userRole === 'PPID' || userRole === 'PPID_UTAMA') {
+        try {
+          const token = localStorage.getItem('auth_token');
+          if (token) {
+            const pendingResponse = await fetch('/api/accounts/pending', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (pendingResponse.ok) {
+              const pendingData = await pendingResponse.json();
+              pendingAccountsCount = pendingData.success ? (pendingData.data?.length || 0) : 0;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching pending accounts for dashboard:', error);
+        }
+      }
+
       // Calculate stats
       const newStats = {
         total: permintaanData.length,
         diajukan: permintaanData.filter((p: PermintaanData) => p.status === 'Diajukan').length,
         diproses: permintaanData.filter((p: PermintaanData) => p.status === 'Diproses').length,
         selesai: permintaanData.filter((p: PermintaanData) => p.status === 'Selesai').length,
-        ditolak: permintaanData.filter((p: PermintaanData) => p.status === 'Ditolak').length
+        ditolak: permintaanData.filter((p: PermintaanData) => p.status === 'Ditolak').length,
+        pendingAccounts: pendingAccountsCount
       };
       
       setStats(newStats);
@@ -164,9 +187,9 @@ export const useDashboardData = () => {
     loadData();
   }, [loadData]);
 
-  // Auto refresh every 30 seconds
+  // Auto refresh every 5 minutes
   useEffect(() => {
-    const interval = setInterval(loadData, 30000);
+    const interval = setInterval(loadData, 300000);
     return () => clearInterval(interval);
   }, [loadData]);
 

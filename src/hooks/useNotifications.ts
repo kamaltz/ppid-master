@@ -31,14 +31,20 @@ export const useNotifications = () => {
       const role = getUserRole();
       
       // Fetch different notifications based on role
-      if (role === 'ADMIN' || role === 'PPID_UTAMA') {
+      if (role === 'ADMIN' || role === 'PPID' || role === 'PPID_UTAMA') {
         // Fetch pending accounts
-        const pendingResponse = await fetch('/api/accounts/pending', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (pendingResponse.ok) {
-          const pendingData = await pendingResponse.json();
-          setCounts(prev => ({ ...prev, pendingAccounts: pendingData.data?.length || 0 }));
+        try {
+          const pendingResponse = await fetch('/api/accounts/pending', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (pendingResponse.ok) {
+            const pendingData = await pendingResponse.json();
+            const pendingCount = pendingData.success ? (pendingData.data?.length || 0) : 0;
+
+            setCounts(prev => ({ ...prev, pendingAccounts: pendingCount }));
+          }
+        } catch (error) {
+          // Silent fail for pending accounts
         }
 
         // Fetch new requests
@@ -76,23 +82,26 @@ export const useNotifications = () => {
 
   const clearNotification = (type: keyof NotificationCounts, page?: string) => {
     setCounts(prev => ({ ...prev, [type]: 0 }));
-    if (page) {
-      markPageAsVisited(page);
-    }
   };
 
   const getDisplayCount = (type: keyof NotificationCounts, page: string) => {
-    if (isPageVisited(page)) {
-      return 0;
-    }
     return counts[type];
   };
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
+    const token = getToken();
+    const role = getUserRole();
+    if (token && (role === 'ADMIN' || role === 'PPID' || role === 'PPID_UTAMA')) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 60000); // Check every 1 minute
+      return () => clearInterval(interval);
+    }
   }, [getToken, getUserRole]);
 
-  return { counts, clearNotification, fetchNotifications, getDisplayCount };
+  // Add manual refresh function for immediate updates
+  const refreshNotifications = () => {
+    fetchNotifications();
+  };
+
+  return { counts, clearNotification, fetchNotifications, getDisplayCount, refreshNotifications };
 };

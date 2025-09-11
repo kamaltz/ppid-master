@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
-import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw, UserCheck } from "lucide-react";
 import Chart from "@/components/ui/Chart";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useState, useEffect } from "react";
@@ -81,7 +81,19 @@ export default function DashboardPage() {
         </div>
         
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-6 mb-4 sm:mb-6 md:mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-6 mb-4 sm:mb-6 md:mb-8">
+          {/* Pending Accounts Card - Only for Admin/PPID */}
+          {(userRole === 'Admin' || userRole === 'PPID') && (
+            <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md">
+              <div className="flex items-center">
+                <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-orange-600 flex-shrink-0" />
+                <div className="ml-2 sm:ml-3 md:ml-4 min-w-0">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Pending</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900">{stats.pendingAccounts}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md">
             <div className="flex items-center">
               <FileText className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-600 flex-shrink-0" />
@@ -122,7 +134,7 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md col-span-2 sm:col-span-1">
+          <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md">
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-red-600 flex-shrink-0" />
               <div className="ml-2 sm:ml-3 md:ml-4 min-w-0">
