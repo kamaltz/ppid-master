@@ -35,15 +35,17 @@
     "deploy": "npm run fix-settings && npm run build"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
     "@prisma/client": "^6.14.0",
     "@supabase/supabase-js": "^2.43.4",
+    "@types/bcrypt": "^6.0.0",
     "axios": "^1.11.0",
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.536.0",
+    "mime-types": "^2.1.35",
     "next": "15.4.5",
     "node-fetch": "^2.7.0",
     "pg": "^8.16.3",
@@ -52,8 +54,7 @@
     "react-dom": "19.1.0",
     "react-quill": "^2.0.0",
     "styled-jsx": "^5.1.7",
-    "uuid": "^9.0.1",
-    "mime-types": "^2.1.35"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@babel/plugin-syntax-jsx": "^7.27.1",
@@ -66,6 +67,7 @@
     "@types/cors": "^2.8.17",
     "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
+    "@types/mime-types": "^2.1.4",
     "@types/node": "^20",
     "@types/node-fetch": "^2.6.13",
     "@types/pg": "^8.15.5",
@@ -73,7 +75,6 @@
     "@types/react-dom": "^19",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^9.0.8",
-    "@types/mime-types": "^2.1.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.4.5",

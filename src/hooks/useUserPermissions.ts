@@ -22,9 +22,9 @@ export const useUserPermissions = () => {
   const userRole = getUserRole();
 
   useEffect(() => {
-    // Admin gets immediate full access
-    if (userRole === 'Admin') {
-      const adminPermissions: UserPermissions = {
+    // Admin and PPID Utama get immediate full access
+    if (userRole === 'Admin' || userRole === 'PPID') {
+      const fullPermissions: UserPermissions = {
         informasi: true,
         kategori: true,
         chat: true,
@@ -38,7 +38,7 @@ export const useUserPermissions = () => {
         media: true,
         profile: true
       };
-      setPermissions(adminPermissions);
+      setPermissions(fullPermissions);
       return;
     }
 
@@ -90,13 +90,13 @@ export const useUserPermissions = () => {
   }, [token, user, userRole]);
 
   const hasPermission = (permission: keyof UserPermissions): boolean => {
-    // Admin always has permission
-    if (userRole === 'Admin') return true;
+    // Admin and PPID Utama always have permission
+    if (userRole === 'Admin' || userRole === 'PPID') return true;
     
     // Fallback permissions when database is unstable
     if (!permissions) {
       // Basic permissions for PPID roles when database is down
-      if (userRole === 'PPID' || userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
+      if (userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
         const basicPermissions = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile'];
         return basicPermissions.includes(permission);
       }

@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Mail, Phone, MapPin, Camera, Save, IdCard, Lock, Key } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function PemohonProfilePage() {
+  const { user, getToken } = useAuth();
   const [profileData, setProfileData] = useState({
-    nama: "Ahmad Rizki",
-    email: "ahmad.rizki@email.com",
-    telepon: "081234567890",
-    alamat: "Jl. Merdeka No. 123, Garut",
-    nik: "3205123456789012",
-    pekerjaan: "Wiraswasta"
+    nama: "",
+    email: "",
+    telepon: "",
+    alamat: "",
+    nik: "",
+    pekerjaan: ""
   });
+  const [loading, setLoading] = useState(true);
   
   const [isEditing, setIsEditing] = useState(false);
   const [tempData, setTempData] = useState(profileData);
@@ -22,10 +25,80 @@ export default function PemohonProfilePage() {
     confirmPassword: ''
   });
 
-  const handleSave = () => {
-    setProfileData(tempData);
-    setIsEditing(false);
-    alert("Profile berhasil diperbarui!");
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = getToken();
+        if (!token) return;
+        
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        if (data.success && data.user) {
+          setProfileData({
+            nama: data.user.nama || '',
+            email: data.user.email || '',
+            telepon: data.user.no_telepon || '',
+            alamat: data.user.alamat || '',
+            nik: data.user.nik || '',
+            pekerjaan: data.user.pekerjaan || ''
+          });
+          setTempData({
+            nama: data.user.nama || '',
+            email: data.user.email || '',
+            telepon: data.user.no_telepon || '',
+            alamat: data.user.alamat || '',
+            nik: data.user.nik || '',
+            pekerjaan: data.user.pekerjaan || ''
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProfile();
+  }, [getToken]);
+
+  const handleSave = async () => {
+    try {
+      const token = getToken();
+      if (!token) return;
+      
+      const response = await fetch('/api/pemohon/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nama: tempData.nama,
+          email: tempData.email,
+          no_telepon: tempData.telepon,
+          alamat: tempData.alamat,
+          nik: tempData.nik,
+          pekerjaan: tempData.pekerjaan
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setProfileData(tempData);
+        setIsEditing(false);
+        alert("Profile berhasil diperbarui!");
+      } else {
+        alert("Gagal memperbarui profile: " + data.error);
+      }
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert("Terjadi kesalahan saat memperbarui profile");
+    }
   };
 
   const handleCancel = () => {
@@ -48,6 +121,34 @@ export default function PemohonProfilePage() {
       setShowPasswordForm(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <div className="flex flex-col md:flex-row gap-8">
+              <div className="flex flex-col items-center">
+                <div className="w-32 h-32 rounded-full bg-gray-200"></div>
+                <div className="h-6 bg-gray-200 rounded w-24 mt-4"></div>
+              </div>
+              <div className="flex-1 space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {[1,2,3,4,5,6].map(i => (
+                    <div key={i}>
+                      <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                      <div className="h-8 bg-gray-200 rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">

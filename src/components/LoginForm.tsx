@@ -14,6 +14,8 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [registrationDate, setRegistrationDate] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,9 +33,33 @@ const LoginForm = () => {
       await login(email, password);
     } catch (err: unknown) {
       console.error('Login error:', err);
+      
+      // Check if it's a pending approval error
+      if (err instanceof Error && err.message.includes('proses persetujuan')) {
+        setIsPendingApproval(true);
+        // Try to extract registration date from error response if available
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const data = await response.json();
+          if (data.registrationDate) {
+            setRegistrationDate(data.registrationDate);
+          }
+        } catch {
+          // Ignore error, just show basic message
+        }
+        // Don't show toast for pending approval, keep persistent message
+        setShowToast(false);
+      } else {
+        setIsPendingApproval(false);
+        setShowToast(true);
+      }
+      
       const errorMessage = err instanceof Error ? err.message : "Login gagal. Silakan coba lagi.";
       setError(errorMessage);
-      setShowToast(true);
     } finally {
       setIsLoading(false);
     }
@@ -56,10 +82,31 @@ const LoginForm = () => {
       {/* Tampilkan pesan error jika ada */}
       {error && (
         <div
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative"
+          className={`px-4 py-3 rounded-lg relative ${
+            isPendingApproval 
+              ? 'bg-yellow-100 border border-yellow-400 text-yellow-700'
+              : 'bg-red-100 border border-red-400 text-red-700'
+          }`}
           role="alert"
         >
-          <span className="block sm:inline">{error}</span>
+          <div className="flex items-start space-x-2">
+            {isPendingApproval && (
+              <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            )}
+            <div>
+              <span className="block sm:inline font-medium">
+                {isPendingApproval ? 'Akun Menunggu Persetujuan' : 'Login Gagal'}
+              </span>
+              <p className="text-sm mt-1">{error}</p>
+              {isPendingApproval && registrationDate && (
+                <p className="text-xs mt-2 opacity-75">
+                  Tanggal pendaftaran: {new Date(registrationDate).toLocaleDateString('id-ID')}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -77,7 +124,7 @@ const LoginForm = () => {
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
-            if (error) setError(null);
+            if (error && !isPendingApproval) setError(null);
           }}
           required
           disabled={isLoading}
@@ -103,7 +150,7 @@ const LoginForm = () => {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              if (error) setError(null);
+              if (error && !isPendingApproval) setError(null);
             }}
             required
             disabled={isLoading}

@@ -34,7 +34,7 @@ export const loginUser = async (email: string, password: string) => {
         throw new Error("Email atau password salah");
       }
       if (response.status === 403) {
-        throw new Error("Akses ditolak. Silakan coba lagi atau hubungi administrator.");
+        throw new Error(errorData.error || "Akses ditolak. Silakan coba lagi atau hubungi administrator.");
       }
       if (response.status === 404) {
         throw new Error("User tidak ditemukan");

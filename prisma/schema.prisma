@@ -13,7 +13,7 @@ model Admin {
   hashed_password String
   nama            String
   role            String?  @default("ADMIN")
-  permissions     String?  @db.Text
+  permissions     String?
   created_at      DateTime @default(now())
 
   @@map("admin")
@@ -27,108 +27,111 @@ model Pemohon {
   nik             String?
   no_telepon      String?
   alamat          String?
+  pekerjaan       String?
+  is_approved     Boolean     @default(false)
+  approved_by     String?
+  approved_at     DateTime?
   created_at      DateTime    @default(now())
-  requests        Request[]
   keberatan       Keberatan[]
+  requests        Request[]
 
   @@map("pemohon")
 }
 
 model Ppid {
-  id              Int      @id @default(autoincrement())
-  no_pegawai      String   @unique
-  email           String   @unique
-  hashed_password String
-  nama            String
-  role            String   @default("PPID_PELAKSANA")
-  permissions     String?  @db.Text
-  created_at      DateTime @default(now())
-  assigned_requests Request[]
+  id                 Int         @id @default(autoincrement())
+  no_pegawai         String      @unique
+  email              String      @unique
+  hashed_password    String
+  nama               String
+  role               String      @default("PPID_PELAKSANA")
+  permissions        String?
+  created_at         DateTime    @default(now())
   assigned_keberatan Keberatan[]
-  sent_chats      PpidChat[] @relation("SenderPpid")
-  received_chats  PpidChat[] @relation("ReceiverPpid")
+  received_chats     PpidChat[]  @relation("ReceiverPpid")
+  sent_chats         PpidChat[]  @relation("SenderPpid")
+  assigned_requests  Request[]
 
   @@map("ppid")
 }
 
 model Request {
-  id                        Int         @id @default(autoincrement())
+  id                        Int               @id @default(autoincrement())
   pemohon_id                Int
-  assigned_ppid_id          Int?        // PPID Pelaksana yang ditugaskan
   judul                     String?
   rincian_informasi         String
   tujuan_penggunaan         String
-  cara_memperoleh_informasi String      @default("Email")
-  cara_mendapat_salinan     String      @default("Email")
-  status                    String      @default("Diajukan")
+  cara_memperoleh_informasi String            @default("Email")
+  cara_mendapat_salinan     String            @default("Email")
+  status                    String            @default("Diajukan")
   catatan_ppid              String?
-  file_attachments          String?     @db.Text
-  created_by                Int?
-  created_at                DateTime    @default(now())
-  updated_at                DateTime    @default(now()) @updatedAt
-  pemohon                   Pemohon     @relation(fields: [pemohon_id], references: [id])
-  assigned_ppid             Ppid?       @relation(fields: [assigned_ppid_id], references: [id])
+  file_attachments          String?
+  created_at                DateTime          @default(now())
+  updated_at                DateTime          @default(now()) @updatedAt
+  assigned_ppid_id          Int?
+  chat_session              ChatSession?
   keberatan                 Keberatan[]
   responses                 RequestResponse[]
-  chat_session              ChatSession?
+  assigned_ppid             Ppid?             @relation(fields: [assigned_ppid_id], references: [id])
+  pemohon                   Pemohon           @relation(fields: [pemohon_id], references: [id])
 
   @@map("requests")
 }
 
 model RequestResponse {
-  id          Int      @id @default(autoincrement())
-  request_id  Int
-  user_id     String
-  user_role   String
-  user_name   String
-  message     String   @db.Text
-  attachments String?  @db.Text
-  message_type String  @default("text")
-  created_at  DateTime @default(now())
-  request     Request  @relation(fields: [request_id], references: [id])
+  id           Int      @id @default(autoincrement())
+  request_id   Int
+  user_id      String
+  user_role    String
+  user_name    String
+  message      String
+  attachments  String?
+  message_type String   @default("text")
+  created_at   DateTime @default(now())
+  request      Request  @relation(fields: [request_id], references: [id])
 
   @@map("request_responses")
 }
 
 model ChatSession {
-  id          Int      @id @default(autoincrement())
-  request_id  Int      @unique
-  is_active   Boolean  @default(true)
-  ended_by    String?
-  ended_at    DateTime?
-  created_at  DateTime @default(now())
-  request     Request  @relation(fields: [request_id], references: [id])
+  id         Int       @id @default(autoincrement())
+  request_id Int       @unique
+  is_active  Boolean   @default(true)
+  ended_by   String?
+  ended_at   DateTime?
+  created_at DateTime  @default(now())
+  request    Request   @relation(fields: [request_id], references: [id])
 
   @@map("chat_sessions")
 }
 
 model KategoriInformasi {
-  id          Int      @id @default(autoincrement())
-  nama        String   @unique
-  slug        String   @unique
-  deskripsi   String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
+  id         Int      @id @default(autoincrement())
+  nama       String   @unique
+  slug       String   @unique
+  deskripsi  String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 
   @@map("kategori_informasi")
 }
 
 model InformasiPublik {
-  id                         Int      @id @default(autoincrement())
+  id                         Int       @id @default(autoincrement())
   judul                      String
   klasifikasi                String
-  ringkasan_isi_informasi    String   @db.Text
-  file_attachments           String?  @db.Text
-  links                      String?  @db.Text
-  tanggal_posting            DateTime @default(now())
+  ringkasan_isi_informasi    String
+  file_attachments           String?
+  links                      String?
+  tanggal_posting            DateTime  @default(now())
   pejabat_penguasa_informasi String?
-  status                     String   @default("draft")
+  status                     String    @default("draft")
   thumbnail                  String?
   jadwal_publish             DateTime?
-  images                     String?  @db.Text
+  images                     String?
+  created_at                 DateTime  @default(now())
+  updated_at                 DateTime  @default(now()) @updatedAt
   created_by                 Int?
-  created_at                 DateTime @default(now())
-  updated_at                 DateTime @default(now()) @updatedAt
 
   @@map("informasi_publik")
 }
@@ -136,48 +139,47 @@ model InformasiPublik {
 model ActivityLog {
   id         Int      @id @default(autoincrement())
   action     String
-  resource   String?
-  details    String?  @db.Text
+  details    String?
   user_id    String?
   user_role  String?
   ip_address String?
-  user_agent String?  @db.Text
+  user_agent String?
   created_at DateTime @default(now())
+  resource   String?
 
   @@map("activity_logs")
 }
 
 model Keberatan {
-  id             Int      @id @default(autoincrement())
-  permintaan_id  Int
-  pemohon_id     Int
-  assigned_ppid_id Int?   // PPID Pelaksana yang ditugaskan
-  judul          String?
-  alasan_keberatan String @db.Text
-  status         String   @default("Diajukan")
-  catatan_ppid   String?  @db.Text
-  created_by     Int?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @default(now()) @updatedAt
-  permintaan     Request  @relation(fields: [permintaan_id], references: [id])
-  pemohon        Pemohon  @relation(fields: [pemohon_id], references: [id])
-  assigned_ppid  Ppid?    @relation(fields: [assigned_ppid_id], references: [id])
-  responses      KeberatanResponse[]
+  id               Int                 @id @default(autoincrement())
+  permintaan_id    Int
+  pemohon_id       Int
+  judul            String?
+  alasan_keberatan String
+  status           String              @default("Diajukan")
+  catatan_ppid     String?
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @default(now()) @updatedAt
+  assigned_ppid_id Int?
+  assigned_ppid    Ppid?               @relation(fields: [assigned_ppid_id], references: [id])
+  pemohon          Pemohon             @relation(fields: [pemohon_id], references: [id])
+  permintaan       Request             @relation(fields: [permintaan_id], references: [id])
+  responses        KeberatanResponse[]
 
   @@map("keberatan")
 }
 
 model KeberatanResponse {
-  id          Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   keberatan_id Int
-  user_id     String
-  user_role   String
-  user_name   String
-  message     String   @db.Text
-  attachments String?  @db.Text
-  message_type String  @default("text")
-  created_at  DateTime @default(now())
-  keberatan   Keberatan @relation(fields: [keberatan_id], references: [id])
+  user_id      String
+  user_role    String
+  user_name    String
+  message      String
+  attachments  String?
+  message_type String    @default("text")
+  created_at   DateTime  @default(now())
+  keberatan    Keberatan @relation(fields: [keberatan_id], references: [id])
 
   @@map("keberatan_responses")
 }
@@ -186,7 +188,7 @@ model Page {
   id         Int      @id @default(autoincrement())
   title      String
   slug       String   @unique
-  content    String?  @db.Text
+  content    String?
   status     String   @default("draft")
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
@@ -197,7 +199,7 @@ model Page {
 model Setting {
   id         Int      @id @default(autoincrement())
   key        String   @unique
-  value      String   @db.Text
+  value      String
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
 
@@ -205,11 +207,11 @@ model Setting {
 }
 
 model Kategori {
-  id          Int      @id @default(autoincrement())
-  nama        String   @unique
-  deskripsi   String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
+  id         Int      @id @default(autoincrement())
+  nama       String   @unique
+  deskripsi  String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 
   @@map("kategori")
 }
@@ -219,12 +221,12 @@ model PpidChat {
   sender_id   Int
   receiver_id Int
   subject     String?
-  message     String   @db.Text
-  attachments String?  @db.Text
+  message     String
+  attachments String?
   is_read     Boolean  @default(false)
   created_at  DateTime @default(now())
-  sender      Ppid     @relation("SenderPpid", fields: [sender_id], references: [id])
   receiver    Ppid     @relation("ReceiverPpid", fields: [receiver_id], references: [id])
+  sender      Ppid     @relation("SenderPpid", fields: [sender_id], references: [id])
 
   @@map("ppid_chats")
 }

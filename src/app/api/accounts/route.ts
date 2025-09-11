@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
           nama: true,
           email: true,
           nik: true,
+          is_approved: true,
           created_at: true
         }
       }),
@@ -69,9 +70,10 @@ export async function GET(request: NextRequest) {
         nama: pemohon.nama,
         email: pemohon.email,
         role: 'PEMOHON',
-        status: 'Aktif',
+        status: pemohon.is_approved ? 'Aktif' : 'Menunggu Persetujuan',
         tanggal_dibuat: pemohon.created_at.toISOString().split('T')[0],
         nik: pemohon.nik,
+        is_approved: pemohon.is_approved,
         table: 'pemohon'
       })),
       ...ppids.map(ppid => ({
@@ -139,7 +141,8 @@ export async function POST(request: NextRequest) {
         data: {
           nama,
           email,
-          hashed_password: hashedPassword
+          hashed_password: hashedPassword,
+          is_approved: true // Admin-created accounts are auto-approved
         }
       });
     } else if (['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(role)) {

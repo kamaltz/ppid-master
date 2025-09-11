@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useNotifications } from "@/hooks/useNotifications";
 
 type PermissionKey =
   | "informasi"
@@ -100,6 +101,13 @@ const menuItems = [
     category: "user",
   },
   {
+    href: "/admin/approve-akun",
+    icon: Users,
+    label: "Approve Akun",
+    permission: "kelola_akun",
+    category: "user",
+  },
+  {
     href: "/admin/roles",
     icon: Users,
     label: "Manajemen Role",
@@ -160,16 +168,17 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
   const { hasPermission } = useUserPermissions();
+  const { counts, clearNotification, getDisplayCount } = useNotifications();
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (!item.permission) return true; // Dashboard, Kelola Halaman, Laporan always visible
     
-    // Admin has full access to all menus immediately
-    if (userRole === 'Admin') return true;
+    // Admin and PPID Utama have full access to all menus immediately
+    if (userRole === 'Admin' || userRole === 'PPID') return true;
     
     // Fallback permissions when database is unstable
     // Show basic menus based on role even if permission check fails
-    if (userRole === 'PPID' || userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
+    if (userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
       const basicMenus = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile'];
       if (basicMenus.includes(item.permission as string)) {
         return true;
@@ -289,12 +298,27 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                   <Link
                     href={item.href}
                     onClick={() => {
+                      // Clear notifications based on menu
+                      if (item.label === 'Approve Akun') {
+                        clearNotification('pendingAccounts', '/admin/approve-akun');
+                      } else if (item.label === 'Chat') {
+                        clearNotification('newChats', '/admin/chat');
+                      } else if (item.label === 'Permohonan') {
+                        clearNotification('newRequests', '/admin/permohonan');
+                      } else if (item.label === 'Keberatan') {
+                        clearNotification('newObjections', '/admin/keberatan');
+                      } else if (item.label === 'Log Aktivitas') {
+                        clearNotification('newLogs', '/admin/logs');
+                      } else if (item.label === 'Media') {
+                        clearNotification('newMedia', '/admin/media');
+                      }
+                      
                       // Close sidebar on mobile after navigation
                       if (window.innerWidth < 1024) {
                         onToggle();
                       }
                     }}
-                    className={`flex items-center py-3 text-sm font-medium transition-colors group ${
+                    className={`flex items-center py-3 text-sm font-medium transition-colors group relative ${
                       isActive
                         ? "text-blue-800 bg-blue-50 border-r-2 border-blue-800"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -315,6 +339,28 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                     >
                       {item.label}
                     </span>
+
+                    {/* Notification Badges */}
+                    {(() => {
+                      let count = 0;
+                      if (item.label === 'Approve Akun') count = getDisplayCount('pendingAccounts', '/admin/approve-akun');
+                      else if (item.label === 'Chat') count = getDisplayCount('newChats', '/admin/chat');
+                      else if (item.label === 'Permohonan') count = getDisplayCount('newRequests', '/admin/permohonan');
+                      else if (item.label === 'Keberatan') count = getDisplayCount('newObjections', '/admin/keberatan');
+                      else if (item.label === 'Log Aktivitas') count = getDisplayCount('newLogs', '/admin/logs');
+                      else if (item.label === 'Media') count = getDisplayCount('newMedia', '/admin/media');
+                      
+                      if (count > 0) {
+                        return (
+                          <span className={`bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${
+                            isOpen ? 'ml-auto' : 'absolute -top-1 -right-1'
+                          }`}>
+                            {count > 99 ? '99+' : count}
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {/* Tooltip for collapsed state */}
                     {!isOpen && (

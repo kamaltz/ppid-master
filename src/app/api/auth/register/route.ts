@@ -127,19 +127,25 @@ export async function POST(request: NextRequest) {
             nama: sanitizedData.nama,
             nik: sanitizedData.nik,
             no_telepon: sanitizedData.no_telepon || null,
-            alamat: sanitizedData.alamat || null
+            alamat: sanitizedData.alamat || null,
+            is_approved: false
           }
         });
         break;
     }
 
+    const responseMessage = userRole === 'pemohon' 
+      ? "Registrasi berhasil. Akun Anda menunggu persetujuan Admin/PPID Utama sebelum dapat mengajukan permohonan."
+      : "Registrasi berhasil";
+
     return NextResponse.json({
-      message: "Registrasi berhasil",
+      message: responseMessage,
       user: {
         id: newUser.id,
         email: newUser.email,
         nama: newUser.nama,
-        role: userRole
+        role: userRole,
+        ...(userRole === 'pemohon' && { is_approved: false })
       }
     }, { status: 201 });
   } catch (error) {
