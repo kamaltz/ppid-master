@@ -17,7 +17,8 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 log_info "🚀 PPID Master - Production Deployment"
-log_info "Domain: 143.198.205.44"
+log_info "Domain: 167.172.83.55
+
 log_info "SSL: Automatic HTTPS"
 echo ""
 
@@ -97,7 +98,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
-      NEXT_PUBLIC_API_URL: "https://143.198.205.44/api"
+      NEXT_PUBLIC_API_URL: "https://167.172.83.55/api"
+
       DOCKER_ENV: "true"
     depends_on:
       postgres:
@@ -156,7 +158,7 @@ sudo tee /etc/nginx/sites-available/default << EOF
 
 server {
     listen 80;
-    server_name 143.198.205.44;
+    server_name 167.172.83.55;
     return 301 https://\$host\$request_uri;
 }
 
@@ -322,7 +324,7 @@ chmod 600 .env.production
 
 echo ""
 log_info "✅ Installation Complete!"
-log_info "🌐 URL: https://143.198.205.44"
+log_info "🌐 URL: https://167.172.83.55"
 log_info "📊 Admin: admin@garut.go.id / Garut@2025?"
 # log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
 log_info "🔐 Credentials saved in: /etc/ssl/ppid-selfsigned"
