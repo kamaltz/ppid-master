@@ -112,10 +112,12 @@ EOF
 
 # Setup uploads with proper security
 log_info "Setting up file storage..."
-sudo mkdir -p /opt/ppid/uploads/images
+sudo mkdir -p /opt/ppid/uploads/{images,documents,attachments}
 # Set ownership to node user (UID 1000) and make writable
 sudo chown -R 1000:1000 /opt/ppid/uploads
-sudo chmod -R 777 /opt/ppid/uploads
+sudo chmod -R 755 /opt/ppid/uploads
+# Make sure nginx can read the files
+sudo usermod -a -G 1000 www-data
 
 # Install and configure Nginx
 log_info "Installing Nginx..."
@@ -171,6 +173,10 @@ server {
         alias /opt/ppid/uploads/;
         expires 1y;
         add_header Cache-Control "public, immutable";
+        add_header Content-Disposition "inline";
+        location ~* \.(jpg|jpeg|png|gif|ico|svg|webp|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar)$ {
+            add_header Content-Disposition "attachment";
+        }
         try_files \$uri \$uri/ =404;
     }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Check, X, User, Clock, Mail, Phone, MapPin, Briefcase } from "lucide-react";
+import { Check, X, User, Clock, Mail, CheckSquare, Square } from "lucide-react";
 
 interface PemohonData {
   id: number;
@@ -21,6 +21,8 @@ export default function ApproveAkunPage() {
   const [pemohonList, setPemohonList] = useState<PemohonData[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const fetchPemohon = async () => {
     try {
@@ -95,6 +97,80 @@ export default function ApproveAkunPage() {
     }
   };
 
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Yakin ingin menyetujui ${selectedIds.length} akun?`)) return;
+    
+    setBulkProcessing(true);
+    try {
+      const token = getToken();
+      const response = await fetch("/api/accounts/bulk-approve", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pemohonIds: selectedIds }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPemohonList(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        setSelectedIds([]);
+      } else {
+        alert("Gagal approve akun: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error bulk approving accounts:", error);
+      alert("Terjadi kesalahan saat approve akun");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Yakin ingin menolak ${selectedIds.length} akun?`)) return;
+    
+    setBulkProcessing(true);
+    try {
+      const token = getToken();
+      const response = await fetch("/api/accounts/bulk-reject", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pemohonIds: selectedIds }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPemohonList(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        setSelectedIds([]);
+      } else {
+        alert("Gagal menolak akun: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error bulk rejecting accounts:", error);
+      alert("Terjadi kesalahan saat menolak akun");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => 
+      prev.length === pemohonList.length ? [] : pemohonList.map(p => p.id)
+    );
+  };
+
   useEffect(() => {
     fetchPemohon();
   }, []);
@@ -123,6 +199,42 @@ export default function ApproveAkunPage() {
         <p className="text-gray-600">
           Kelola persetujuan akun pemohon yang mendaftar
         </p>
+        
+        {pemohonList.length > 0 && (
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center text-sm text-gray-600 hover:text-gray-800"
+            >
+              {selectedIds.length === pemohonList.length ? 
+                <CheckSquare className="w-4 h-4 mr-1" /> : 
+                <Square className="w-4 h-4 mr-1" />
+              }
+              Pilih Semua ({selectedIds.length})
+            </button>
+            
+            {selectedIds.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBulkApprove}
+                  disabled={bulkProcessing}
+                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4 inline mr-1" />
+                  Setujui ({selectedIds.length})
+                </button>
+                <button
+                  onClick={handleBulkReject}
+                  disabled={bulkProcessing}
+                  className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  <X className="w-4 h-4 inline mr-1" />
+                  Tolak ({selectedIds.length})
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {pemohonList.length === 0 ? (
@@ -136,65 +248,56 @@ export default function ApproveAkunPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {pemohonList.map((pemohon) => (
-            <div key={pemohon.id} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-4">
-                    <User className="w-8 h-8 text-blue-600 mr-3" />
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        {pemohon.nama}
-                      </h3>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="w-4 h-4 mr-1" />
-                        Mendaftar: {new Date(pemohon.created_at).toLocaleDateString('id-ID')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="flex items-center text-gray-700">
-                      <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                      <span className="text-sm">{pemohon.email || 'Email tidak tersedia'}</span>
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                      <span className="text-sm">{pemohon.no_telepon || 'Telepon tidak tersedia'}</span>
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                      <span className="text-sm">{pemohon.alamat || 'Alamat tidak tersedia'}</span>
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <Briefcase className="w-4 h-4 mr-2 text-gray-400" />
-                      <span className="text-sm">{pemohon.pekerjaan || 'Pekerjaan tidak tersedia'}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="text-sm text-gray-600">
-                      <strong>NIK:</strong> {pemohon.nik || 'NIK tidak tersedia'}
+            <div key={pemohon.id} className={`bg-white rounded-lg shadow-md p-4 border-2 transition-colors ${
+              selectedIds.includes(pemohon.id) ? 'border-blue-300 bg-blue-50' : 'border-transparent'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => toggleSelect(pemohon.id)}
+                    className="text-gray-400 hover:text-blue-600"
+                  >
+                    {selectedIds.includes(pemohon.id) ? 
+                      <CheckSquare className="w-5 h-5 text-blue-600" /> : 
+                      <Square className="w-5 h-5" />
+                    }
+                  </button>
+                  
+                  <User className="w-6 h-6 text-blue-600" />
+                  
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{pemohon.nama}</h3>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <span className="flex items-center">
+                        <Mail className="w-3 h-3 mr-1" />
+                        {pemohon.email}
+                      </span>
+                      <span>NIK: {pemohon.nik}</span>
+                      <span className="flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {new Date(pemohon.created_at).toLocaleDateString('id-ID')}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex space-x-3 ml-6">
+                <div className="flex space-x-2">
                   <button
                     onClick={() => handleApprove(pemohon.id)}
                     disabled={processing === pemohon.id}
-                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
                   >
-                    <Check className="w-4 h-4 mr-2" />
-                    {processing === pemohon.id ? "Memproses..." : "Setujui"}
+                    <Check className="w-4 h-4 mr-1" />
+                    {processing === pemohon.id ? "..." : "Setujui"}
                   </button>
                   <button
                     onClick={() => handleReject(pemohon.id)}
                     disabled={processing === pemohon.id}
-                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
                   >
-                    <X className="w-4 h-4 mr-2" />
+                    <X className="w-4 h-4 mr-1" />
                     Tolak
                   </button>
                 </div>
