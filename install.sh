@@ -148,11 +148,28 @@ server {
 
     client_max_body_size 50M;
 
+    # Security headers
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; frame-src 'self';" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
     location /uploads/ {
         alias /opt/ppid/uploads/;
         expires 1y;
         add_header Cache-Control "public, immutable";
         try_files \$uri \$uri/ =404;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 
     location / {
@@ -165,6 +182,9 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 }
 NGINX_EOF
@@ -249,9 +269,26 @@ log_info "Credentials saved in: /opt/ppid/.env.production"
 
 echo ""
 log_info "Troubleshooting:"
-echo "  If you see 500/502 errors, run: docker-compose -f /opt/ppid/docker-compose.yml restart"
+echo "  If you see 500/502 errors, run: bash /opt/ppid/fix-deployment.sh"
 echo "  Check app logs: docker-compose -f /opt/ppid/docker-compose.yml logs app"
 echo "  Check database: docker-compose -f /opt/ppid/docker-compose.yml exec postgres psql -U postgres -d ppid_garut -c 'SELECT COUNT(*) FROM admin;'"
+
+# Create fix script
+cat > fix-deployment.sh << FIX_EOF
+#!/bin/bash
+set -e
+cd /opt/ppid
+docker-compose down
+docker-compose pull
+docker-compose up -d --force-recreate
+sleep 10
+docker-compose exec -T app npx prisma generate
+docker-compose exec -T app npx prisma migrate deploy
+docker-compose exec -T app npx prisma db seed
+docker-compose restart app
+echo "Fix completed! Try accessing: https://167.172.83.55"
+FIX_EOF
+chmod +x fix-deployment.sh
 
 echo ""
 log_info "Management Commands:"
