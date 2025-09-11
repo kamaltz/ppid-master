@@ -313,6 +313,7 @@ if sudo openssl req -x509 -nodes -days 365 \
     -subj "/C=ID/ST=West Java/L=Garut/O=PPID/OU=IT/CN=143.198.205.44"; then
     
     log_info "Self-signed SSL certificate generated successfully"
+fi
 
 # Save credentials securely
 log_info "Saving credentials..."
