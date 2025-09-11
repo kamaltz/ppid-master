@@ -315,17 +315,17 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                     onClick={() => {
                       // Clear notifications based on menu
                       if (item.label === 'Approve Akun') {
-                        clearNotification('pendingAccounts');
+                        setTimeout(() => clearNotification('pendingAccounts'), 100);
                       } else if (item.label === 'Chat') {
-                        clearNotification('newChats');
+                        setTimeout(() => clearNotification('newChats'), 100);
                       } else if (item.label === 'Permohonan') {
-                        clearNotification('newRequests');
+                        setTimeout(() => clearNotification('newRequests'), 100);
                       } else if (item.label === 'Keberatan') {
-                        clearNotification('newObjections');
+                        setTimeout(() => clearNotification('newObjections'), 100);
                       } else if (item.label === 'Log Aktivitas') {
-                        clearNotification('newLogs');
+                        setTimeout(() => clearNotification('newLogs'), 100);
                       } else if (item.label === 'Media') {
-                        clearNotification('newMedia');
+                        setTimeout(() => clearNotification('newMedia'), 100);
                       }
                       
                       // Close sidebar on mobile after navigation

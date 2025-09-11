@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useNotificationStorage } from './useNotificationStorage';
 
 interface NotificationCounts {
   pendingAccounts: number;
@@ -11,9 +10,24 @@ interface NotificationCounts {
   newMedia: number;
 }
 
+interface NotificationItem {
+  id: string;
+  status: 'unread' | 'read';
+  role: string;
+  timestamp: number;
+}
+
+interface NotificationHistory {
+  pendingAccounts: NotificationItem[];
+  newChats: NotificationItem[];
+  newRequests: NotificationItem[];
+  newObjections: NotificationItem[];
+  newLogs: NotificationItem[];
+  newMedia: NotificationItem[];
+}
+
 export const useNotifications = () => {
   const { getToken, getUserRole } = useAuth();
-  const { markPageAsVisited, isPageVisited } = useNotificationStorage();
   const [counts, setCounts] = useState<NotificationCounts>({
     pendingAccounts: 0,
     newChats: 0,
@@ -22,6 +36,32 @@ export const useNotifications = () => {
     newLogs: 0,
     newMedia: 0
   });
+  
+  const getNotificationHistory = () => {
+    const saved = localStorage.getItem('notificationHistory');
+    return saved ? JSON.parse(saved) : {
+      pendingAccounts: [],
+      newChats: [],
+      newRequests: [],
+      newObjections: [],
+      newLogs: [],
+      newMedia: []
+    };
+  };
+
+  const updateHistory = (type: keyof NotificationHistory, items: NotificationItem[]) => {
+    const current = getNotificationHistory();
+    const updated = { ...current, [type]: items };
+    localStorage.setItem('notificationHistory', JSON.stringify(updated));
+  };
+
+  const markAsRead = (type: keyof NotificationHistory, id: string) => {
+    const history = getNotificationHistory();
+    const items = history[type].map((item: NotificationItem) => 
+      item.id === id ? { ...item, status: 'read' as const } : item
+    );
+    updateHistory(type, items);
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -39,30 +79,117 @@ export const useNotifications = () => {
           });
           if (pendingResponse.ok) {
             const pendingData = await pendingResponse.json();
-            const pendingCount = pendingData.success ? (pendingData.data?.length || 0) : 0;
-
-            setCounts(prev => ({ ...prev, pendingAccounts: pendingCount }));
+            if (pendingData.success && pendingData.data) {
+              const currentIds = pendingData.data.map((item: any) => item.id.toString());
+              const history = getNotificationHistory();
+              const role = getUserRole();
+              
+              // Add new items to history
+              const existingIds = history.pendingAccounts.map((item: NotificationItem) => item.id);
+              const newItems = currentIds
+                .filter((id: string) => !existingIds.includes(id))
+                .map((id: string) => ({
+                  id,
+                  status: 'unread' as const,
+                  role: role || '',
+                  timestamp: Date.now()
+                }));
+              
+              if (newItems.length > 0) {
+                updateHistory('pendingAccounts', [...history.pendingAccounts, ...newItems]);
+              }
+              
+              // Count unread items for current role
+              const updatedHistory = newItems.length > 0 ? [...history.pendingAccounts, ...newItems] : history.pendingAccounts;
+              const unreadCount = updatedHistory
+                .filter((item: NotificationItem) => 
+                  item.status === 'unread' && 
+                  currentIds.includes(item.id)
+                ).length;
+              
+              setCounts(prev => ({ ...prev, pendingAccounts: unreadCount }));
+            }
           }
         } catch (error) {
           // Silent fail for pending accounts
         }
 
-        // Fetch new requests
-        const requestsResponse = await fetch('/api/permintaan?status=Diajukan', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (requestsResponse.ok) {
-          const requestsData = await requestsResponse.json();
-          setCounts(prev => ({ ...prev, newRequests: requestsData.data?.length || 0 }));
+        // Fetch new requests with history tracking
+        try {
+          const requestsResponse = await fetch('/api/permintaan?status=Diajukan', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (requestsResponse.ok) {
+            const requestsData = await requestsResponse.json();
+            if (requestsData.success && requestsData.data) {
+              const currentIds = requestsData.data.map((item: any) => item.id.toString());
+              const history = getNotificationHistory();
+              
+              const existingIds = history.newRequests.map((item: NotificationItem) => item.id);
+              const newItems = currentIds
+                .filter((id: string) => !existingIds.includes(id))
+                .map((id: string) => ({
+                  id,
+                  status: 'unread' as const,
+                  role: role || '',
+                  timestamp: Date.now()
+                }));
+              
+              if (newItems.length > 0) {
+                updateHistory('newRequests', [...history.newRequests, ...newItems]);
+              }
+              
+              const updatedHistory = newItems.length > 0 ? [...history.newRequests, ...newItems] : history.newRequests;
+              const unreadCount = updatedHistory
+                .filter((item: NotificationItem) => 
+                  item.status === 'unread' && 
+                  currentIds.includes(item.id)
+                ).length;
+              
+              setCounts(prev => ({ ...prev, newRequests: unreadCount }));
+            }
+          }
+        } catch (error) {
+          // Silent fail
         }
 
-        // Fetch new objections
-        const objectionsResponse = await fetch('/api/keberatan?status=Diajukan', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (objectionsResponse.ok) {
-          const objectionsData = await objectionsResponse.json();
-          setCounts(prev => ({ ...prev, newObjections: objectionsData.data?.length || 0 }));
+        // Fetch new objections with history tracking
+        try {
+          const objectionsResponse = await fetch('/api/keberatan?status=Diajukan', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (objectionsResponse.ok) {
+            const objectionsData = await objectionsResponse.json();
+            if (objectionsData.success && objectionsData.data) {
+              const currentIds = objectionsData.data.map((item: any) => item.id.toString());
+              const history = getNotificationHistory();
+              
+              const existingIds = history.newObjections.map((item: NotificationItem) => item.id);
+              const newItems = currentIds
+                .filter((id: string) => !existingIds.includes(id))
+                .map((id: string) => ({
+                  id,
+                  status: 'unread' as const,
+                  role: role || '',
+                  timestamp: Date.now()
+                }));
+              
+              if (newItems.length > 0) {
+                updateHistory('newObjections', [...history.newObjections, ...newItems]);
+              }
+              
+              const updatedHistory = newItems.length > 0 ? [...history.newObjections, ...newItems] : history.newObjections;
+              const unreadCount = updatedHistory
+                .filter((item: NotificationItem) => 
+                  item.status === 'unread' && 
+                  currentIds.includes(item.id)
+                ).length;
+              
+              setCounts(prev => ({ ...prev, newObjections: unreadCount }));
+            }
+          }
+        } catch (error) {
+          // Silent fail
         }
       }
 
@@ -80,7 +207,26 @@ export const useNotifications = () => {
     }
   };
 
-  const clearNotification = (type: keyof NotificationCounts, page?: string) => {
+  const clearNotification = (type: keyof NotificationCounts) => {
+    const history = getNotificationHistory();
+    
+    if (type === 'pendingAccounts') {
+      const updatedItems = history.pendingAccounts.map((item: NotificationItem) => 
+        item.status === 'unread' ? { ...item, status: 'read' as const } : item
+      );
+      updateHistory('pendingAccounts', updatedItems);
+    } else if (type === 'newRequests') {
+      const updatedItems = history.newRequests.map((item: NotificationItem) => 
+        item.status === 'unread' ? { ...item, status: 'read' as const } : item
+      );
+      updateHistory('newRequests', updatedItems);
+    } else if (type === 'newObjections') {
+      const updatedItems = history.newObjections.map((item: NotificationItem) => 
+        item.status === 'unread' ? { ...item, status: 'read' as const } : item
+      );
+      updateHistory('newObjections', updatedItems);
+    }
+    
     setCounts(prev => ({ ...prev, [type]: 0 }));
   };
 
