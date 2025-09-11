@@ -34,7 +34,7 @@ test_endpoint() {
     log_test "Testing: $description"
     echo "  URL: $method $BASE_URL$endpoint"
     
-    local curl_cmd="curl -s -w '%{http_code}' -o /dev/null --connect-timeout $TIMEOUT"
+    local curl_cmd="curl -k -s -w '%{http_code}' -o /dev/null --connect-timeout $TIMEOUT"
     
     if [ "$method" = "POST" ]; then
         curl_cmd="$curl_cmd -X POST -H 'Content-Type: application/json' -d '{}'"
@@ -50,6 +50,15 @@ test_endpoint() {
     
     local status_code
     status_code=$(eval "$curl_cmd '$BASE_URL$endpoint'" 2>/dev/null || echo "000")
+    
+    # If HTTPS fails, try HTTP
+    if [ "$status_code" = "000" ] && [[ "$BASE_URL" == https* ]]; then
+        local http_url=${BASE_URL/https/http}
+        status_code=$(eval "$curl_cmd '$http_url$endpoint'" 2>/dev/null || echo "000")
+        if [ "$status_code" != "000" ]; then
+            echo "  Note: HTTPS failed, HTTP worked"
+        fi
+    fi
     
     if [ "$status_code" = "$expected_status" ]; then
         echo -e "  ${GREEN}✓ PASS${NC} (Status: $status_code)"

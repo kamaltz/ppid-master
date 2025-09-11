@@ -199,8 +199,22 @@ else
 fi
 
 log_info "Starting PPID Master..."
+# Ensure we have the latest image
 docker-compose pull
+
+# Stop any existing containers first
+docker-compose down 2>/dev/null || true
+
+# Start services
 docker-compose up -d
+
+# Verify containers started
+sleep 5
+if ! docker-compose ps | grep -q "Up"; then
+    log_error "Containers failed to start. Checking logs..."
+    docker-compose logs
+    exit 1
+fi
 
 log_info "Waiting for services to start..."
 for i in {1..30}; do
@@ -216,16 +230,36 @@ for i in {1..30}; do
 done
 
 log_info "Setting up database..."
-docker-compose exec -T app npx prisma generate
-docker-compose exec -T app npx prisma migrate deploy
+# Wait a bit more for app to be ready
+sleep 10
+
+# Generate Prisma client
+if ! docker-compose exec -T app npx prisma generate; then
+    log_error "Failed to generate Prisma client"
+    docker-compose logs app
+    exit 1
+fi
+
+# Deploy migrations
+if ! docker-compose exec -T app npx prisma migrate deploy; then
+    log_error "Failed to deploy database migrations"
+    docker-compose logs app
+    exit 1
+fi
 
 if [ -f "ppid_db.sql" ]; then
     log_info "Found ppid_db.sql - importing custom database..."
-    docker-compose exec -T postgres psql -U postgres -d ppid_garut < ppid_db.sql
-    log_info "Custom database imported successfully"
+    if docker-compose exec -T postgres psql -U postgres -d ppid_garut < ppid_db.sql; then
+        log_info "Custom database imported successfully"
+    else
+        log_error "Failed to import custom database"
+        exit 1
+    fi
 else
     log_info "No ppid_db.sql found - using default seed data..."
-    docker-compose exec -T app npx prisma db seed
+    if ! docker-compose exec -T app npx prisma db seed; then
+        log_warn "Failed to seed database, but continuing..."
+    fi
 fi
 
 docker-compose restart app
@@ -237,12 +271,19 @@ for i in {1..60}; do
         break
     fi
     if [ $i -eq 60 ]; then
-        log_error "Application failed to start - checking logs..."
-        docker-compose logs app
+        log_error "Application failed to start after 3 minutes"
+        log_error "Checking container status..."
+        docker-compose ps
+        log_error "Application logs:"
+        docker-compose logs --tail=50 app
+        log_error "Database logs:"
+        docker-compose logs --tail=20 postgres
         exit 1
     fi
+    echo -n "."
     sleep 3
 done
+echo ""
 
 log_info "Applying post-deployment fixes..."
 # Fix API endpoints that might be failing
@@ -261,11 +302,28 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 CRED_EOF
 chmod 600 .env.production
 
+# Final validation
+log_info "Running final validation..."
+if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
+    HEALTH_RESPONSE=$(curl -s http://localhost:3000/api/health)
+    log_info "Health check: $HEALTH_RESPONSE"
+else
+    log_warn "Health check failed, but installation completed"
+fi
+
+# Test database connection
+ADMIN_COUNT=$(docker-compose exec -T postgres psql -U postgres -d ppid_garut -t -c "SELECT COUNT(*) FROM admin;" 2>/dev/null | tr -d ' \n' || echo "0")
+log_info "Admin accounts in database: $ADMIN_COUNT"
+
 echo ""
 log_info "Installation Complete!"
 log_info "URL: https://167.172.83.55"
 log_info "Admin: admin@garut.go.id / Garut@2025?"
 log_info "Credentials saved in: /opt/ppid/.env.production"
+
+if [ "$ADMIN_COUNT" = "0" ]; then
+    log_warn "No admin accounts found. You may need to run the seed command manually."
+fi
 
 echo ""
 log_info "Troubleshooting:"
