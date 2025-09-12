@@ -17,7 +17,7 @@ services:
   app:
     image: kamaltz/ppid-master:latest
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
