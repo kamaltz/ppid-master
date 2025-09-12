@@ -127,7 +127,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:\${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public&connect_timeout=60&pool_timeout=60"
       JWT_SECRET: "\${JWT_SECRET}"
-      NEXT_PUBLIC_API_URL: "https://167.172.83.55/api"
+      NEXT_PUBLIC_API_URL: "http://167.172.83.55/api"
       NODE_ENV: "production"
       DOCKER_ENV: "true"
     depends_on:
@@ -164,10 +164,10 @@ sudo systemctl enable nginx
 sudo rm -f /etc/nginx/sites-enabled/ppid.garutkab.go.id
 sudo rm -f /etc/nginx/sites-available/ppid.garutkab.go.id
 
-# Add rate limiting to nginx.conf
-log_info "Configuring rate limiting..."
+# Remove aggressive rate limiting that blocks access
+log_info "Configuring basic rate limiting..."
 sudo sed -i '/# PPID Rate Limiting/,+2d' /etc/nginx/nginx.conf
-sudo sed -i '/http {/a\    # PPID Rate Limiting\n    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/m;\n    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;' /etc/nginx/nginx.conf
+sudo sed -i '/http {/a\    # PPID Rate Limiting\n    limit_req_zone $binary_remote_addr zone=api:10m rate=100r/m;\n    limit_req_zone $binary_remote_addr zone=login:10m rate=50r/m;' /etc/nginx/nginx.conf
 
 # Remove default nginx site
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -176,8 +176,8 @@ sudo rm -f /etc/nginx/sites-enabled/default
 log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 server {
-    listen 80;
-    server_name 167.172.83.55;
+    listen 80 default_server;
+    server_name _;
     client_max_body_size 50M;
     
     # Security headers
@@ -187,7 +187,7 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location /api/auth/ {
-        limit_req zone=login burst=3 nodelay;
+        limit_req zone=login burst=20 nodelay;
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -200,7 +200,7 @@ server {
     }
 
     location /api/ {
-        limit_req zone=api burst=10 nodelay;
+        limit_req zone=api burst=50 nodelay;
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -245,6 +245,15 @@ else
     log_error "Nginx configuration test failed"
     exit 1
 fi
+
+# Configure firewall for public access
+log_info "Configuring firewall for public access..."
+sudo ufw --force enable
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw reload
+log_info "Firewall configured - ports 22, 80, 443 open"
 
 # Determine compose command first
 if docker compose version &> /dev/null; then
@@ -361,6 +370,6 @@ else
     echo "  Stop:      /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml down"
     echo "  Update:    /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml pull && /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml up -d"
 fi
-echo "  Health:    curl https://167.172.83.55/api/health"
+echo "  Health:    curl http://167.172.83.55/api/health"
 echo ""
 log_info "🔒 Security: Firewall enabled, SSL configured, rate limiting active"
