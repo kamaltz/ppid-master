@@ -123,7 +123,7 @@ services:
   app:
     image: kamaltz/ppid-master:latest
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:\${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public&connect_timeout=60&pool_timeout=60"
       JWT_SECRET: "\${JWT_SECRET}"
@@ -160,14 +160,13 @@ sudo apt update -qq
 sudo apt install -y nginx dnsutils
 sudo systemctl enable nginx
 
-# Clean up ALL existing nginx configurations
-log_info "Cleaning up existing nginx configurations..."
-sudo rm -f /etc/nginx/sites-enabled/*
-sudo rm -f /etc/nginx/sites-available/ppid*
-sudo rm -f /etc/nginx/conf.d/rate-limit.conf
-sudo rm -f /etc/nginx/conf.d/*rate*
-sudo systemctl stop nginx || true
-sudo systemctl start nginx
+# Clean up existing configurations
+sudo rm -f /etc/nginx/sites-enabled/ppid.garutkab.go.id
+sudo rm -f /etc/nginx/sites-available/ppid.garutkab.go.id
+sudo rm -f /etc/nginx/sites-enabled/ppid-master
+
+# Remove default nginx site
+sudo rm -f /etc/nginx/sites-enabled/default
 
 # Create Nginx site config
 log_info "Configuring Nginx..."
@@ -184,7 +183,7 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location /api/auth/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -196,7 +195,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -215,7 +214,7 @@ server {
     }
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
