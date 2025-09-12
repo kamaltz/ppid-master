@@ -172,8 +172,8 @@ sudo rm -f /etc/nginx/sites-enabled/default
 log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 server {
-    listen 80;
-    server_name 167.172.83.55;
+    listen 80 default_server;
+    server_name 167.172.83.55 _;
     client_max_body_size 50M;
     
     # Security headers
@@ -232,9 +232,21 @@ EOF
 
 # Enable site
 sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
+
+# Test and restart nginx
+log_info "Testing nginx configuration..."
 if sudo nginx -t; then
     sudo systemctl restart nginx
     log_info "Nginx configuration validated and restarted"
+    
+    # Verify nginx is running and listening
+    if sudo netstat -tlnp | grep :80 > /dev/null; then
+        log_info "Nginx is listening on port 80"
+    else
+        log_error "Nginx is not listening on port 80"
+        sudo systemctl status nginx
+        exit 1
+    fi
 else
     log_error "Nginx configuration test failed"
     log_info "Checking nginx error log..."
@@ -345,6 +357,17 @@ JWT_SECRET=${JWT_SECRET}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 EOF
 chmod 600 .env.production
+
+# Final verification
+log_info "Performing final verification..."
+if curl -f -s http://localhost/api/health > /dev/null; then
+    log_info "✅ Application is accessible via nginx"
+else
+    log_warn "⚠️ Application may not be accessible via nginx"
+    log_info "Checking nginx and docker status..."
+    sudo systemctl status nginx --no-pager -l
+    $COMPOSE_CMD ps
+fi
 
 echo ""
 log_info "✅ Installation Complete!"
