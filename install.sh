@@ -183,6 +183,7 @@ server {
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
+}
 NGINX_EOF
 
 sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
