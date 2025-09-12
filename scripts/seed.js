@@ -12,7 +12,7 @@ async function main() {
     where: { email: "admin@garut.go.id" },
     update: {},
     create: {
-      email: "admin@garut.go.id",
+      email: "admin@garutkab.go.id",
       hashed_password: hashedPassword,
       nama: "Admin Utama",
       role: "ADMIN",
@@ -22,10 +22,10 @@ async function main() {
 
   // Seed akun PPID
   await prisma.ppid.upsert({
-    where: { email: "ppid.utama@garut.go.id" },
+    where: { email: "ppid.utama@garutkab.go.id" },
     update: {},
     create: {
-      email: "ppid.utama@garut.go.id",
+      email: "ppid.utama@garutkab.go.id",
       no_pegawai: "001", // Nomor pegawai unik diperlukan
       hashed_password: hashedPassword,
       nama: "PPID Utama",
@@ -35,10 +35,10 @@ async function main() {
   console.log("PPID Utama user created.");
 
   await prisma.ppid.upsert({
-    where: { email: "ppid.pelaksana@garut.go.id" },
+    where: { email: "ppid.pelaksana@garutkab.go.id" },
     update: {},
     create: {
-      email: "ppid.pelaksana@garut.go.id",
+      email: "ppid.pelaksana@garutkab.go.id",
       no_pegawai: "002", // Nomor pegawai unik diperlukan
       hashed_password: hashedPassword,
       nama: "PPID Pelaksana",
@@ -48,10 +48,10 @@ async function main() {
   console.log("PPID Pelaksana user created.");
 
   await prisma.ppid.upsert({
-    where: { email: "atasan.ppid@garut.go.id" },
+    where: { email: "atasan.ppid@garutkab.go.id" },
     update: {},
     create: {
-      email: "atasan.ppid@garut.go.id",
+      email: "atasan.ppid@garutkab.go.id",
       no_pegawai: "003", // Nomor pegawai unik diperlukan
       hashed_password: hashedPassword,
       nama: "Atasan PPID",
@@ -62,10 +62,10 @@ async function main() {
 
   // Seed Pemohon
   await prisma.pemohon.upsert({
-    where: { email: "pemohon@example.com" },
+    where: { email: "pemohon@gmail.com" },
     update: {},
     create: {
-      email: "pemohon@example.com",
+      email: "pemohon@gmail.com" },
       hashed_password: hashedPassword,
       nama: "Pemohon Test",
     },

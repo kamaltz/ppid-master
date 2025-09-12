@@ -346,9 +346,8 @@ docker-compose up -d --force-recreate
 sleep 10
 docker-compose exec -T app npx prisma generate
 docker-compose exec -T app npx prisma migrate deploy
-docker-compose exec -T app npx prisma migrate dev --name add_pekerjaan_to_pemohon
+docker-compose exec postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN pekerjaan TEXT;
 # Fix database schema
-docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan VARCHAR(255);" || true
 docker-compose exec -T app npx prisma db seed
 docker-compose restart app
 sleep 15
