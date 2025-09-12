@@ -9,10 +9,10 @@ async function main() {
 
   // Seed Admin
   await prisma.admin.upsert({
-    where: { email: "admin@garut.go.id" },
+    where: { email: "admin@garutkab.go.id" },
     update: {},
     create: {
-      email: "admin@garut.go.id",
+      email: "admin@garutkab.go.id",
       hashed_password: hashedPassword,
       nama: "Admin Utama",
       role: "ADMIN",
@@ -22,10 +22,10 @@ async function main() {
 
   // Seed akun PPID
   await prisma.ppid.upsert({
-    where: { email: "ppid.utama@garut.go.id" },
+    where: { email: "ppid.utama@garutkab.go.id" },
     update: {},
     create: {
-      email: "ppid.utama@garut.go.id",
+      email: "ppid.utama@garutkab.go.id",
       no_pegawai: "001",
       hashed_password: hashedPassword,
       nama: "PPID Utama",
@@ -35,10 +35,10 @@ async function main() {
   console.log("PPID Utama user created.");
 
   await prisma.ppid.upsert({
-    where: { email: "ppid.pelaksana@garut.go.id" },
+    where: { email: "ppid.pelaksana@garutkab.go.id" },
     update: {},
     create: {
-      email: "ppid.pelaksana@garut.go.id",
+      email: "ppid.pelaksana@garutkab.go.id",
       no_pegawai: "002",
       hashed_password: hashedPassword,
       nama: "PPID Pelaksana",
@@ -48,10 +48,10 @@ async function main() {
   console.log("PPID Pelaksana user created.");
 
   await prisma.ppid.upsert({
-    where: { email: "atasan.ppid@garut.go.id" },
+    where: { email: "atasan.ppid@garutkab.go.id" },
     update: {},
     create: {
-      email: "atasan.ppid@garut.go.id",
+      email: "atasan.ppid@garutkab.go.id",
       no_pegawai: "003",
       hashed_password: hashedPassword,
       nama: "Atasan PPID",
@@ -75,36 +75,53 @@ async function main() {
   // Seed Settings
   const defaultSettings = {
     general: {
-      namaInstansi: 'PPID Diskominfo Kabupaten Garut',
-      logo: '/logo-garut.svg',
-      email: 'ppid@garutkab.go.id',
-      telepon: '(0262) 123456',
-      alamat: 'Jl. Pembangunan No. 1, Garut, Jawa Barat',
-      websiteTitle: 'PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik',
-      websiteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut.'
+      namaInstansi: "PPID Diskominfo Kabupaten Garut",
+      logo: "/logo-garut.svg",
+      email: "ppid@garutkab.go.id",
+      telepon: "(0262) 123456",
+      alamat: "Jl. Pembangunan No. 1, Garut, Jawa Barat",
+      websiteTitle:
+        "PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik",
+      websiteDescription:
+        "Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut.",
     },
     header: {
       menuItems: [
-        { label: 'Beranda', url: '/', hasDropdown: false, dropdownItems: [] },
-        { label: 'Profil', url: '/profil', hasDropdown: true, dropdownItems: [
-          { label: 'Tentang PPID', url: '/profil' },
-          { label: 'Visi Misi', url: '/visi-misi' },
-          { label: 'Struktur Organisasi', url: '/struktur' }
-        ]},
-        { label: 'Informasi Publik', url: '/informasi', hasDropdown: false, dropdownItems: [] },
-        { label: 'Layanan', url: '/layanan', hasDropdown: true, dropdownItems: [
-          { label: 'Permohonan Informasi', url: '/permohonan' },
-          { label: 'Keberatan', url: '/keberatan' }
-        ]}
-      ]
-    }
+        { label: "Beranda", url: "/", hasDropdown: false, dropdownItems: [] },
+        {
+          label: "Profil",
+          url: "/profil",
+          hasDropdown: true,
+          dropdownItems: [
+            { label: "Tentang PPID", url: "/profil" },
+            { label: "Visi Misi", url: "/visi-misi" },
+            { label: "Struktur Organisasi", url: "/struktur" },
+          ],
+        },
+        {
+          label: "Informasi Publik",
+          url: "/informasi",
+          hasDropdown: false,
+          dropdownItems: [],
+        },
+        {
+          label: "Layanan",
+          url: "/layanan",
+          hasDropdown: true,
+          dropdownItems: [
+            { label: "Permohonan Informasi", url: "/permohonan" },
+            { label: "Keberatan", url: "/keberatan" },
+          ],
+        },
+      ],
+    },
   };
 
   for (const [key, value] of Object.entries(defaultSettings)) {
     await prisma.setting.upsert({
       where: { key },
       update: { value: JSON.stringify(value) },
-      create: { key, value: JSON.stringify(value) }
+      create: { key, value: JSON.stringify(value) },
     });
   }
   console.log("Settings seeded.");
@@ -114,25 +131,25 @@ async function main() {
     {
       nama: "Informasi Berkala",
       slug: "informasi-berkala",
-      deskripsi: "Informasi yang wajib disediakan dan diumumkan secara berkala"
+      deskripsi: "Informasi yang wajib disediakan dan diumumkan secara berkala",
     },
     {
-      nama: "Informasi Setiap Saat", 
+      nama: "Informasi Setiap Saat",
       slug: "informasi-setiap-saat",
-      deskripsi: "Informasi yang wajib tersedia setiap saat"
+      deskripsi: "Informasi yang wajib tersedia setiap saat",
     },
     {
       nama: "Informasi Serta Merta",
-      slug: "informasi-serta-merta", 
-      deskripsi: "Informasi yang wajib diumumkan serta merta"
-    }
+      slug: "informasi-serta-merta",
+      deskripsi: "Informasi yang wajib diumumkan serta merta",
+    },
   ];
 
   for (const category of defaultCategories) {
     await prisma.kategoriInformasi.upsert({
       where: { nama: category.nama },
       update: category,
-      create: category
+      create: category,
     });
   }
   console.log("Categories seeded.");

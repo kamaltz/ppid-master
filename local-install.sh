@@ -17,7 +17,7 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 log_info "🚀 PPID Master - Production Deployment"
-log_info "Domain: ppid.garutkab.go.id"
+log_info "Domain: 167.172.83.55"
 log_info "SSL: Automatic HTTPS"
 echo ""
 
@@ -127,7 +127,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:\${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public&connect_timeout=60&pool_timeout=60"
       JWT_SECRET: "\${JWT_SECRET}"
-      NEXT_PUBLIC_API_URL: "https://ppid.garutkab.go.id/api"
+      NEXT_PUBLIC_API_URL: "https://167.172.83.55/api"
       NODE_ENV: "production"
       DOCKER_ENV: "true"
     depends_on:
@@ -177,7 +177,7 @@ log_info "Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/ppid-master << 'EOF'
 server {
     listen 80;
-    server_name ppid.garutkab.go.id;
+    server_name 167.172.83.55;
     client_max_body_size 50M;
     
     # Security headers
@@ -311,6 +311,7 @@ for i in {1..5}; do
     sleep 15
 done
 
+cd /opt/ppid && docker-compose exec postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN pekerjaan TEXT;"
 # Restart app to ensure clean state
 $COMPOSE_CMD restart app
 sleep 10
@@ -332,17 +333,6 @@ for i in {1..60}; do
 done
 
 
-# Verify domain points to server
-log_info "Verifying domain configuration..."
-DOMAIN_IP=$(dig +short ppid.garutkab.go.id)
-SERVER_IP=$(curl -s ifconfig.me)
-if [[ "$DOMAIN_IP" != "$SERVER_IP" ]]; then
-    log_warn "Domain ppid.garutkab.go.id ($DOMAIN_IP) does not point to this server ($SERVER_IP)"
-    log_warn "Please update DNS records and run: sudo certbot --nginx -d ppid.garutkab.go.id"
-else
-    log_info "Domain correctly points to this server"
-    
-
 # Save credentials securely
 log_info "Saving credentials..."
 cat > .env.production << EOF
@@ -353,7 +343,7 @@ chmod 600 .env.production
 
 echo ""
 log_info "✅ Installation Complete!"
-log_info "🌐 URL: https://ppid.garutkab.go.id"
+log_info "🌐 URL: http://167.172.83.55"
 log_info "📊 Admin: admin@garutkab.go.id / Garut@2025?"
 log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
 
@@ -370,6 +360,6 @@ else
     echo "  Stop:      /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml down"
     echo "  Update:    /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml pull && /usr/local/bin/docker-compose -f /opt/ppid/docker-compose.yml up -d"
 fi
-echo "  Health:    curl https://ppid.garutkab.go.id/api/health"
+echo "  Health:    curl https://167.172.83.55/api/health"
 echo ""
 log_info "🔒 Security: Firewall enabled, SSL configured, rate limiting active"

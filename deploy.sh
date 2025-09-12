@@ -20,4 +20,4 @@ docker-compose -f docker-compose.deploy.yml up -d
 
 echo "✅ Deployment complete!"
 echo "🌐 URL: http://localhost:3000"
-echo "👤 Admin: admin@garut.go.id / Garut@2025?"
+echo "👤 Admin: admin@garutkab.go.id / Garut@2025?"

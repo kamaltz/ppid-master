@@ -322,7 +322,7 @@ log_info "Admin accounts in database: $ADMIN_COUNT"
 echo ""
 log_info "Installation Complete!"
 log_info "URL: https://167.172.83.55"
-log_info "Admin: admin@garut.go.id / Garut@2025?"
+log_info "Admin: admin@garutkab.go.id | Garut@2025?"
 log_info "Credentials saved in: /opt/ppid/.env.production"
 
 if [ "$ADMIN_COUNT" = "0" ]; then

@@ -9,7 +9,7 @@ async function main() {
 
   // Seed Admin
   await prisma.admin.upsert({
-    where: { email: "admin@garut.go.id" },
+    where: { email: "admin@garutkab.go.id" },
     update: {},
     create: {
       email: "admin@garutkab.go.id",
