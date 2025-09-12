@@ -123,7 +123,7 @@ services:
   app:
     image: kamaltz/ppid-master:latest
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:\${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public&connect_timeout=60&pool_timeout=60"
       JWT_SECRET: "\${JWT_SECRET}"
@@ -311,7 +311,8 @@ for i in {1..5}; do
     sleep 15
 done
 
-cd /opt/ppid && docker-compose exec postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN pekerjaan TEXT;"
+# Add missing database column
+$COMPOSE_CMD exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan TEXT;" || log_warn "Failed to add pekerjaan column or already exists"
 # Restart app to ensure clean state
 $COMPOSE_CMD restart app
 sleep 10

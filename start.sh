@@ -30,6 +30,9 @@ fi
 echo "🔍 Checking migration status..."
 npx prisma migrate status || echo "Migration status check completed"
 
+echo "🔧 Adding missing database columns..."
+PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan TEXT;" || echo "Column already exists or failed to add"
+
 # Check for custom database import
 if [ -f "/app/ppid_db.sql" ]; then
   echo "📥 Found ppid_db.sql - importing custom database..."

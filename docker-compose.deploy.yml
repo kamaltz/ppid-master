@@ -35,8 +35,7 @@ services:
     volumes:
       - ./uploads:/app/public/uploads
     restart: unless-stopped
-    entrypoint: ["/app/docker-entrypoint.sh"]
-    command: ["npm", "start"]
+    entrypoint: ["/app/start.sh"]
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
       interval: 30s
