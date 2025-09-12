@@ -84,12 +84,12 @@ services:
   app:
     image: kamaltz/ppid-master:latest
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ppid_garut?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
-      NEXT_PUBLIC_API_URL: "https://167.172.83.55/api"
-      NEXTAUTH_URL: "https://167.172.83.55"
+      NEXT_PUBLIC_API_URL: "http://167.172.83.55/api"
+      NEXTAUTH_URL: "http://167.172.83.55"
       NODE_ENV: "production"
       DOCKER_ENV: "true"
     depends_on:
@@ -134,24 +134,15 @@ fi
 log_info "Configuring Nginx..."
 sudo cat > /etc/nginx/sites-available/default << NGINX_EOF
 server {
-    listen 80;
-    server_name 167.172.83.55;
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name 167.172.83.55;
-
-    ssl_certificate $CERT_FILE;
-    ssl_certificate_key $KEY_FILE;
+    listen 80 default_server;
+    server_name 167.172.83.55 _;
 
     client_max_body_size 50M;
 
     # Security headers
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; frame-src 'self';" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
 
     location /uploads/ {
         alias /opt/ppid/uploads/;
@@ -161,7 +152,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -173,7 +164,7 @@ server {
     }
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -186,7 +177,6 @@ server {
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
-}
 NGINX_EOF
 
 sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
@@ -260,6 +250,20 @@ else
     if ! docker-compose exec -T app npx prisma db seed; then
         log_warn "Failed to seed database, but continuing..."
     fi
+    
+    # Ensure header settings and categories are seeded
+    log_info "Seeding header settings and categories..."
+    docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "
+        INSERT INTO settings (key, value) VALUES 
+        ('header', '{\"menuItems\":[{\"label\":\"Beranda\",\"url\":\"/\",\"hasDropdown\":false,\"dropdownItems\":[]},{\"label\":\"Profil\",\"url\":\"/profil\",\"hasDropdown\":true,\"dropdownItems\":[{\"label\":\"Tentang PPID\",\"url\":\"/profil\"},{\"label\":\"Visi Misi\",\"url\":\"/visi-misi\"}]},{\"label\":\"Informasi Publik\",\"url\":\"/informasi\",\"hasDropdown\":false,\"dropdownItems\":[]},{\"label\":\"Layanan\",\"url\":\"/layanan\",\"hasDropdown\":true,\"dropdownItems\":[{\"label\":\"Permohonan Informasi\",\"url\":\"/permohonan\"},{\"label\":\"Keberatan\",\"url\":\"/keberatan\"}]}]}') 
+        ON CONFLICT (key) DO NOTHING;
+        
+        INSERT INTO kategori (nama, deskripsi) VALUES 
+        ('Informasi Berkala', 'Informasi yang wajib disediakan dan diumumkan secara berkala'),
+        ('Informasi Serta Merta', 'Informasi yang wajib diumumkan secara serta merta'),
+        ('Informasi Setiap Saat', 'Informasi yang wajib tersedia setiap saat')
+        ON CONFLICT (nama) DO NOTHING;
+    " 2>/dev/null || true
 fi
 
 docker-compose restart app
@@ -288,7 +292,8 @@ echo ""
 log_info "Applying post-deployment fixes..."
 # Fix database schema issues
 log_info "Fixing database schema..."
-docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan VARCHAR(255);" 2>/dev/null || true
+cd /opt/ppid && docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN pekerjaan TEXT;" 2>/dev/null || true
+log_info "Pekerjaan column added to pemohon table"
 
 # Fix API endpoints that might be failing
 docker-compose exec -T app npx prisma db push --accept-data-loss || true
@@ -306,67 +311,11 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 CRED_EOF
 chmod 600 .env.production
 
-# Final validation
-log_info "Running final validation..."
-if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
-    HEALTH_RESPONSE=$(curl -s http://localhost:3000/api/health)
-    log_info "Health check: $HEALTH_RESPONSE"
-else
-    log_warn "Health check failed, but installation completed"
-fi
-
-# Test database connection
-ADMIN_COUNT=$(docker-compose exec -T postgres psql -U postgres -d ppid_garut -t -c "SELECT COUNT(*) FROM admin;" 2>/dev/null | tr -d ' \n' || echo "0")
-log_info "Admin accounts in database: $ADMIN_COUNT"
-
 echo ""
-log_info "Installation Complete!"
-log_info "URL: https://167.172.83.55"
-log_info "Admin: admin@garutkab.go.id | Garut@2025?"
-log_info "Credentials saved in: /opt/ppid/.env.production"
-
-if [ "$ADMIN_COUNT" = "0" ]; then
-    log_warn "No admin accounts found. You may need to run the seed command manually."
-fi
-
-echo ""
-log_info "Troubleshooting:"
-echo "  If you see 500/502 errors, run: bash /opt/ppid/fix-deployment.sh"
-echo "  Check app logs: docker-compose -f /opt/ppid/docker-compose.yml logs app"
-echo "  Check database: docker-compose -f /opt/ppid/docker-compose.yml exec postgres psql -U postgres -d ppid_garut -c 'SELECT COUNT(*) FROM admin;'"
-
-# Create fix script
-cat > fix-deployment.sh << FIX_EOF
-#!/bin/bash
-set -e
-cd /opt/ppid
-docker-compose down
-docker-compose pull
-docker-compose up -d --force-recreate
-sleep 10
-docker-compose exec -T app npx prisma generate
-docker-compose exec -T app npx prisma migrate deploy
-docker-compose exec postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN pekerjaan TEXT;
-# Fix database schema
-docker-compose exec -T app npx prisma db seed
-docker-compose restart app
-sleep 15
-echo "Fix completed! Try accessing: https://167.172.83.55"
-FIX_EOF
-chmod +x fix-deployment.sh
-
-# Create database schema fix script
-cat > fix-database-schema.sh << SCHEMA_EOF
-#!/bin/bash
-set -e
-cd /opt/ppid
-echo "Fixing database schema..."
-docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan VARCHAR(255);" || true
-docker-compose restart app
-sleep 10
-echo "Database schema fix completed!"
-SCHEMA_EOF
-chmod +x fix-database-schema.sh
+log_info "✅ Installation Complete!"
+log_info "🌐 URL: http://167.172.83.55"
+log_info "📊 Admin: admin@garutkab.go.id / Garut@2025?"
+log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
 
 echo ""
 log_info "Management Commands:"
@@ -374,7 +323,6 @@ echo "  View logs: docker-compose -f /opt/ppid/docker-compose.yml logs -f"
 echo "  Restart:   docker-compose -f /opt/ppid/docker-compose.yml restart"
 echo "  Stop:      docker-compose -f /opt/ppid/docker-compose.yml down"
 echo "  Update:    docker-compose -f /opt/ppid/docker-compose.yml pull && docker-compose -f /opt/ppid/docker-compose.yml up -d"
-echo "  Health:    curl https://167.172.83.55/api/health"
-echo "  DB Status: docker-compose -f /opt/ppid/docker-compose.yml exec postgres pg_isready -U postgres"
+echo "  Health:    curl http://167.172.83.55/api/health"
 echo ""
-log_info "Security: Firewall enabled, SSL configured"
+log_info "🔒 Security: Firewall enabled, SSL configured"
