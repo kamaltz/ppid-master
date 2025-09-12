@@ -57,7 +57,13 @@ fi
 log_info "Setting up directories..."
 sudo mkdir -p /opt/ppid
 sudo chown $USER:$USER /opt/ppid
-cd /opt/ppid
+# Ensure we can access the directory
+if ! cd /opt/ppid 2>/dev/null; then
+    log_error "Cannot access /opt/ppid directory"
+    sudo ls -la /opt/
+    exit 1
+fi
+PWD=/opt/ppid
 
 log_info "Generating secure configuration..."
 JWT_SECRET=$(openssl rand -hex 32)
@@ -189,6 +195,9 @@ else
 fi
 
 log_info "Starting PPID Master..."
+# Ensure we're in the right directory
+cd /opt/ppid || exit 1
+
 # Ensure we have the latest image
 docker-compose pull
 
@@ -292,7 +301,9 @@ echo ""
 log_info "Applying post-deployment fixes..."
 # Fix database schema issues
 log_info "Fixing database schema..."
-cd /opt/ppid && docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN pekerjaan TEXT;" 2>/dev/null || true
+# Ensure we're in the correct directory
+cd /opt/ppid || { log_error "Cannot access /opt/ppid"; exit 1; }
+docker-compose exec -T postgres psql -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN pekerjaan TEXT;" 2>/dev/null || true
 log_info "Pekerjaan column added to pemohon table"
 
 # Fix API endpoints that might be failing
