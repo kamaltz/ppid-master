@@ -138,6 +138,11 @@ else
 fi
 
 log_info "Configuring Nginx..."
+# Clean up existing nginx config
+sudo rm -f /etc/nginx/sites-available/default
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Create new nginx config
 sudo tee /etc/nginx/sites-available/default > /dev/null << 'EOF'
 server {
     listen 80 default_server;
@@ -174,11 +179,17 @@ server {
 EOF
 
 sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+
+# Debug nginx config if test fails
 if sudo nginx -t; then
     sudo systemctl reload nginx
     log_info "Nginx configuration validated and reloaded"
 else
     log_error "Nginx configuration test failed"
+    log_info "Checking nginx config file:"
+    sudo cat -n /etc/nginx/sites-available/default
+    log_info "Nginx error details:"
+    sudo nginx -t 2>&1
     exit 1
 fi
 
