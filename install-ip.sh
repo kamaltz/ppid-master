@@ -163,16 +163,11 @@ sudo systemctl enable nginx
 # Clean up any existing configurations
 sudo rm -f /etc/nginx/sites-enabled/ppid.garutkab.go.id
 sudo rm -f /etc/nginx/sites-available/ppid.garutkab.go.id
+sudo rm -f /etc/nginx/conf.d/rate-limit.conf
+sudo rm -f /etc/nginx/sites-enabled/ppid-master
 
 # Remove default nginx site
 sudo rm -f /etc/nginx/sites-enabled/default
-
-# Create Nginx rate limiting config
-log_info "Configuring Nginx rate limiting..."
-sudo tee /etc/nginx/conf.d/rate-limit.conf << 'EOF'
-limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
-limit_req_zone $binary_remote_addr zone=api:10m rate=30r/m;
-EOF
 
 # Create Nginx site config
 log_info "Configuring Nginx..."
@@ -189,7 +184,6 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location /api/auth/ {
-        limit_req zone=login burst=3 nodelay;
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -202,7 +196,6 @@ server {
     }
 
     location /api/ {
-        limit_req zone=api burst=10 nodelay;
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
