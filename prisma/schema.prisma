@@ -27,7 +27,7 @@ model Pemohon {
   nik             String?
   no_telepon      String?
   alamat          String?
-  pekerjaan       String?
+  pekerjaan       String?     // Make sure this field exists
   is_approved     Boolean     @default(false)
   approved_by     String?
   approved_at     DateTime?
