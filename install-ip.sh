@@ -237,20 +237,16 @@ sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
 log_info "Testing nginx configuration..."
 if sudo nginx -t; then
     sudo systemctl restart nginx
-    log_info "Nginx configuration validated and restarted"
-    
-    # Verify nginx is running and listening
-    sleep 2
-    if sudo ss -tlnp | grep :80 > /dev/null || sudo netstat -tlnp 2>/dev/null | grep :80 > /dev/null; then
-        log_info "Nginx is listening on port 80"
+    sleep 3
+    if sudo systemctl is-active --quiet nginx; then
+        log_info "Nginx is running successfully"
     else
-        log_warn "Cannot verify nginx port 80 - checking nginx status"
+        log_error "Nginx failed to start"
         sudo systemctl status nginx --no-pager
-        # Continue anyway as nginx might be working
+        exit 1
     fi
 else
     log_error "Nginx configuration test failed"
-    log_info "Checking nginx error log..."
     sudo tail -10 /var/log/nginx/error.log
     exit 1
 fi
