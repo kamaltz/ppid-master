@@ -197,14 +197,14 @@ export const useDashboardData = () => {
     loadData();
   }, [loadData]);
 
-  // Generate 6-month data with current month in middle
+  // Generate 12-month data for current year
   const generateMonthlyData = (data: PermintaanData[]): ChartDataItem[] => {
-    const currentDate = new Date();
+    const currentYear = new Date().getFullYear();
     const months = [];
     
-    // Generate 6 months: 2 before current, current, 3 after current
-    for (let i = -2; i <= 3; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+    // Generate all 12 months for current year
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(currentYear, i, 1);
       months.push(date);
     }
     
@@ -218,7 +218,7 @@ export const useDashboardData = () => {
       }).length;
       
       return {
-        label: month.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
+        label: month.toLocaleDateString('id-ID', { month: 'short' }),
         value: count,
         color: '#8B5CF6'
       };

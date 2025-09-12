@@ -56,9 +56,9 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate all fields
     const newErrors: {[key: string]: string} = {};
-    Object.keys(formData).forEach(key => {
+    const requiredFields = ['nama', 'nik', 'email', 'password', 'confirmPassword'];
+    requiredFields.forEach(key => {
       const error = validateField(key, formData[key as keyof typeof formData]);
       if (error) newErrors[key] = error;
     });
@@ -72,13 +72,9 @@ export default function RegisterPage() {
     setSuccess(null);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...submitData } = formData;
       const data = await registerUser(submitData);
-      setSuccess(
-        data.message ||
-          "Registrasi berhasil! Anda akan dialihkan ke halaman login."
-      );
+      setSuccess(data.message || "Registrasi berhasil! Anda akan dialihkan ke halaman login.");
       setTimeout(() => {
         router.push("/login");
       }, 2000);
@@ -98,16 +94,10 @@ export default function RegisterPage() {
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           {errors.submit && <p className="text-sm text-center text-red-500">{errors.submit}</p>}
-          {success && (
-            <p className="text-sm text-center text-green-500">{success}</p>
-          )}
+          {success && <p className="text-sm text-center text-green-500">{success}</p>}
 
-          {/* Input untuk nama, nik, email, password */}
           <div>
-            <label
-              htmlFor="nama"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="nama" className="block text-sm font-medium text-gray-700">
               Nama Lengkap
             </label>
             <input
@@ -124,11 +114,9 @@ export default function RegisterPage() {
             />
             {errors.nama && <p className="text-xs text-red-500 mt-1">{errors.nama}</p>}
           </div>
+
           <div>
-            <label
-              htmlFor="nik"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="nik" className="block text-sm font-medium text-gray-700">
               NIK
             </label>
             <input
@@ -146,11 +134,9 @@ export default function RegisterPage() {
             />
             {errors.nik && <p className="text-xs text-red-500 mt-1">{errors.nik}</p>}
           </div>
+
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email
             </label>
             <input
@@ -167,11 +153,9 @@ export default function RegisterPage() {
             />
             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
           </div>
+
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <input
@@ -188,11 +172,9 @@ export default function RegisterPage() {
             />
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
           </div>
+
           <div>
-            <label
-              htmlFor="confirmPassword"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
               Konfirmasi Password
             </label>
             <input
@@ -211,10 +193,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="no_telepon"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="no_telepon" className="block text-sm font-medium text-gray-700">
               No. Telepon (Opsional)
             </label>
             <input
@@ -229,10 +208,22 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="alamat"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="pekerjaan" className="block text-sm font-medium text-gray-700">
+              Pekerjaan/Profesi (Opsional)
+            </label>
+            <input
+              type="text"
+              name="pekerjaan"
+              value={formData.pekerjaan}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Contoh: PNS, Swasta, Wiraswasta"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="alamat" className="block text-sm font-medium text-gray-700">
               Alamat (Opsional)
             </label>
             <textarea
@@ -242,45 +233,31 @@ export default function RegisterPage() {
               disabled={isLoading}
               rows={2}
               className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Alamat lengkap"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="pekerjaan"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Pekerjaan (Opsional)
-            </label>
-            <input
-              type="text"
-              name="pekerjaan"
-              value={formData.pekerjaan}
-              onChange={handleChange}
-              disabled={isLoading}
-              className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Pekerjaan/Profesi"
+              placeholder="Masukkan alamat lengkap"
             />
           </div>
 
           <button
             type="submit"
-            disabled={isLoading || Object.values(errors).some(error => error !== '')}
-            className="w-full bg-blue-800 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors"
+            disabled={isLoading}
+            className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+              isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
           >
-            {isLoading ? "Mendaftar..." : "Daftar"}
+            {isLoading ? 'Mendaftar...' : 'Daftar'}
           </button>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Sudah punya akun?{' '}
+              <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+                Login di sini
+              </Link>
+            </p>
+          </div>
         </form>
-        <p className="text-sm text-center text-gray-600">
-          Sudah punya akun?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-blue-800 hover:underline"
-          >
-            Login di sini
-          </Link>
-        </p>
       </div>
     </div>
   );

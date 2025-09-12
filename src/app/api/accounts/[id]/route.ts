@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/lib/prismaClient';
+import { prisma } from '../../../../../lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
@@ -85,7 +85,40 @@ export async function PUT(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { nama, email, role } = await request.json();
+    const body = await request.json();
+    const { nama, email, role, is_approved } = body;
+    
+    // Handle approval/rejection for pemohon accounts
+    if (typeof is_approved === 'boolean') {
+      const pemohon = await prisma.pemohon.findUnique({ where: { id: numericId } });
+      if (!pemohon) {
+        return NextResponse.json({ error: 'Pemohon not found' }, { status: 404 });
+      }
+      
+      if (is_approved) {
+        // Approve the account
+        const updatedPemohon = await prisma.pemohon.update({
+          where: { id: numericId },
+          data: { 
+            is_approved: true,
+            approved_by: decoded.email,
+            approved_at: new Date()
+          }
+        });
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Akun pemohon berhasil disetujui',
+          data: updatedPemohon
+        });
+      } else {
+        // Reject by deleting the account
+        await prisma.pemohon.delete({ where: { id: numericId } });
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Akun pemohon ditolak dan dihapus'
+        });
+      }
+    }
     const { id } = await params;
     const numericId = parseInt(id);
 

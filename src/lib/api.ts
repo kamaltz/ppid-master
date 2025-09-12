@@ -175,7 +175,7 @@ export const updatePermintaanStatus = async (id: string, statusData: StatusUpdat
 export const registerUser = async (userData: unknown) => {
   const userDataWithRole = {
     ...(userData as object),
-    role: "Pemohon",
+    role: "pemohon",
   };
 
   const response = await fetch(`/api/auth/register`, {
@@ -189,8 +189,8 @@ export const registerUser = async (userData: unknown) => {
   if (!response.ok) {
     const errorData = await response
       .json()
-      .catch(() => ({ message: "Registration failed" }));
-    throw new Error(errorData.message || "Registration failed");
+      .catch(() => ({ error: "Registration failed" }));
+    throw new Error(errorData.error || errorData.message || "Registration failed");
   }
 
   return await response.json();

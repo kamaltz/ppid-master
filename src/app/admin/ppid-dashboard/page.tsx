@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
+  UserCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -59,6 +60,15 @@ export default function PPIDDashboardPage() {
     },
   ] : [
     {
+      title: "Persetujuan Akun",
+      description: "Kelola persetujuan akun pemohon",
+      icon: UserCheck,
+      href: "/admin/accounts",
+      color: "bg-orange-500",
+      stats: `${stats.pendingAccounts} Menunggu`,
+      pending: `${stats.pendingAccounts} Perlu Tindakan`,
+    },
+    {
       title: "Pengelolaan Permohonan",
       description: "Kelola permohonan informasi publik",
       icon: FileText,
@@ -72,13 +82,19 @@ export default function PPIDDashboardPage() {
       description: "Kelola keberatan informasi publik",
       icon: AlertTriangle,
       href: "/admin/keberatan",
-      color: "bg-orange-500",
+      color: "bg-red-500",
       stats: "0 Total",
       pending: "0 Menunggu",
     },
   ];
 
   const quickStats = [
+    {
+      label: "Pemohon Menunggu Approval",
+      value: stats.pendingAccounts,
+      icon: UserCheck,
+      color: "text-orange-600",
+    },
     {
       label: "Permohonan Hari Ini",
       value: stats.diajukan,
@@ -95,7 +111,7 @@ export default function PPIDDashboardPage() {
       label: "Sedang Diproses",
       value: stats.diproses,
       icon: TrendingUp,
-      color: "text-orange-600",
+      color: "text-purple-600",
     },
   ];
 
@@ -114,7 +130,9 @@ export default function PPIDDashboardPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8">
           {quickStats.map((stat, index) => (
             <div key={index} className="bg-white p-6 rounded-lg shadow-md">
               <div className="flex items-center justify-between">

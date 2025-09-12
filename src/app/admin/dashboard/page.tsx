@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { FileText, Clock, CheckCircle, AlertCircle, RefreshCw, UserCheck } from "lucide-react";
 import Chart from "@/components/ui/Chart";
+import PendingAccountsList from "@/components/ui/PendingAccountsList";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useState, useEffect } from "react";
 
@@ -144,6 +145,24 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Pending Accounts List - Only for Admin/PPID */}
+        {(userRole === 'Admin' || userRole === 'PPID' || userRole === 'PPID_UTAMA') && stats.pendingAccounts > 0 && (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4 sm:mb-6 md:mb-8">
+            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 bg-orange-50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-orange-800 flex items-center">
+                  <UserCheck className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  Pemohon Menunggu Persetujuan ({stats.pendingAccounts})
+                </h2>
+                <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
+                  Perlu Tindakan
+                </span>
+              </div>
+            </div>
+            <PendingAccountsList />
+          </div>
+        )}
 
         {/* Enhanced Analytics Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">

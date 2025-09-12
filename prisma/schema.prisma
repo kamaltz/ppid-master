@@ -27,11 +27,11 @@ model Pemohon {
   nik             String?
   no_telepon      String?
   alamat          String?
-  pekerjaan       String?     // Make sure this field exists
+  created_at      DateTime    @default(now())
   is_approved     Boolean     @default(false)
   approved_by     String?
   approved_at     DateTime?
-  created_at      DateTime    @default(now())
+  pekerjaan       String?
   keberatan       Keberatan[]
   requests        Request[]
 
