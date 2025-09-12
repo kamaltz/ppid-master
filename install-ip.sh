@@ -160,14 +160,14 @@ sudo apt update -qq
 sudo apt install -y nginx dnsutils
 sudo systemctl enable nginx
 
-# Clean up any existing configurations
-sudo rm -f /etc/nginx/sites-enabled/ppid.garutkab.go.id
-sudo rm -f /etc/nginx/sites-available/ppid.garutkab.go.id
+# Clean up ALL existing nginx configurations
+log_info "Cleaning up existing nginx configurations..."
+sudo rm -f /etc/nginx/sites-enabled/*
+sudo rm -f /etc/nginx/sites-available/ppid*
 sudo rm -f /etc/nginx/conf.d/rate-limit.conf
-sudo rm -f /etc/nginx/sites-enabled/ppid-master
-
-# Remove default nginx site
-sudo rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/conf.d/*rate*
+sudo systemctl stop nginx || true
+sudo systemctl start nginx
 
 # Create Nginx site config
 log_info "Configuring Nginx..."
@@ -234,10 +234,12 @@ EOF
 # Enable site
 sudo ln -sf /etc/nginx/sites-available/ppid-master /etc/nginx/sites-enabled/
 if sudo nginx -t; then
-    sudo systemctl reload nginx
-    log_info "Nginx configuration validated and reloaded"
+    sudo systemctl restart nginx
+    log_info "Nginx configuration validated and restarted"
 else
     log_error "Nginx configuration test failed"
+    log_info "Checking nginx error log..."
+    sudo tail -10 /var/log/nginx/error.log
     exit 1
 fi
 
