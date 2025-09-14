@@ -321,11 +321,65 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 CRED_EOF
 chmod 600 .env.production
 
+# Final verification and diagnostics
+log_info "Running final diagnostics..."
+
+# Check nginx status
+if sudo systemctl is-active --quiet nginx; then
+    log_info "✅ Nginx is running"
+else
+    log_error "❌ Nginx is not running"
+    sudo systemctl status nginx --no-pager
+fi
+
+# Check if nginx is listening on port 80
+if sudo ss -tlnp | grep :80 > /dev/null 2>&1; then
+    log_info "✅ Nginx is listening on port 80"
+else
+    log_error "❌ Nginx is not listening on port 80"
+fi
+
+# Check docker containers
+log_info "Docker container status:"
+docker-compose ps
+
+# Check if app is responding locally
+if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
+    log_info "✅ App is responding on localhost:3000"
+else
+    log_error "❌ App is not responding on localhost:3000"
+    log_info "App logs:"
+    docker-compose logs --tail=10 app
+fi
+
+# Check if nginx can reach the app
+if curl -f http://localhost/api/health > /dev/null 2>&1; then
+    log_info "✅ Nginx proxy is working"
+else
+    log_error "❌ Nginx proxy is not working"
+    log_info "Nginx error log:"
+    sudo tail -5 /var/log/nginx/error.log
+fi
+
+# Check firewall status
+if command -v ufw &> /dev/null; then
+    log_info "Firewall status:"
+    sudo ufw status
+fi
+
 echo ""
 log_info "✅ Installation Complete!"
 log_info "🌐 URL: http://167.172.83.55"
 log_info "📊 Admin: admin@garutkab.go.id / Garut@2025?"
 log_info "🔐 Credentials saved in: /opt/ppid/.env.production"
+
+echo ""
+log_info "Troubleshooting:"
+echo "  Check nginx: sudo systemctl status nginx"
+echo "  Check app: docker-compose -f /opt/ppid/docker-compose.yml logs app"
+echo "  Check ports: sudo ss -tlnp | grep -E ':(80|3000)'"
+echo "  Test local: curl http://localhost:3000/api/health"
+echo "  Test nginx: curl http://localhost/api/health"
 
 echo ""
 log_info "Management Commands:"
