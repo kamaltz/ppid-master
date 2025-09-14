@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Only image files are allowed' }, { status: 400 });
     }
 
-    // Validate file size (5MB max for images)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: 'Image file too large (max 5MB)' }, { status: 400 });
+    // Validate file size (10MB max for images)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ success: false, error: 'Image file too large (max 10MB)' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();

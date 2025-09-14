@@ -37,7 +37,8 @@
     "db:setup": "npm run setup-db",
     "db:fix": "node scripts/fix-database.js",
     "db:reset": "node scripts/reset-database.js",
-    "fix-prod": "node scripts/fix-production-settings.js"
+    "fix-prod": "node scripts/fix-production-settings.js",
+    "fix-logo": "node scripts/fix-logo-urls.js"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
