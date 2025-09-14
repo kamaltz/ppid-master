@@ -8,16 +8,19 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useOptimizedNotifications } from "@/hooks/useOptimizedNotifications";
+import { usePemohonNotifications } from "@/hooks/usePemohonNotifications";
 
 const PemohonSidebar = () => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { counts, clearNotification, getDisplayCount } = useOptimizedNotifications();
+  const { chatCount, clearNotifications, refreshNotifications } = usePemohonNotifications();
+  
+  console.log('[PemohonSidebar] chatCount:', chatCount);
 
   const menuItems = [
     {
@@ -62,11 +65,29 @@ const PemohonSidebar = () => {
             <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium mb-1 inline-block">
               Pemohon
             </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Debug: Chat = {chatCount}
+              <button 
+                onClick={refreshNotifications}
+                className="ml-2 px-2 py-1 bg-blue-500 text-white text-xs rounded"
+              >
+                Test
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="flex justify-end p-2">
+      <div className="flex justify-end p-2 gap-1">
+        {!isCollapsed && (
+          <button
+            onClick={refreshNotifications}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Refresh Notifications"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -90,7 +111,7 @@ const PemohonSidebar = () => {
               href={item.href}
               onClick={() => {
                 if (item.label === 'Chat') {
-                  clearNotification('newChats');
+                  clearNotifications();
                 }
               }}
               className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors relative ${
@@ -103,17 +124,11 @@ const PemohonSidebar = () => {
               <Icon className="h-5 w-5 flex-shrink-0" />
               {!isCollapsed && <span className="ml-3">{item.label}</span>}
               {/* Notification Badge */}
-              {(() => {
-                const count = item.label === 'Chat' ? getDisplayCount('newChats') : 0;
-                if (count > 0) {
-                  return (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {count > 99 ? '99+' : count}
-                    </span>
-                  );
-                }
-                return null;
-              })()}
+              {item.label === 'Chat' && chatCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {chatCount > 99 ? '99+' : chatCount}
+                </span>
+              )}
             </Link>
           );
         })}

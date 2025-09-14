@@ -66,8 +66,13 @@ export async function GET(request: NextRequest) {
     }
     
     // Apply status filter if provided
-    if (status && !where.OR) {
-      where.status = status;
+    if (status) {
+      if (where.OR && Array.isArray(where.OR)) {
+        // If OR condition exists, add status to each OR condition
+        where.OR = (where.OR as any[]).map((condition: any) => ({ ...condition, status }));
+      } else {
+        where.status = status;
+      }
     }
     
     if (decoded.role === 'PPID_UTAMA' || decoded.role === 'ADMIN') {
@@ -89,38 +94,41 @@ export async function GET(request: NextRequest) {
     }
 
     const skip = (page - 1) * limit;
-    const keberatan = await prisma.keberatan.findMany({
-      where,
-      include: {
-        permintaan: {
-          select: {
-            id: true,
-            rincian_informasi: true
+    const [keberatan, total] = await Promise.all([
+      prisma.keberatan.findMany({
+        where,
+        include: {
+          permintaan: {
+            select: {
+              id: true,
+              rincian_informasi: true
+            }
+          },
+          pemohon: {
+            select: {
+              nama: true,
+              email: true
+            }
+          },
+          assigned_ppid: {
+            select: {
+              id: true,
+              nama: true,
+              role: true
+            }
           }
         },
-        pemohon: {
-          select: {
-            nama: true,
-            email: true
-          }
-        },
-        assigned_ppid: {
-          select: {
-            id: true,
-            nama: true,
-            role: true
-          }
-        }
-      },
-      orderBy: { created_at: 'desc' },
-      skip,
-      take: limit
-    });
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.keberatan.count({ where })
+    ]);
 
     return NextResponse.json({ 
       success: true, 
       data: keberatan,
-      pagination: { page, limit, total: keberatan.length }
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
   } catch (error) {
     console.error('Get keberatan error:', error);

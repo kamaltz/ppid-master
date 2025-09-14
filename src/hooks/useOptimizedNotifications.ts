@@ -65,6 +65,7 @@ export const useOptimizedNotifications = () => {
           setCounts(prev => ({ ...prev, newRequests: requestsData.pagination?.total || 0 }));
         }
       } else if (role === 'ADMIN' || role === 'PPID_UTAMA') {
+        // Check for pending accounts
         const pendingResponse = await fetch('/api/accounts/pending?limit=1', {
           headers: { Authorization: `Bearer ${token}` },
           signal: AbortSignal.timeout(10000)
@@ -73,6 +74,28 @@ export const useOptimizedNotifications = () => {
         if (pendingResponse.ok) {
           const pendingData = await pendingResponse.json();
           setCounts(prev => ({ ...prev, pendingAccounts: pendingData.data?.length || 0 }));
+        }
+        
+        // Check for new requests (Diajukan status - new requests)
+        const newRequestsResponse = await fetch('/api/permintaan?status=Diajukan&limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (newRequestsResponse.ok) {
+          const newRequestsData = await newRequestsResponse.json();
+          setCounts(prev => ({ ...prev, newRequests: newRequestsData.pagination?.total || 0 }));
+        }
+        
+        // Check for new objections (Diajukan status - new objections)
+        const newObjectionsResponse = await fetch('/api/keberatan?status=Diajukan&limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (newObjectionsResponse.ok) {
+          const newObjectionsData = await newObjectionsResponse.json();
+          setCounts(prev => ({ ...prev, newObjections: newObjectionsData.pagination?.total || 0 }));
         }
       }
       
@@ -105,12 +128,14 @@ export const useOptimizedNotifications = () => {
       // Initial fetch
       fetchNotifications();
       
-      // Reduced frequency - every 3 minutes
-      const interval = setInterval(fetchNotifications, 180000);
+      // Different intervals based on role
+      const interval = role === 'Pemohon' 
+        ? setInterval(fetchNotifications, 30000)  // 30 seconds for Pemohon
+        : setInterval(fetchNotifications, 30000); // 30 seconds for Admin/PPID to catch new requests faster
       
       return () => clearInterval(interval);
     }
-  }, [getToken, getUserRole]);
+  }, []);
 
   return { counts, clearNotification, getDisplayCount, refreshNotifications };
 };
