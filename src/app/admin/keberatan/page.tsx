@@ -171,7 +171,9 @@ export default function AdminKeberatanPage() {
           });
           
           if (!response.ok) {
-            throw new Error(`Failed to delete: HTTP ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Delete keberatan error:', errorData);
+            throw new Error(errorData.error || `HTTP ${response.status}`);
           }
           
           setConfirmModal({ ...confirmModal, isOpen: false });

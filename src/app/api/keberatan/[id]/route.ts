@@ -135,11 +135,19 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     console.log('Delete keberatan - User role:', decoded.role, 'Keberatan status:', existingKeberatan.status);
 
     // Delete related responses first
+    console.log('Deleting keberatan responses for ID:', id);
     await prisma.keberatanResponse.deleteMany({
       where: { keberatan_id: parseInt(id) }
     });
 
+    // Delete related usage evidence
+    console.log('Deleting usage evidence for keberatan ID:', id);
+    await prisma.usageEvidence.deleteMany({
+      where: { keberatan_id: parseInt(id) }
+    });
+
     // Delete the keberatan
+    console.log('Deleting keberatan ID:', id);
     await prisma.keberatan.delete({
       where: { id: parseInt(id) }
     });
