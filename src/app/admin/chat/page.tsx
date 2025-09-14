@@ -41,9 +41,9 @@ export default function ChatListPage() {
   const [viewedChats, setViewedChats] = useState<Set<string>>(new Set());
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
 
-  const getViewedChats = () => {
+  const getViewedChats = (): Set<string> => {
     const saved = localStorage.getItem('viewedChats');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
+    return saved ? new Set<string>(JSON.parse(saved)) : new Set<string>();
   };
 
   const markChatAsViewed = (chatId: string) => {

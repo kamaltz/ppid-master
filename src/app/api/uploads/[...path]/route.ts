@@ -12,10 +12,12 @@ function getUploadDir() {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const resolvedParams = await params;
+  const { path } = resolvedParams;
   try {
-    const filePath = params.path.join('/');
+    const filePath = path.join('/');
     const fullPath = join(getUploadDir(), filePath);
     
     if (!existsSync(fullPath)) {
@@ -38,7 +40,7 @@ export async function GET(
     
     const contentType = contentTypes[ext || ''] || 'application/octet-stream';
     
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(fileBuffer as any, {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'no-cache, no-store, must-revalidate',

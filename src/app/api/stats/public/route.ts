@@ -42,7 +42,7 @@ export async function GET() {
         prisma.request.findMany({
           where: { 
             status: 'Selesai',
-            updated_at: { not: null }
+            updated_at: { not: null as any }
           },
           select: {
             created_at: true,

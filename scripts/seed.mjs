@@ -22,8 +22,12 @@ async function main() {
 
   // Seed akun PPID
   await prisma.ppid.upsert({
-    where: { email: "ppid.utama@garutkab.go.id" },
-    update: {},
+    where: { no_pegawai: "001" },
+    update: {
+      email: "ppid.utama@garutkab.go.id",
+      nama: "PPID Utama",
+      role: "PPID_UTAMA",
+    },
     create: {
       email: "ppid.utama@garutkab.go.id",
       no_pegawai: "001",
@@ -35,8 +39,12 @@ async function main() {
   console.log("PPID Utama user created.");
 
   await prisma.ppid.upsert({
-    where: { email: "ppid.pelaksana@garutkab.go.id" },
-    update: {},
+    where: { no_pegawai: "002" },
+    update: {
+      email: "ppid.pelaksana@garutkab.go.id",
+      nama: "PPID Pelaksana",
+      role: "PPID_PELAKSANA",
+    },
     create: {
       email: "ppid.pelaksana@garutkab.go.id",
       no_pegawai: "002",
@@ -48,8 +56,12 @@ async function main() {
   console.log("PPID Pelaksana user created.");
 
   await prisma.ppid.upsert({
-    where: { email: "atasan.ppid@garutkab.go.id" },
-    update: {},
+    where: { no_pegawai: "003" },
+    update: {
+      email: "atasan.ppid@garutkab.go.id",
+      nama: "Atasan PPID",
+      role: "ATASAN_PPID",
+    },
     create: {
       email: "atasan.ppid@garutkab.go.id",
       no_pegawai: "003",

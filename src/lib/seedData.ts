@@ -43,3 +43,33 @@ export const seedData = {
     { nama: "Informasi Setiap Saat", deskripsi: "Informasi yang wajib tersedia setiap saat" }
   ]
 };
+
+export async function seedAllData() {
+  const response = await fetch('/api/admin/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'all' })
+  });
+  if (!response.ok) throw new Error('Failed to seed data');
+  return response.json();
+}
+
+export async function seedRequests() {
+  const response = await fetch('/api/admin/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'requests' })
+  });
+  if (!response.ok) throw new Error('Failed to seed requests');
+  return response.json();
+}
+
+export async function seedInformasi() {
+  const response = await fetch('/api/admin/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'informasi' })
+  });
+  if (!response.ok) throw new Error('Failed to seed informasi');
+  return response.json();
+}

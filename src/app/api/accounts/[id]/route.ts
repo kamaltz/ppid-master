@@ -85,6 +85,13 @@ export async function PUT(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
+    const { id } = await params;
+    const numericId = parseInt(id);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
+    }
+
     const body = await request.json();
     const { nama, email, role, is_approved } = body;
     
@@ -118,12 +125,6 @@ export async function PUT(
           message: 'Akun pemohon ditolak dan dihapus'
         });
       }
-    }
-    const { id } = await params;
-    const numericId = parseInt(id);
-
-    if (isNaN(numericId)) {
-      return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
     }
 
     // Find current account

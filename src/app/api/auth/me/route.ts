@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         }
       });
     } else if (decoded.role === 'PEMOHON') {
-      user = await prisma.pemohon.findUnique({
+      const pemohonUser = await prisma.pemohon.findUnique({
         where: { id: decoded.userId },
         select: {
           id: true,
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
           is_approved: true
         }
       });
-      if (user) {
-        user.role = 'PEMOHON';
+      if (pemohonUser) {
+        user = { ...pemohonUser, role: 'PEMOHON' };
       }
     } else if (['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(decoded.role)) {
       user = await prisma.ppid.findUnique({

@@ -22,7 +22,9 @@ export async function GET(request: NextRequest) {
 
     // Get security statistics
     const now = Date.now();
-    const rateLimitStats = Array.from(global.rateLimitMap?.entries() || [])
+    const globalAny = global as any;
+    const rateLimitEntries = Array.from(globalAny.rateLimitMap?.entries() || []) as [string, any][];
+    const rateLimitStats = rateLimitEntries
       .filter(([, data]) => now < data.resetTime)
       .map(([ip, data]) => ({
         ip,
@@ -30,17 +32,18 @@ export async function GET(request: NextRequest) {
         resetTime: new Date(data.resetTime).toISOString()
       }));
 
-    const ddosStats = Array.from(global.ddosProtection?.entries() || [])
+    const ddosEntries = Array.from(globalAny.ddosProtection?.entries() || []) as [string, any][];
+    const ddosStats = ddosEntries
       .map(([ip, requests]) => ({
         ip,
-        recentRequests: requests.filter(time => now - time < 10000).length,
+        recentRequests: requests.filter((time: number) => now - time < 10000).length,
         totalRequests: requests.length
       }))
       .filter(stat => stat.recentRequests > 0);
 
     const blacklistStats = {
-      totalBlacklisted: global.ipBlacklist?.size || 0,
-      blacklistedIPs: Array.from(global.ipBlacklist || [])
+      totalBlacklisted: globalAny.ipBlacklist?.size || 0,
+      blacklistedIPs: Array.from(globalAny.ipBlacklist || [])
     };
 
     return NextResponse.json({

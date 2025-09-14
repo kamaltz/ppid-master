@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const userRole = decoded.role;
 
     // Get chats where user has participated (sent messages)
-    let chats = [];
+    let chats: any[] = [];
 
     if (['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(userRole)) {
       // Build where condition based on role

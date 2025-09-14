@@ -90,7 +90,7 @@ const PemohonSidebar = () => {
               href={item.href}
               onClick={() => {
                 if (item.label === 'Chat') {
-                  clearNotification('newChats', '/pemohon/chat');
+                  clearNotification('newChats');
                 }
               }}
               className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors relative ${

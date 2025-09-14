@@ -10,6 +10,7 @@ interface GeneralSettings {
   alamat: string;
   websiteTitle: string;
   websiteDescription: string;
+  favicon?: string;
 }
 
 interface HeaderSettings {

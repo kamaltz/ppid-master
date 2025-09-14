@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
-    const userId = parseInt(decoded.id);
+    const userId = decoded.userId || parseInt(decoded.id || '0');
     const userRole = decoded.role;
     let unreadCount = 0;
     
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         where: {
           responses: {
             some: {
-              user_id: decoded.id,
+              user_id: userId.toString(),
               user_role: userRole
             }
           }
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         where: {
           responses: {
             some: {
-              user_id: decoded.id,
+              user_id: userId.toString(),
               user_role: userRole
             }
           }

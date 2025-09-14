@@ -71,7 +71,7 @@ export const useNotifications = () => {
       const role = getUserRole();
       
       // Fetch different notifications based on role
-      if (role === 'ADMIN' || role === 'PPID' || role === 'PPID_UTAMA') {
+      if (role === 'ADMIN' || role === 'PPID_UTAMA' || role === 'PPID_PELAKSANA' || role === 'ATASAN_PPID') {
         // Fetch pending accounts
         try {
           const pendingResponse = await fetch('/api/accounts/pending', {
@@ -116,7 +116,7 @@ export const useNotifications = () => {
 
         // Fetch new requests with history tracking (only unassigned for Admin/PPID_UTAMA)
         try {
-          const requestsUrl = role === 'PPID_PELAKSANA' 
+          const requestsUrl = (role === 'PPID_PELAKSANA' || role === 'ATASAN_PPID') 
             ? '/api/permintaan?assigned=true&status=Diajukan'
             : '/api/permintaan?unassigned=true&status=Diajukan';
           
@@ -159,7 +159,7 @@ export const useNotifications = () => {
 
         // Fetch new objections with history tracking (only unassigned for Admin/PPID_UTAMA)
         try {
-          const objectionsUrl = role === 'PPID_PELAKSANA'
+          const objectionsUrl = (role === 'PPID_PELAKSANA' || role === 'ATASAN_PPID')
             ? '/api/keberatan?assigned=true&status=Diajukan'
             : '/api/keberatan?unassigned=true&status=Diajukan';
           

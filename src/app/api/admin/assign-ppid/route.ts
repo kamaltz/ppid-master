@@ -111,9 +111,9 @@ export async function GET(request: NextRequest) {
       role: { in: ['PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'] },
       ...(search && {
         OR: [
-          { nama: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-          { no_pegawai: { contains: search, mode: 'insensitive' } }
+          { nama: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+          { no_pegawai: { contains: search, mode: 'insensitive' as const } }
         ]
       })
     };
