@@ -226,7 +226,7 @@ export default function AdminPermohonanPage() {
           refreshData();
         } catch (error) {
           console.error('Delete error:', error);
-          alert(`Gagal menghapus permohonan: ${error.message || 'Unknown error'}`);
+          alert(`Gagal menghapus permohonan: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
           setIsProcessing(false);
         }
