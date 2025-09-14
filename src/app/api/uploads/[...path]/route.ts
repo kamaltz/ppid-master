@@ -28,6 +28,8 @@ export async function GET(
     
     // Determine content type
     const ext = filePath.split('.').pop()?.toLowerCase();
+    const fileName = path[path.length - 1];
+    
     const contentTypes: Record<string, string> = {
       'jpg': 'image/jpeg',
       'jpeg': 'image/jpeg',
@@ -35,19 +37,30 @@ export async function GET(
       'gif': 'image/gif',
       'webp': 'image/webp',
       'svg': 'image/svg+xml',
-      'ico': 'image/x-icon'
+      'ico': 'image/x-icon',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'txt': 'text/plain',
+      'zip': 'application/zip',
+      'rar': 'application/x-rar-compressed'
     };
     
     const contentType = contentTypes[ext || ''] || 'application/octet-stream';
     
-    return new NextResponse(fileBuffer as any, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=31536000',
+    };
+    
+    // Add download headers for non-image files
+    if (!contentType.startsWith('image/')) {
+      headers['Content-Disposition'] = `attachment; filename="${fileName}"`;
+    }
+    
+    return new NextResponse(fileBuffer as any, { headers });
   } catch (error) {
     console.error('Error serving file:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
