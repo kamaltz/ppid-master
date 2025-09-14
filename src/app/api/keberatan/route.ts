@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prismaClient';
 import jwt from 'jsonwebtoken';
-import { checkDailyKeberatanLimit, checkKeberatanForRequest } from '@/lib/dailyLimits';
+import { checkKeberatanForRequest } from '@/lib/dailyLimits';
+
 
 interface JWTPayload {
   id: string;
@@ -52,17 +53,14 @@ export async function GET(request: NextRequest) {
     if (decoded.role === 'PEMOHON') {
       where.pemohon_id = userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
-      // PPID Pelaksana sees keberatan assigned to them OR unassigned forwarded keberatan
-      if (status === 'Diteruskan' && includeUnassigned) {
-        // For notifications: show all forwarded keberatan (assigned to them or unassigned)
-        where.OR = [
-          { assigned_ppid_id: userId },
-          { assigned_ppid_id: null }
-        ];
-      } else {
-        // For regular view: only assigned keberatan
-        where.assigned_ppid_id = userId;
-      }
+      // PPID Pelaksana sees keberatan assigned to them OR all forwarded keberatan
+      where.OR = [
+        { assigned_ppid_id: userId },
+        { 
+          status: 'Diteruskan',
+          assigned_ppid_id: null 
+        }
+      ];
     }
     
     // Apply status filter if provided
@@ -141,7 +139,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Keberatan POST API called - auth temporarily disabled');
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded: JWTPayload;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    } catch (jwtError) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
 
     const { permintaan_id, judul, alasan_keberatan } = await request.json();
 
@@ -149,26 +159,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Alasan keberatan wajib diisi' }, { status: 400 });
     }
 
-    // Use default user ID for testing
-    const userId = 1;
+    const userId = parseInt(decoded.id) || decoded.userId;
     
-    // Check daily keberatan limit
-    const limitCheck = await checkDailyKeberatanLimit(userId);
-    if (!limitCheck.canSubmit) {
-      return NextResponse.json({ 
-        error: `Batas harian tercapai. Anda sudah mengajukan ${limitCheck.count} keberatan hari ini. Maksimal ${limitCheck.limit} keberatan per hari.` 
-      }, { status: 429 });
+    if (!userId || isNaN(userId)) {
+      return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
     }
+    
+
     
     // Use existing request ID
     const requestId = permintaan_id;
     if (!requestId) {
       return NextResponse.json({ error: 'Permintaan ID diperlukan' }, { status: 400 });
     } else {
-      // Find the request (skip ownership check for testing)
+      // Find the request and verify ownership
       const permintaan = await prisma.request.findFirst({
         where: {
-          id: parseInt(requestId)
+          id: parseInt(requestId),
+          pemohon_id: userId
         }
       });
 
@@ -181,6 +189,8 @@ export async function POST(request: NextRequest) {
       if (!keberatanCheck.canSubmit) {
         return NextResponse.json({ error: 'Anda sudah mengajukan keberatan untuk permohonan ini' }, { status: 400 });
       }
+      
+
     }
 
     const keberatan = await prisma.keberatan.create({

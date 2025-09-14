@@ -3,7 +3,7 @@ import { getAdminData } from '@/lib/api';
 
 interface KeberatanData {
   id: number;
-  pemohon: {
+  pemohon?: {
     nama: string;
     email: string;
   };
@@ -11,7 +11,8 @@ interface KeberatanData {
   alasan_keberatan: string;
   kasus_posisi?: string;
   status: string;
-  tanggal_keberatan: string;
+  tanggal_keberatan?: string;
+  created_at: string;
   tanggapan_atasan?: string;
 }
 

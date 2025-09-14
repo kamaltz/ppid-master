@@ -43,28 +43,98 @@ export default function AdminPermohonanPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPageNum, setCurrentPageNum] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   
-  // Convert database data to component format
-  const permohonan = permintaan.map(req => {
-    let tanggalDisplay = 'Tanggal tidak tersedia';
-    try {
-      const date = new Date(req.created_at);
-      if (!isNaN(date.getTime())) {
-        tanggalDisplay = date.toLocaleDateString('id-ID');
+  // Convert database data to component format with filtering and sorting
+  const filteredAndSortedPermohonan = permintaan
+    .map(req => {
+      let tanggalDisplay = 'Tanggal tidak tersedia';
+      try {
+        const date = new Date(req.created_at);
+        if (!isNaN(date.getTime())) {
+          tanggalDisplay = date.toLocaleDateString('id-ID');
+        }
+      } catch {
+        // Keep default value
       }
-    } catch {
-      // Keep default value
-    }
-    
-    return {
-      id: req.id,
-      nama: req.pemohon?.nama || 'N/A',
-      email: req.pemohon?.email || 'N/A',
-      informasi: req.rincian_informasi,
-      status: req.status,
-      tanggal: tanggalDisplay
-    };
-  });
+      
+      return {
+        id: req.id,
+        nama: req.pemohon?.nama || 'N/A',
+        email: req.pemohon?.email || 'N/A',
+        informasi: req.rincian_informasi,
+        status: req.status,
+        tanggal: tanggalDisplay,
+        created_at: req.created_at
+      };
+    })
+    .filter(item => {
+      // Search filter
+      const searchMatch = !searchQuery || 
+        item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.informasi.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      const statusMatch = !statusFilter || item.status === statusFilter;
+      
+      // Date range filter
+      let dateMatch = true;
+      if (dateFrom || dateTo) {
+        const itemDate = new Date(item.created_at);
+        if (dateFrom && itemDate < new Date(dateFrom)) dateMatch = false;
+        if (dateTo && itemDate > new Date(dateTo + 'T23:59:59')) dateMatch = false;
+      }
+      
+      return searchMatch && statusMatch && dateMatch;
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+      
+      if (sortBy === 'nama') {
+        aValue = a.nama.toLowerCase();
+        bValue = b.nama.toLowerCase();
+      } else if (sortBy === 'created_at') {
+        aValue = new Date(a.created_at);
+        bValue = new Date(b.created_at);
+      } else {
+        aValue = a[sortBy as keyof typeof a];
+        bValue = b[sortBy as keyof typeof b];
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+  
+  // Pagination logic
+  const totalItems = filteredAndSortedPermohonan.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPageNum - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const permohonan = filteredAndSortedPermohonan.slice(startIndex, endIndex);
+  
+  const goToPage = (page: number) => {
+    setCurrentPageNum(page);
+  };
+  
+  const goToPrevious = () => {
+    if (currentPageNum > 1) setCurrentPageNum(currentPageNum - 1);
+  };
+  
+  const goToNext = () => {
+    if (currentPageNum < totalPages) setCurrentPageNum(currentPageNum + 1);
+  };
 
   const updateStatus = (id: number, newStatus: string) => {
     const currentPermohonan = permohonan.find(p => p.id === id);
@@ -372,7 +442,7 @@ export default function AdminPermohonanPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Kelola Permohonan</h1>
         <div className="text-sm text-gray-500">
-          Total: {permohonan.length} permohonan
+          Menampilkan: {startIndex + 1}-{Math.min(endIndex, totalItems)} dari {totalItems} permohonan (Total: {permintaan.length})
         </div>
       </div>
       
@@ -416,6 +486,129 @@ export default function AdminPermohonanPage() {
           </div>
         )}
       </RoleGuard>
+      
+      {/* Filter Toggle Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <svg className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+          {showFilters ? 'Sembunyikan Filter' : 'Tampilkan Filter'}
+        </button>
+      </div>
+      
+      {/* Search and Filter Section */}
+      {showFilters && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
+            <input
+              type="text"
+              placeholder="Cari nama, email, atau topik..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+          
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">Semua Status</option>
+              <option value="Diajukan">Diajukan</option>
+              <option value="Diteruskan">Diteruskan</option>
+              <option value="Selesai">Selesai</option>
+              <option value="Ditolak">Ditolak</option>
+            </select>
+          </div>
+          
+          {/* Sort By */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Urutkan</label>
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('-');
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="created_at-desc">Tanggal Terbaru</option>
+              <option value="created_at-asc">Tanggal Terlama</option>
+              <option value="nama-asc">Nama A-Z</option>
+              <option value="nama-desc">Nama Z-A</option>
+            </select>
+          </div>
+          
+          {/* Items per page */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Per Halaman</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPageNum(1);
+              }}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* Date Range and Reset */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('');
+                setDateFrom('');
+                setDateTo('');
+                setSortBy('created_at');
+                setSortOrder('desc');
+                setCurrentPageNum(1);
+              }}
+              className="w-full px-3 py-2 bg-gray-500 text-white text-sm rounded-lg hover:bg-gray-600"
+            >
+              Reset Filter
+            </button>
+          </div>
+        </div>
+        </div>
+      )}
       
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
@@ -542,6 +735,64 @@ export default function AdminPermohonanPage() {
           </tbody>
         </table>
       </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="bg-white rounded-lg shadow-md p-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Halaman {currentPageNum} dari {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={goToPrevious}
+                disabled={currentPageNum === 1}
+                className="px-3 py-1 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Sebelumnya
+              </button>
+              
+              {/* Page numbers */}
+              <div className="flex space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPageNum <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPageNum >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPageNum - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => goToPage(pageNum)}
+                      className={`px-3 py-1 border rounded-lg ${
+                        currentPageNum === pageNum
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={goToNext}
+                disabled={currentPageNum === totalPages}
+                className="px-3 py-1 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Detail Modal */}
       {selectedPermohonan && (

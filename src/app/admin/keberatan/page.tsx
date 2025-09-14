@@ -99,7 +99,7 @@ export default function AdminKeberatanPage() {
   }, [searchTerm]);
   
   // Convert database data to display format
-  const keberatanDisplay = keberatan.map(item => ({
+  const keberatanDisplay = keberatan.map((item: any) => ({
     id: item.id,
     nama: item.pemohon?.nama || 'N/A',
     email: item.pemohon?.email || 'N/A',
@@ -109,7 +109,7 @@ export default function AdminKeberatanPage() {
     status: item.status,
     tanggal: (() => {
       try {
-        const date = new Date(item.tanggal_keberatan || new Date());
+        const date = new Date(item.created_at || new Date());
         return !isNaN(date.getTime()) ? date.toLocaleDateString('id-ID') : 'Tanggal tidak valid';
       } catch {
         return 'Tanggal tidak valid';

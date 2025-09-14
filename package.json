@@ -39,7 +39,14 @@
     "db:reset": "node scripts/reset-database.js",
     "fix-prod": "node scripts/fix-production-settings.js",
     "fix-logo": "node scripts/fix-logo-urls.js",
-    "test-notif": "node scripts/test-notifications.js"
+    "test-notif": "node scripts/test-notifications.js",
+    "create-permohonan17": "node scripts/create-permohonan17.js",
+    "check-keberatan": "node scripts/check-keberatan-data.js",
+    "fix-keberatan": "node scripts/fix-keberatan-pemohon.js",
+    "update-keberatan": "node scripts/update-keberatan-pemohon.js",
+    "debug-keberatan-notif": "node scripts/debug-keberatan-notif.js",
+    "assign-keberatan-ppid4": "node scripts/assign-keberatan-to-ppid4.js",
+    "test-ppid-api": "node scripts/test-ppid-keberatan-api.js"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",

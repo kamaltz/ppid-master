@@ -104,8 +104,9 @@ export const useNotifications = () => {
           }).then(res => ({ type: 'requests', response: res })).catch(() => ({ type: 'requests', response: null }))
         );
         
+        // PPID Pelaksana gets all keberatan (assigned + unassigned forwarded)
         promises.push(
-          fetch('/api/keberatan?status=Diteruskan', {
+          fetch('/api/keberatan', {
             headers: { Authorization: `Bearer ${token}` }
           }).then(res => ({ type: 'objections', response: res })).catch(() => ({ type: 'objections', response: null }))
         );

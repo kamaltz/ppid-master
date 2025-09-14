@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prismaClient';
 import jwt from 'jsonwebtoken';
-import { checkDailyRequestLimit } from '@/lib/dailyLimits';
+
 import { sanitizeObject, validateInput } from '@/lib/xssProtection';
 
 interface JWTPayload {
@@ -196,13 +196,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
     }
 
-    // Check daily limit
-    const limitCheck = await checkDailyRequestLimit(userId);
-    if (!limitCheck.canSubmit) {
-      return NextResponse.json({ 
-        error: `Batas harian tercapai. Anda sudah mengajukan ${limitCheck.count} permohonan hari ini. Maksimal ${limitCheck.limit} permohonan per hari.` 
-      }, { status: 429 });
-    }
+
 
     const newRequest = await prisma.request.create({
       data: {
