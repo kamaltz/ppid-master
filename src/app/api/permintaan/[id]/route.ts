@@ -123,10 +123,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
-    // Only allow deletion if request is still in 'Diajukan' status
-    if (existingRequest.status !== 'Diajukan') {
-      return NextResponse.json({ error: 'Cannot withdraw request that is already being processed' }, { status: 400 });
-    }
+    // Allow deletion for authenticated users (Admin/PPID can delete any status)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    console.log('Delete request - User role:', decoded.role, 'Request status:', existingRequest.status);
 
     // Delete related responses first
     await prisma.requestResponse.deleteMany({

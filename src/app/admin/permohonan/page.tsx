@@ -212,10 +212,10 @@ export default function AdminPermohonanPage() {
             }
           });
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+            const errorData = await response.json().catch(() => ({})); console.error('Delete error:', errorData); throw new Error(errorData.error || `HTTP ${response.status}`);
       }
           
-          if (!response.ok) throw new Error('Failed to delete');
+
           
           setConfirmModal({ ...confirmModal, isOpen: false });
           setSuccessModal({
@@ -224,8 +224,9 @@ export default function AdminPermohonanPage() {
             message: `Permohonan #${id} berhasil dihapus dari sistem.`
           });
           refreshData();
-        } catch {
-          alert('Gagal menghapus permohonan');
+        } catch (error) {
+          console.error('Delete error:', error);
+          alert(`Gagal menghapus permohonan: ${error.message || 'Unknown error'}`);
         } finally {
           setIsProcessing(false);
         }
@@ -307,11 +308,9 @@ export default function AdminPermohonanPage() {
                 }
               });
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+            const errorData = await response.json().catch(() => ({})); console.error('Bulk delete error:', errorData); throw new Error(errorData.error || `HTTP ${response.status}`);
       }
-              if (!response.ok) {
-                throw new Error(`Failed to delete request ${id}`);
-              }
+
             }
           } else {
             // Update status for each selected request

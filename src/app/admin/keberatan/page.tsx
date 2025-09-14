@@ -162,9 +162,22 @@ export default function AdminKeberatanPage() {
       onConfirm: async () => {
         setIsProcessing(true);
         try {
-          await deleteKeberatan(id);
+          const token = localStorage.getItem('auth_token');
+          const response = await fetch(`/api/keberatan/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to delete: HTTP ${response.status}`);
+          }
+          
           setConfirmModal({ ...confirmModal, isOpen: false });
-        } catch {
+          window.location.reload();
+        } catch (error) {
+          console.error('Delete error:', error);
           alert('Gagal menghapus keberatan');
         } finally {
           setIsProcessing(false);

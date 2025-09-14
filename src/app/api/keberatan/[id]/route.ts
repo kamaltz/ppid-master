@@ -110,3 +110,43 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const { id } = await params;
+
+    // Check if keberatan exists
+    const existingKeberatan = await prisma.keberatan.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!existingKeberatan) {
+      return NextResponse.json({ error: 'Keberatan not found' }, { status: 404 });
+    }
+
+    // Allow deletion for authenticated users (Admin/PPID can delete any status)
+    console.log('Delete keberatan - User role:', decoded.role, 'Keberatan status:', existingKeberatan.status);
+
+    // Delete related responses first
+    await prisma.keberatanResponse.deleteMany({
+      where: { keberatan_id: parseInt(id) }
+    });
+
+    // Delete the keberatan
+    await prisma.keberatan.delete({
+      where: { id: parseInt(id) }
+    });
+
+    return NextResponse.json({ success: true, message: 'Keberatan deleted successfully' });
+  } catch (error) {
+    console.error('Delete keberatan error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
