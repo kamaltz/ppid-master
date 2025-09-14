@@ -118,11 +118,17 @@ export const useNotifications = () => {
           // Silent fail for pending accounts
         }
 
-        // Fetch new requests with history tracking (only unassigned for Admin/PPID_UTAMA)
+        // Fetch new requests with history tracking
         try {
-          const requestsUrl = (role === 'PPID_PELAKSANA' || role === 'ATASAN_PPID') 
-            ? '/api/permintaan?assigned=true&status=Diajukan'
-            : '/api/permintaan?unassigned=true&status=Diajukan';
+          let requestsUrl = '/api/permintaan?status=Diajukan';
+          if (role === 'PPID_PELAKSANA') {
+            // For PPID Pelaksana, show forwarded requests (both assigned and unassigned)
+            requestsUrl = '/api/permintaan?status=Diteruskan';
+          } else if (role === 'ATASAN_PPID') {
+            requestsUrl = '/api/permintaan?assigned=true&status=Diteruskan';
+          } else {
+            requestsUrl = '/api/permintaan?unassigned=true&status=Diajukan';
+          }
           
           const requestsResponse = await fetch(requestsUrl, {
             headers: { Authorization: `Bearer ${token}` }
@@ -161,11 +167,16 @@ export const useNotifications = () => {
           // Silent fail
         }
 
-        // Fetch new objections with history tracking (only unassigned for Admin/PPID_UTAMA)
+        // Fetch new objections with history tracking
         try {
-          const objectionsUrl = (role === 'PPID_PELAKSANA' || role === 'ATASAN_PPID')
-            ? '/api/keberatan?assigned=true&status=Diajukan'
-            : '/api/keberatan?unassigned=true&status=Diajukan';
+          let objectionsUrl = '/api/keberatan?status=Diajukan';
+          if (role === 'PPID_PELAKSANA') {
+            objectionsUrl = '/api/keberatan?status=Diteruskan';
+          } else if (role === 'ATASAN_PPID') {
+            objectionsUrl = '/api/keberatan?assigned=true&status=Diteruskan';
+          } else {
+            objectionsUrl = '/api/keberatan?unassigned=true&status=Diajukan';
+          }
           
           const objectionsResponse = await fetch(objectionsUrl, {
             headers: { Authorization: `Bearer ${token}` }

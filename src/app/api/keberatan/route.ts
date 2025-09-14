@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     // Parse URL parameters first
     const { searchParams } = new URL(request.url);
     const pemohonId = searchParams.get('pemohon_id');
+    const status = searchParams.get('status');
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
     const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
 
@@ -50,9 +51,25 @@ export async function GET(request: NextRequest) {
     if (decoded.role === 'PEMOHON') {
       where.pemohon_id = userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
-      // PPID Pelaksana only sees keberatan assigned to them
-      where.assigned_ppid_id = userId;
-    } else if (decoded.role === 'PPID_UTAMA' || decoded.role === 'ADMIN') {
+      // PPID Pelaksana sees keberatan assigned to them OR unassigned forwarded keberatan
+      if (status === 'Diteruskan') {
+        // For notifications: show all forwarded keberatan (assigned to them or unassigned)
+        where.OR = [
+          { assigned_ppid_id: userId },
+          { assigned_ppid_id: null, status: 'Diteruskan' }
+        ];
+      } else {
+        // For regular view: only assigned keberatan
+        where.assigned_ppid_id = userId;
+      }
+    }
+    
+    // Apply status filter if provided
+    if (status && !where.OR) {
+      where.status = status;
+    }
+    
+    if (decoded.role === 'PPID_UTAMA' || decoded.role === 'ADMIN') {
       // PPID Utama and Admin see all keberatan
       if (pemohonId) {
         const parsedPemohonId = parseInt(pemohonId);

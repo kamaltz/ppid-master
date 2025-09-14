@@ -68,8 +68,17 @@ export async function GET(request: NextRequest) {
     if (decoded.role === 'PEMOHON') {
       where.pemohon_id = userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
-      // PPID Pelaksana only sees requests assigned to them
-      where.assigned_ppid_id = userId;
+      // PPID Pelaksana sees requests assigned to them OR unassigned forwarded requests
+      if (status === 'Diteruskan') {
+        // For notifications: show all forwarded requests (assigned to them or unassigned)
+        where.OR = [
+          { assigned_ppid_id: userId },
+          { assigned_ppid_id: null, status: 'Diteruskan' }
+        ];
+      } else {
+        // For regular view: only assigned requests
+        where.assigned_ppid_id = userId;
+      }
     } else if (decoded.role === 'PPID_UTAMA') {
       // PPID Utama sees all requests, or can filter by assignment
       // No additional filter needed
