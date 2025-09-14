@@ -28,11 +28,13 @@
     "seed:old-requests": "node scripts/create-old-requests.js",
     "db:migrate": "npx prisma migrate dev",
     "seed": "npx prisma db seed",
+    "setup-db": "node scripts/migrate-and-seed.js",
     "reset-admin": "node lib/scripts/resetAdminPassword.ts",
     "fix-roles": "node scripts/fix-roles.js",
     "fix-settings": "node scripts/fix-settings-deployment.js",
     "postinstall": "prisma generate",
-    "deploy": "npm run fix-settings && npm run build"
+    "deploy": "npm run fix-settings && npm run build",
+    "db:setup": "npm run setup-db"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",

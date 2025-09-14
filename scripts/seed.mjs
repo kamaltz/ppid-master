@@ -5,6 +5,24 @@ const prisma = new PrismaClient();
 async function main() {
   console.log(`Start seeding ...`);
 
+  // Check if tables exist, if not run migration
+  try {
+    await prisma.admin.findFirst();
+  } catch (error) {
+    if (error.code === 'P2021') {
+      console.log('Tables do not exist. Running migration...');
+      const { execSync } = await import('child_process');
+      execSync('npx prisma generate', { stdio: 'inherit' });
+      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+      console.log('Migration completed.');
+      // Reconnect with new schema
+      await prisma.$disconnect();
+      await prisma.$connect();
+    } else {
+      throw error;
+    }
+  }
+
   const hashedPassword = await bcrypt.hash("Garut@2025?", 10);
 
   // Seed Admin
@@ -80,6 +98,8 @@ async function main() {
       email: "pemohon@example.com",
       hashed_password: hashedPassword,
       nama: "Pemohon Test",
+      is_approved: true,
+      pekerjaan: "Test",
     },
   });
   console.log("Pemohon user created.");
