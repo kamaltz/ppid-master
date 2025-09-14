@@ -280,7 +280,7 @@ log_info "Waiting for application to start..."
 for i in {1..60}; do
     if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
         log_info "Application is ready"
-        break
+        breakk
     fi
     if [ $i -eq 60 ]; then
         log_error "Application failed to start after 3 minutes"
@@ -321,8 +321,47 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 CRED_EOF
 chmod 600 .env.production
 
+# Comprehensive curl tests to identify web access issues
+log_info "Running comprehensive web access tests..."
+
+# Test 1: Direct app access
+log_info "Test 1: Testing direct app access (localhost:3000)"
+if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health | grep -q "200"; then
+    log_info "✅ App responds on localhost:3000"
+else
+    log_error "❌ App not responding on localhost:3000"
+    curl -v http://localhost:3000/api/health 2>&1 | head -10
+fi
+
+# Test 2: Nginx proxy test
+log_info "Test 2: Testing nginx proxy (localhost:80)"
+if curl -s -o /dev/null -w "%{http_code}" http://localhost/api/health | grep -q "200"; then
+    log_info "✅ Nginx proxy working"
+else
+    log_error "❌ Nginx proxy not working"
+    curl -v http://localhost/api/health 2>&1 | head -10
+fi
+
+# Test 3: External IP access
+log_info "Test 3: Testing external IP access"
+SERVER_IP=$(curl -s ifconfig.me || echo "unknown")
+log_info "Server IP: $SERVER_IP"
+if curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://$SERVER_IP/api/health | grep -q "200"; then
+    log_info "✅ External IP access working"
+else
+    log_error "❌ External IP access not working"
+    curl -v --connect-timeout 5 http://$SERVER_IP/api/health 2>&1 | head -10
+fi
+
+# Test 4: Port accessibility
+log_info "Test 4: Checking port accessibility"
+if command -v ss &> /dev/null; then
+    log_info "Ports listening:"
+    sudo ss -tlnp | grep -E ':(80|3000)'
+fi
+
 # Final verification and diagnostics
-log_info "Running final diagnostics..."
+log_info "Running system diagnostics..."
 
 # Check nginx status
 if sudo systemctl is-active --quiet nginx; then
