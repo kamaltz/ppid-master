@@ -123,17 +123,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
 
-  const getUserRole = () => {
+  const getUserRole = useCallback(() => {
     return user?.role || localStorage.getItem("user_role");
-  };
+  }, [user?.role]);
 
-  const getUserName = () => {
+  const getUserName = useCallback(() => {
     return user?.nama || null;
-  };
+  }, [user?.nama]);
 
-  const getToken = () => {
+  const getToken = useCallback(() => {
     return token || localStorage.getItem("auth_token");
-  };
+  }, [token]);
 
   const isAuthenticated = !!token;
 

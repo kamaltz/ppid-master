@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       
       console.log(`[DEBUG] Final unread count for PPID_PELAKSANA ${userId}: ${unreadCount}`);
       
-    } else if (userRole === 'Pemohon') {
+    } else if (userRole === 'Pemohon' || userRole === 'PEMOHON') {
       // For pemohon, count chats where last message is from PPID/Admin (indicating unread)
       const requestsWithNewMessages = await prisma.request.findMany({
         where: { pemohon_id: userId },
