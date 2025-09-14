@@ -74,11 +74,14 @@ export const useNotifications = () => {
       if (role === 'ADMIN' || role === 'PPID_UTAMA' || role === 'PPID_PELAKSANA' || role === 'ATASAN_PPID') {
         // Fetch pending accounts
         try {
+          console.log('Fetching pending accounts for role:', role);
           const pendingResponse = await fetch('/api/accounts/pending', {
             headers: { Authorization: `Bearer ${token}` }
           });
+          console.log('Pending response status:', pendingResponse.status);
           if (pendingResponse.ok) {
             const pendingData = await pendingResponse.json();
+            console.log('Pending data:', pendingData);
             if (pendingData.success && pendingData.data) {
               const currentIds = pendingData.data.map((item: any) => item.id.toString());
               const history = getNotificationHistory();
@@ -107,6 +110,7 @@ export const useNotifications = () => {
                   currentIds.includes(item.id)
                 ).length;
               
+              console.log('Setting pending accounts count:', unreadCount);
               setCounts(prev => ({ ...prev, pendingAccounts: unreadCount }));
             }
           }
