@@ -56,6 +56,8 @@ export default function AdminInformasiPage() {
     tanggalSelesai: '',
     statusFilter: 'published'
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [authorFilter, setAuthorFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -367,6 +369,8 @@ export default function AdminInformasiPage() {
       tanggalSelesai: '',
       statusFilter: 'published'
     });
+    setSearchTerm('');
+    setAuthorFilter('');
     setCurrentPage(1);
   };
 
@@ -465,6 +469,35 @@ export default function AdminInformasiPage() {
     return [...new Set(years)].sort((a, b) => b - a);
   }, [allInformasi]);
 
+  const availableAuthors = useMemo(() => {
+    if (!allInformasi || allInformasi.length === 0) return [];
+    const authors = allInformasi
+      .map(item => item.pejabat_penguasa_informasi)
+      .filter(author => author && author.trim() !== '')
+      .filter((author, index, arr) => arr.indexOf(author) === index);
+    return authors.sort();
+  }, [allInformasi]);
+
+  const filteredInformasi = useMemo(() => {
+    if (!allInformasi) return [];
+    return allInformasi.filter(item => {
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesTitle = item.judul.toLowerCase().includes(searchLower);
+        const matchesContent = item.ringkasan_isi_informasi.toLowerCase().includes(searchLower);
+        if (!matchesTitle && !matchesContent) return false;
+      }
+      
+      // Author filter
+      if (authorFilter && item.pejabat_penguasa_informasi !== authorFilter) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [allInformasi, searchTerm, authorFilter]);
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
@@ -552,7 +585,20 @@ export default function AdminInformasiPage() {
       {showFilters && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h3 className="text-lg font-semibold mb-4">Filter Informasi</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          
+          {/* Search Section */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Pencarian</label>
+            <input
+              type="text"
+              placeholder="Cari berdasarkan judul atau isi informasi..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Status</label>
               <select
@@ -618,6 +664,22 @@ export default function AdminInformasiPage() {
                 className="w-full border rounded px-3 py-2"
               />
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Penulis</label>
+              <select
+                value={authorFilter}
+                onChange={(e) => setAuthorFilter(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              >
+                <option value="">Semua Penulis</option>
+                {availableAuthors.map((author) => (
+                  <option key={author} value={author}>
+                    {author}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           
           <div className="flex justify-between items-center mt-4">
@@ -630,6 +692,11 @@ export default function AdminInformasiPage() {
               </button>
               <div className="text-sm text-gray-600 flex items-center">
                 Menampilkan {informasi.length} dari {totalItems} informasi (Halaman {currentPage} dari {totalPages})
+                {(searchTerm || authorFilter) && (
+                  <span className="ml-2 text-blue-600">
+                    • {filteredInformasi.length} hasil pencarian/filter
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">

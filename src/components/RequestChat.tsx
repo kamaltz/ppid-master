@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Paperclip, X, Image as ImageIcon, StopCircle } from 'lucide-react';
+import { Send, Paperclip, X, Image as ImageIcon, StopCircle, FileCheck } from 'lucide-react';
 import Image from 'next/image';
+import UsageEvidenceForm from './UsageEvidenceForm';
 
 interface Response {
   id: number;
@@ -42,6 +43,9 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
   const [hasMore, setHasMore] = useState(true);
   const [loadingPpid, setLoadingPpid] = useState(false);
   const loadingPpidRef = useRef(false);
+  const [showEvidenceForm, setShowEvidenceForm] = useState(false);
+  const [isSubmittingEvidence, setIsSubmittingEvidence] = useState(false);
+  const [requestStatus, setRequestStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -61,8 +65,10 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
         const lastMessage = data.data[data.data.length - 1];
         const isEnded = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('diakhiri');
         const isResumed = lastMessage && lastMessage.message_type === 'system' && lastMessage.message.includes('dilanjutkan');
+        const isCompleted = data.data.some((msg: Response) => msg.message_type === 'system' && msg.message.includes('Selesai'));
         
         setChatSession({ is_active: isResumed || !isEnded });
+        setRequestStatus(isCompleted ? 'Selesai' : 'Active');
         
         // Check if pemohon can send message
         if (actualUserRole === 'PEMOHON') {
@@ -363,6 +369,35 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
     }
   };
 
+  const handleEvidenceSubmit = async (evidenceData: any) => {
+    setIsSubmittingEvidence(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/usage-evidence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(evidenceData)
+      });
+
+      if (response.ok) {
+        setShowEvidenceForm(false);
+        alert('Bukti penggunaan informasi berhasil dikirim!');
+        fetchResponses(); // Refresh chat to show evidence message
+      } else {
+        const errorData = await response.json();
+        alert('Gagal mengirim bukti: ' + (errorData.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error submitting evidence:', error);
+      alert('Gagal mengirim bukti. Silakan coba lagi.');
+    } finally {
+      setIsSubmittingEvidence(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md">
       <div className="p-4 border-b flex justify-between items-center">
@@ -370,6 +405,15 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
         <div className="flex items-center gap-2">
           {!chatSession.is_active && (
             <span className="text-sm text-red-600 font-medium">Chat Diakhiri</span>
+          )}
+          {requestStatus === 'Selesai' && actualUserRole === 'PEMOHON' && (
+            <button
+              onClick={() => setShowEvidenceForm(true)}
+              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 flex items-center gap-1"
+            >
+              <FileCheck className="w-4 h-4" />
+              Kirim Bukti Penggunaan
+            </button>
           )}
           {(isAdmin || actualUserRole === 'PPID_PELAKSANA') && (
             <div className="flex gap-2">
@@ -414,17 +458,29 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
             <div key={resp.id} className={`flex flex-col space-y-2 ${isSystemMessage ? 'items-center' : ''}`}>
               <div className="flex items-center space-x-2">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(resp.user_role)}`}>
-                  {resp.user_role === 'PPID_PELAKSANA' ? resp.user_name : 
-                   resp.user_role === 'PPID_UTAMA' ? resp.user_name :
-                   resp.user_role === 'ATASAN_PPID' ? resp.user_name :
-                   resp.user_role}
+                  {resp.user_role === 'PPID_PELAKSANA' ? (resp.user_name && resp.user_name !== 'Unknown User' ? resp.user_name : 'PPID Pelaksana') : 
+                   resp.user_role === 'PPID_UTAMA' ? (resp.user_name && resp.user_name !== 'Unknown User' ? resp.user_name : 'PPID Utama') :
+                   resp.user_role === 'ATASAN_PPID' ? (resp.user_name && resp.user_name !== 'Unknown User' ? resp.user_name : 'Atasan PPID') :
+                   resp.user_role === 'ADMIN' ? (resp.user_name && resp.user_name !== 'Unknown User' ? resp.user_name : 'Admin') :
+                   resp.user_role === 'System' ? 'Sistem' :
+                   resp.user_name || resp.user_role}
                 </span>
                 <span className="text-xs text-gray-500">
                   {new Date(resp.created_at).toLocaleString('id-ID')}
                 </span>
               </div>
-              <div className={`p-3 rounded-lg ${isSystemMessage ? 'bg-yellow-50 border border-yellow-200 text-center' : 'bg-gray-50'}`}>
-                {resp.message && <p className="text-gray-800">{resp.message}</p>}
+              <div className={`p-3 rounded-lg ${
+                isSystemMessage ? 'bg-yellow-50 border border-yellow-200 text-center' : 
+                resp.message_type === 'evidence' ? 'bg-green-50 border border-green-200' : 
+                'bg-gray-50'
+              }`}>
+                {resp.message && (
+                  <p className={`text-gray-800 ${
+                    resp.message_type === 'evidence' ? 'font-medium' : ''
+                  }`}>
+                    {resp.message}
+                  </p>
+                )}
                 {attachmentList.length > 0 && (
                   <div className="mt-2 space-y-2">
                     {attachmentList.map((file: { name: string; url: string; size?: number }, index: number) => (
@@ -664,6 +720,16 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
             </div>
           </div>
         </div>
+      )}
+
+      {/* Usage Evidence Form */}
+      {showEvidenceForm && (
+        <UsageEvidenceForm
+          requestId={requestId}
+          onSubmit={handleEvidenceSubmit}
+          onCancel={() => setShowEvidenceForm(false)}
+          isLoading={isSubmittingEvidence}
+        />
       )}
     </div>
   );

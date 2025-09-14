@@ -20,20 +20,21 @@ model Admin {
 }
 
 model Pemohon {
-  id              Int         @id @default(autoincrement())
-  email           String      @unique
+  id              Int             @id @default(autoincrement())
+  email           String          @unique
   hashed_password String
   nama            String
   nik             String?
   no_telepon      String?
   alamat          String?
-  created_at      DateTime    @default(now())
-  is_approved     Boolean     @default(false)
+  created_at      DateTime        @default(now())
+  is_approved     Boolean         @default(false)
   approved_by     String?
   approved_at     DateTime?
   pekerjaan       String?
   keberatan       Keberatan[]
   requests        Request[]
+  usage_evidence  UsageEvidence[]
 
   @@map("pemohon")
 }
@@ -72,6 +73,7 @@ model Request {
   chat_session              ChatSession?
   keberatan                 Keberatan[]
   responses                 RequestResponse[]
+  usage_evidence            UsageEvidence[]
   assigned_ppid             Ppid?             @relation(fields: [assigned_ppid_id], references: [id])
   pemohon                   Pemohon           @relation(fields: [pemohon_id], references: [id])
 
@@ -165,6 +167,7 @@ model Keberatan {
   pemohon          Pemohon             @relation(fields: [pemohon_id], references: [id])
   permintaan       Request             @relation(fields: [permintaan_id], references: [id])
   responses        KeberatanResponse[]
+  usage_evidence   UsageEvidence[]
 
   @@map("keberatan")
 }
@@ -229,4 +232,22 @@ model PpidChat {
   sender      Ppid     @relation("SenderPpid", fields: [sender_id], references: [id])
 
   @@map("ppid_chats")
+}
+
+model UsageEvidence {
+  id          Int      @id @default(autoincrement())
+  request_id  Int?
+  keberatan_id Int?
+  pemohon_id  Int
+  description String?
+  attachments String?
+  links       String?
+  status      String   @default("Submitted")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+  pemohon     Pemohon  @relation(fields: [pemohon_id], references: [id])
+  request     Request? @relation(fields: [request_id], references: [id])
+  keberatan   Keberatan? @relation(fields: [keberatan_id], references: [id])
+
+  @@map("usage_evidence")
 }

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Get user name based on role
-    let userName = decoded.nama || 'Unknown User';
+    let userName = 'Unknown User';
     const userRole = user_role || decoded.role;
     
     if (['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID'].includes(userRole)) {
@@ -72,12 +72,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         } else {
           userRecord = await prisma.ppid.findUnique({ where: { id: parseInt(decoded.id) } });
         }
-        if (userRecord) {
+        if (userRecord && userRecord.nama) {
           userName = userRecord.nama;
+        } else {
+          userName = decoded.nama || 'Unknown User';
         }
       } catch (error) {
         console.log('Error fetching user name:', error);
+        userName = decoded.nama || 'Unknown User';
       }
+    } else {
+      userName = decoded.nama || 'Unknown User';
     }
 
     // Create response using RequestResponse table

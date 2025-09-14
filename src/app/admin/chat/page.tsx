@@ -40,6 +40,11 @@ export default function ChatListPage() {
   const [filter, setFilter] = useState<'all' | 'request' | 'keberatan'>('all');
   const [viewedChats, setViewedChats] = useState<Set<string>>(new Set());
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'time'>('time');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const getViewedChats = (): Set<string> => {
     const saved = localStorage.getItem('viewedChats');
@@ -124,10 +129,36 @@ export default function ChatListPage() {
     };
   }, []);
 
-  const filteredChats = chats.filter(chat => {
-    if (filter === 'all') return true;
-    return chat.type === filter;
-  });
+  const filteredChats = chats
+    .filter(chat => {
+      if (filter !== 'all' && chat.type !== filter) return false;
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          chat.title.toLowerCase().includes(searchLower) ||
+          chat.subtitle.toLowerCase().includes(searchLower) ||
+          chat.pemohon?.toLowerCase().includes(searchLower) ||
+          chat.email?.toLowerCase().includes(searchLower)
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name') {
+        const comparison = (a.pemohon || '').localeCompare(b.pemohon || '');
+        return sortOrder === 'asc' ? comparison : -comparison;
+      } else {
+        const comparison = new Date(a.lastMessageTime).getTime() - new Date(b.lastMessageTime).getTime();
+        return sortOrder === 'asc' ? comparison : -comparison;
+      }
+    });
+
+  const paginatedChats = filteredChats.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredChats.length / itemsPerPage);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -285,38 +316,102 @@ export default function ChatListPage() {
       {/* Chat Content */}
       {activeTab === 'pemohon' && (
         <div className="space-y-4">
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'all'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Semua ({chats.length})
-            </button>
-            <button
-              onClick={() => setFilter('request')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'request'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Permohonan ({chats.filter(c => c.type === 'request').length})
-            </button>
-            <button
-              onClick={() => setFilter('keberatan')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'keberatan'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Keberatan ({chats.filter(c => c.type === 'keberatan').length})
-            </button>
+          {/* Search and Filter Controls */}
+          <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+            <div className="flex flex-wrap gap-4 items-center mb-4">
+              <div className="flex-1 min-w-64">
+                <input
+                  type="text"
+                  placeholder="Cari berdasarkan topik, nama, atau email..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Tampilkan:</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="border rounded px-3 py-1 text-sm"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filter === 'all'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Semua ({chats.length})
+                </button>
+                <button
+                  onClick={() => setFilter('request')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filter === 'request'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Permohonan ({chats.filter(c => c.type === 'request').length})
+                </button>
+                <button
+                  onClick={() => setFilter('keberatan')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filter === 'keberatan'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Keberatan ({chats.filter(c => c.type === 'keberatan').length})
+                </button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Urutkan:</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'name' | 'time')}
+                  className="border rounded px-3 py-1 text-sm"
+                >
+                  <option value="time">Waktu</option>
+                  <option value="name">Nama (A-Z)</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Urutan:</label>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                  className="border rounded px-3 py-1 text-sm"
+                >
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                Menampilkan {Math.min(itemsPerPage, filteredChats.length)} dari {filteredChats.length} chat
+              </div>
+            </div>
           </div>
 
           {/* Chat List */}
@@ -328,11 +423,12 @@ export default function ChatListPage() {
           ) : filteredChats.length === 0 ? (
             <div className="text-center py-8">
               <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Belum ada chat tersedia</p>
+              <p className="text-gray-500">{searchTerm ? 'Tidak ada chat yang sesuai pencarian' : 'Belum ada chat tersedia'}</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredChats.map((chat) => {
+            <>
+              <div className="space-y-3">
+                {paginatedChats.map((chat) => {
                 const chatKey = `${chat.type}-${chat.id}`;
                 return (
                   <div
@@ -415,7 +511,61 @@ export default function ChatListPage() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="bg-white p-4 rounded-lg shadow-md mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Halaman {currentPage} dari {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Sebelumnya
+                      </button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => 
+                          page === 1 || 
+                          page === totalPages ||
+                          Math.abs(page - currentPage) <= 2
+                        )
+                        .map((page, index, array) => (
+                          <div key={page} className="flex items-center">
+                            {index > 0 && array[index - 1] !== page - 1 && (
+                              <span className="px-2 text-gray-400">...</span>
+                            )}
+                            <button
+                              onClick={() => setCurrentPage(page)}
+                              className={`px-3 py-1 border rounded text-sm ${
+                                currentPage === page
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          </div>
+                        ))
+                      }
+                      
+                      <button
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Selanjutnya
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

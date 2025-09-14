@@ -70,7 +70,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             user_id: '0',
             user_role: 'System',
             user_name: 'System',
-            message: 'Permohonan telah Selesai. Chat ditutup.',
+            message: '✅ Permohonan telah Selesai. Chat ditutup.\n\n📋 PENTING: Pemohon WAJIB melampirkan bukti hasil penggunaan informasi dalam waktu 30 hari setelah permohonan selesai. Bukti dapat berupa:\n• Hasil penelitian/skripsi/tesis (untuk keperluan akademik)\n• Dokumen administrasi yang telah diproses (untuk keperluan administrasi)\n• Laporan riset/analisis (untuk keperluan industri/bisnis)\n• Dokumentasi lainnya sesuai tujuan penggunaan\n\nSilakan kirim bukti melalui email ke ppid@garutkab.go.id dengan subjek "Bukti Penggunaan Informasi - ID Permohonan #' + id + '"',
             message_type: 'system'
           }
         });
