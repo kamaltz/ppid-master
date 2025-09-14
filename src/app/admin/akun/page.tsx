@@ -22,7 +22,14 @@ export default function AdminAkunPage() {
   const { } = useRoleAccess();
   const { token } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -51,6 +58,7 @@ export default function AdminAkunPage() {
       const data = await response.json();
       if (data.success) {
         setAccounts(data.data);
+        setFilteredAccounts(data.data);
       }
     } catch (error) {
       console.error('Failed to fetch accounts:', error);
@@ -62,6 +70,39 @@ export default function AdminAkunPage() {
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
+
+  useEffect(() => {
+    let filtered = [...accounts];
+    
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(account => 
+        account.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        account.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Filter by role
+    if (roleFilter !== 'ALL') {
+      filtered = filtered.filter(account => account.role === roleFilter);
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      if (sortBy === 'name') {
+        comparison = a.nama.localeCompare(b.nama);
+      } else if (sortBy === 'date') {
+        comparison = new Date(a.tanggal_dibuat).getTime() - new Date(b.tanggal_dibuat).getTime();
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+    
+    setFilteredAccounts(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [accounts, roleFilter, sortBy, sortOrder, searchTerm]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,10 +326,13 @@ export default function AdminAkunPage() {
   };
 
   const handleSelectAll = (checked: boolean) => {
+    const currentPageAccounts = filteredAccounts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     if (checked) {
-      setSelectedAccounts(accounts.map(account => account.id));
+      const newSelected = [...selectedAccounts, ...currentPageAccounts.map(account => account.id).filter(id => !selectedAccounts.includes(id))];
+      setSelectedAccounts(newSelected);
     } else {
-      setSelectedAccounts([]);
+      const currentPageIds = currentPageAccounts.map(account => account.id);
+      setSelectedAccounts(selectedAccounts.filter(id => !currentPageIds.includes(id)));
     }
   };
 
@@ -400,6 +444,83 @@ export default function AdminAkunPage() {
           </div>
         </div>
 
+        {/* Search and Filter Controls */}
+        <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+          <div className="flex flex-wrap gap-4 items-center mb-4">
+            <div className="flex-1 min-w-64">
+              <input
+                type="text"
+                placeholder="Cari berdasarkan nama atau email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Tampilkan:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="border rounded px-3 py-1 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Filter Role:</label>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="border rounded px-3 py-1 text-sm"
+              >
+                <option value="ALL">Semua Role</option>
+                <option value="ADMIN">Admin</option>
+                <option value="PPID_UTAMA">PPID Utama</option>
+                <option value="PPID_PELAKSANA">PPID Pelaksana</option>
+                <option value="PEMOHON">Pemohon</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Urutkan:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'date')}
+                className="border rounded px-3 py-1 text-sm"
+              >
+                <option value="name">Nama (A-Z)</option>
+                <option value="date">Tanggal Dibuat</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Urutan:</label>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                className="border rounded px-3 py-1 text-sm"
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </div>
+            
+            <div className="text-sm text-gray-600">
+              Menampilkan {Math.min(itemsPerPage, filteredAccounts.length)} dari {filteredAccounts.length} akun
+            </div>
+          </div>
+        </div>
+
         {showForm && (
           <div className="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 className="text-xl font-bold mb-4">{editId ? 'Edit' : 'Tambah'} Akun</h2>
@@ -471,7 +592,7 @@ export default function AdminAkunPage() {
         {selectedAccounts.length > 0 && (
           <div className="bg-white p-4 rounded-lg shadow-md mb-4 flex items-center justify-between">
             <span className="text-sm text-gray-600">
-              {selectedAccounts.length} akun dipilih
+              {selectedAccounts.length} akun dipilih dari {filteredAccounts.length} yang ditampilkan
             </span>
             <div className="flex gap-2">
               <button
@@ -499,7 +620,10 @@ export default function AdminAkunPage() {
                 <th className="px-6 py-3 text-left">
                   <input
                     type="checkbox"
-                    checked={selectedAccounts.length === accounts.length && accounts.length > 0}
+                    checked={(() => {
+                      const currentPageAccounts = filteredAccounts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                      return currentPageAccounts.length > 0 && currentPageAccounts.every(account => selectedAccounts.includes(account.id));
+                    })()}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                     className="rounded"
                   />
@@ -518,14 +642,16 @@ export default function AdminAkunPage() {
                     Loading...
                   </td>
                 </tr>
-              ) : accounts.length === 0 ? (
+              ) : filteredAccounts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                    Belum ada akun
+                    {accounts.length === 0 ? 'Belum ada akun' : 'Tidak ada akun yang sesuai filter'}
                   </td>
                 </tr>
               ) : (
-                accounts.map((account) => (
+                filteredAccounts
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((account) => (
                   <tr key={account.id}>
                     <td className="px-6 py-4">
                       <input
@@ -572,6 +698,59 @@ export default function AdminAkunPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredAccounts.length > itemsPerPage && (
+          <div className="bg-white p-4 rounded-lg shadow-md mt-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Halaman {currentPage} dari {Math.ceil(filteredAccounts.length / itemsPerPage)}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Sebelumnya
+                </button>
+                
+                {Array.from({ length: Math.ceil(filteredAccounts.length / itemsPerPage) }, (_, i) => i + 1)
+                  .filter(page => 
+                    page === 1 || 
+                    page === Math.ceil(filteredAccounts.length / itemsPerPage) ||
+                    Math.abs(page - currentPage) <= 2
+                  )
+                  .map((page, index, array) => (
+                    <div key={page} className="flex items-center">
+                      {index > 0 && array[index - 1] !== page - 1 && (
+                        <span className="px-2 text-gray-400">...</span>
+                      )}
+                      <button
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 border rounded text-sm ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  ))
+                }
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(Math.ceil(filteredAccounts.length / itemsPerPage), currentPage + 1))}
+                  disabled={currentPage === Math.ceil(filteredAccounts.length / itemsPerPage)}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Import Modal */}
         {showImportModal && (
