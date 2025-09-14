@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/lib/prismaClient';
+import { prisma } from '../../../../lib/prismaClient';
 import jwt from 'jsonwebtoken';
 import { checkDailyKeberatanLimit, checkKeberatanForRequest } from '@/lib/dailyLimits';
 
@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const pemohonId = searchParams.get('pemohon_id');
     const status = searchParams.get('status');
+    const includeUnassigned = searchParams.get('include_unassigned') === 'true';
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
     const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
 
@@ -52,11 +53,11 @@ export async function GET(request: NextRequest) {
       where.pemohon_id = userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
       // PPID Pelaksana sees keberatan assigned to them OR unassigned forwarded keberatan
-      if (status === 'Diteruskan') {
+      if (status === 'Diteruskan' && includeUnassigned) {
         // For notifications: show all forwarded keberatan (assigned to them or unassigned)
         where.OR = [
           { assigned_ppid_id: userId },
-          { assigned_ppid_id: null, status: 'Diteruskan' }
+          { assigned_ppid_id: null }
         ];
       } else {
         // For regular view: only assigned keberatan

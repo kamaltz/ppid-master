@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../../../../lib/lib/prismaClient';
+import { prisma } from '../../../../../lib/prismaClient';
 
 interface JWTPayload {
   role: string;

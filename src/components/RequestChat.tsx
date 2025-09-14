@@ -165,8 +165,11 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
         // Refresh chat list to show updated conversation
         setTimeout(() => {
           window.dispatchEvent(new Event('ppid-chat-updated'));
+          // Trigger notification refresh for all users
+          window.dispatchEvent(new Event('notification-refresh'));
           // Also try localStorage event for cross-tab communication
           localStorage.setItem('chat-refresh', Date.now().toString());
+          localStorage.setItem('notification-refresh', Date.now().toString());
         }, 1000);
       } else {
         const errorData = await response.json();
@@ -341,6 +344,25 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
     return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
   };
 
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to opening in new tab
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md">
       <div className="p-4 border-b flex justify-between items-center">
@@ -423,42 +445,42 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
                             </div>
                           </div>
                         ) : file.name.toLowerCase().endsWith('.pdf') ? (
-                          <div className="border rounded p-3 bg-red-50 hover:bg-red-100 cursor-pointer" onClick={() => window.open(file.url, '_blank')}>
+                          <div className="border rounded p-3 bg-red-50 hover:bg-red-100 cursor-pointer" onClick={() => downloadFile(file.url, file.name)}>
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">PDF</div>
                               <div>
                                 <p className="font-medium text-gray-900">{file.name}</p>
-                                <p className="text-xs text-gray-500">Klik untuk membuka</p>
+                                <p className="text-xs text-gray-500">Klik untuk download</p>
                               </div>
                             </div>
                           </div>
                         ) : file.name.toLowerCase().match(/\.(doc|docx)$/) ? (
-                          <div className="border rounded p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer" onClick={() => window.open(file.url, '_blank')}>
+                          <div className="border rounded p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer" onClick={() => downloadFile(file.url, file.name)}>
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center text-white text-xs font-bold">DOC</div>
                               <div>
                                 <p className="font-medium text-gray-900">{file.name}</p>
-                                <p className="text-xs text-gray-500">Klik untuk membuka</p>
+                                <p className="text-xs text-gray-500">Klik untuk download</p>
                               </div>
                             </div>
                           </div>
                         ) : file.name.toLowerCase().match(/\.(xls|xlsx)$/) ? (
-                          <div className="border rounded p-3 bg-green-50 hover:bg-green-100 cursor-pointer" onClick={() => window.open(file.url, '_blank')}>
+                          <div className="border rounded p-3 bg-green-50 hover:bg-green-100 cursor-pointer" onClick={() => downloadFile(file.url, file.name)}>
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">XLS</div>
                               <div>
                                 <p className="font-medium text-gray-900">{file.name}</p>
-                                <p className="text-xs text-gray-500">Klik untuk membuka</p>
+                                <p className="text-xs text-gray-500">Klik untuk download</p>
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="border rounded p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => window.open(file.url, '_blank')}>
+                          <div className="border rounded p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => downloadFile(file.url, file.name)}>
                             <div className="flex items-center gap-2">
                               <Paperclip className="w-5 h-5 text-gray-500" />
                               <div>
                                 <p className="font-medium text-gray-900">{file.name}</p>
-                                <p className="text-xs text-gray-500">Klik untuk membuka</p>
+                                <p className="text-xs text-gray-500">Klik untuk download</p>
                               </div>
                             </div>
                           </div>

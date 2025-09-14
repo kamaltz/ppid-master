@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/lib/prismaClient';
+import { prisma } from '../../lib/prismaClient';
 
 export enum LogLevel {
   INFO = 'INFO',

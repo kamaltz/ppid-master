@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../../lib/lib/prismaClient';
+import { prisma } from '../../../../../../lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

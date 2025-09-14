@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useOptimizedNotifications } from "@/hooks/useOptimizedNotifications";
 import React from "react";
 
 type PermissionKey =
@@ -170,7 +170,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
   const { hasPermission } = useUserPermissions();
-  const { counts, clearNotification, getDisplayCount, refreshNotifications } = useNotifications();
+  const { counts, clearNotification, getDisplayCount, refreshNotifications } = useOptimizedNotifications();
 
 
 

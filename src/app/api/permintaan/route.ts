@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/lib/prismaClient';
+import { prisma } from '../../../../lib/prismaClient';
 import jwt from 'jsonwebtoken';
 import { checkDailyRequestLimit } from '@/lib/dailyLimits';
 import { sanitizeObject, validateInput } from '@/lib/xssProtection';
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100); // Limit max to 100
     const page = Math.max(parseInt(searchParams.get('page') || '1'), 1); // Ensure page is at least 1
     const status = searchParams.get('status');
+    const includeUnassigned = searchParams.get('include_unassigned') === 'true';
 
     // Filter based on user role
     const where: Record<string, unknown> = {};
@@ -69,11 +70,11 @@ export async function GET(request: NextRequest) {
       where.pemohon_id = userId;
     } else if (decoded.role === 'PPID_PELAKSANA') {
       // PPID Pelaksana sees requests assigned to them OR unassigned forwarded requests
-      if (status === 'Diteruskan') {
+      if (status === 'Diteruskan' && includeUnassigned) {
         // For notifications: show all forwarded requests (assigned to them or unassigned)
         where.OR = [
           { assigned_ppid_id: userId },
-          { assigned_ppid_id: null, status: 'Diteruskan' }
+          { assigned_ppid_id: null }
         ];
       } else {
         // For regular view: only assigned requests

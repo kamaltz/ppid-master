@@ -12,12 +12,12 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useOptimizedNotifications } from "@/hooks/useOptimizedNotifications";
 
 const PemohonSidebar = () => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { counts, clearNotification, getDisplayCount } = useNotifications();
+  const { counts, clearNotification, getDisplayCount } = useOptimizedNotifications();
 
   const menuItems = [
     {
@@ -104,7 +104,7 @@ const PemohonSidebar = () => {
               {!isCollapsed && <span className="ml-3">{item.label}</span>}
               {/* Notification Badge */}
               {(() => {
-                const count = item.label === 'Chat' ? getDisplayCount('newChats', '/pemohon/chat') : 0;
+                const count = item.label === 'Chat' ? getDisplayCount('newChats') : 0;
                 if (count > 0) {
                   return (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">

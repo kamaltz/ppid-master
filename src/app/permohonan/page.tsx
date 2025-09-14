@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogIn, UserPlus, AlertCircle } from "lucide-react";
 
 export default function PermohonanPage() {
   const { token } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     judul: "",
     rincian_informasi: "",
@@ -18,6 +20,7 @@ export default function PermohonanPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [dailyCount, setDailyCount] = useState(0);
   const [isLoadingLimit, setIsLoadingLimit] = useState(true);
 
@@ -108,7 +111,7 @@ export default function PermohonanPage() {
         throw new Error(errorData.error || "Failed to submit request");
       }
 
-      alert("Permohonan berhasil dikirim dan akan diproses oleh PPID!");
+      setShowSuccess(true);
       setFormData({
         judul: "",
         rincian_informasi: "",
@@ -403,6 +406,37 @@ export default function PermohonanPage() {
                 className="flex-1 px-4 py-2 bg-blue-800 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
               >
                 {isSubmitting ? "Mengirim..." : "Ya, Kirim"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Permohonan Berhasil Dikirim!
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Permohonan informasi Anda telah berhasil dikirim dan akan diproses oleh PPID. 
+                Anda dapat memantau status permohonan di dashboard.
+              </p>
+              <button
+                onClick={() => {
+                  setShowSuccess(false);
+                  router.push('/pemohon/dashboard');
+                }}
+                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Ke Dashboard
               </button>
             </div>
           </div>

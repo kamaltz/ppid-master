@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/lib/prismaClient';
+import { prisma } from '../../lib/prismaClient';
 
 export async function checkDailyRequestLimit(pemohonId: number): Promise<{ canSubmit: boolean; count: number; limit: number }> {
   const today = new Date();
