@@ -604,6 +604,106 @@ export default function AdminPengaturanPage() {
   };
 
   const [isResetting, setIsResetting] = useState(false);
+  const [isResettingTab, setIsResettingTab] = useState(false);
+
+  const resetTabToDefault = async (tabName: string) => {
+    if (
+      !confirm(
+        `⚠️ Yakin ingin reset pengaturan ${tabName} ke default? Kustomisasi pada tab ini akan hilang.`
+      )
+    ) {
+      return;
+    }
+
+    setIsResettingTab(true);
+
+    const defaultSettings: Record<string, unknown> = {
+      general: {
+        namaInstansi: "PPID Diskominfo Kabupaten Garut",
+        logo: "/logo-garut.svg",
+        email: "ppid@garutkab.go.id",
+        telepon: "(0262) 123456",
+        alamat: "Jl. Pembangunan No. 1, Garut, Jawa Barat",
+        websiteTitle: "PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik",
+        websiteDescription: "Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut. Layanan informasi publik yang transparan, akuntabel, dan mudah diakses sesuai UU No. 14 Tahun 2008.",
+      },
+      header: {
+        menuItems: [
+          { label: "Beranda", url: "/", hasDropdown: false, dropdownItems: [] },
+          {
+            label: "Profil",
+            url: "/profil",
+            hasDropdown: true,
+            dropdownItems: [
+              { label: "Tentang PPID", url: "/profil" },
+              { label: "Visi Misi", url: "/visi-misi" },
+              { label: "Struktur Organisasi", url: "/struktur" },
+            ],
+          },
+          { label: "Informasi Publik", url: "/informasi", hasDropdown: false, dropdownItems: [] },
+          {
+            label: "Layanan",
+            url: "/layanan",
+            hasDropdown: true,
+            dropdownItems: [
+              { label: "Permohonan Informasi", url: "/permohonan" },
+              { label: "Keberatan", url: "/keberatan" },
+            ],
+          },
+        ],
+      },
+      footer: {
+        companyName: "PPID Kabupaten Garut",
+        description: "PPID Diskominfo Kabupaten Garut berkomitmen untuk memberikan pelayanan informasi publik yang transparan dan akuntabel.",
+        address: "Jl. Pembangunan No. 1, Garut, Jawa Barat",
+        phone: "(0262) 123456",
+        email: "ppid@garutkab.go.id",
+        socialMedia: { facebook: "", twitter: "", instagram: "", youtube: "" },
+        quickLinks: [
+          { label: "Beranda", url: "/" },
+          { label: "Profil PPID", url: "/profil" },
+          { label: "DIP", url: "/dip" },
+          { label: "Kontak", url: "/kontak" },
+        ],
+        copyrightText: "PPID Kabupaten Garut. Semua hak dilindungi.",
+        showAddress: true,
+        showContact: true,
+        showSocialMedia: true,
+      },
+      hero: {
+        title: "Selamat Datang di PPID Kabupaten Garut",
+        subtitle: "Pejabat Pengelola Informasi dan Dokumentasi",
+        description: "Kami berkomitmen untuk memberikan akses informasi publik yang transparan, akuntabel, dan mudah diakses oleh seluruh masyarakat.",
+        backgroundImage: "",
+        ctaText: "Ajukan Permohonan",
+        ctaUrl: "/permohonan",
+        isCarousel: false,
+        autoSlide: true,
+        slideInterval: 4000,
+        slides: [],
+      },
+    };
+
+    try {
+      const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: tabName, value: defaultSettings[tabName] }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to reset ${tabName}`);
+      }
+
+      alert(`✅ Pengaturan ${tabName} berhasil direset ke default!`);
+      await loadSettings();
+    } catch (error) {
+      console.error(`Reset ${tabName} error:`, error);
+      alert(`❌ Gagal reset pengaturan ${tabName}`);
+    } finally {
+      setIsResettingTab(false);
+    }
+  };
 
   const resetToDefault = async () => {
     if (
@@ -778,7 +878,19 @@ export default function AdminPengaturanPage() {
       <div className="bg-white rounded-lg shadow-md p-4 md:p-8">
         {activeTab === "general" && (
           <div>
-            <h2 className="text-2xl font-semibold mb-6">🏢 Pengaturan Umum</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">🏢 Pengaturan Umum</h2>
+              <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                <button
+                  onClick={() => resetTabToDefault("general")}
+                  disabled={isResettingTab}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                  title="Reset pengaturan umum ke default"
+                >
+                  {isResettingTab ? "⏳" : "🔄"} Reset Tab
+                </button>
+              </RoleGuard>
+            </div>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1002,9 +1114,19 @@ export default function AdminPengaturanPage() {
 
         {activeTab === "header" && (
           <div>
-            <h2 className="text-2xl font-semibold mb-6">
-              📋 Header & Menu Navigation
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">📋 Header & Menu Navigation</h2>
+              <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                <button
+                  onClick={() => resetTabToDefault("header")}
+                  disabled={isResettingTab}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                  title="Reset pengaturan header ke default"
+                >
+                  {isResettingTab ? "⏳" : "🔄"} Reset Tab
+                </button>
+              </RoleGuard>
+            </div>
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between items-center mb-4">
@@ -1160,7 +1282,19 @@ export default function AdminPengaturanPage() {
 
         {activeTab === "footer" && (
           <div>
-            <h2 className="text-2xl font-semibold mb-6">📄 Footer Website</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">📄 Footer Website</h2>
+              <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                <button
+                  onClick={() => resetTabToDefault("footer")}
+                  disabled={isResettingTab}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                  title="Reset pengaturan footer ke default"
+                >
+                  {isResettingTab ? "⏳" : "🔄"} Reset Tab
+                </button>
+              </RoleGuard>
+            </div>
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div>
@@ -1686,9 +1820,19 @@ export default function AdminPengaturanPage() {
 
         {activeTab === "hero" && (
           <div>
-            <h2 className="text-2xl font-semibold mb-6">
-              🖼️ Hero Section Homepage
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">🖼️ Hero Section Homepage</h2>
+              <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                <button
+                  onClick={() => resetTabToDefault("hero")}
+                  disabled={isResettingTab}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                  title="Reset pengaturan hero section ke default"
+                >
+                  {isResettingTab ? "⏳" : "🔄"} Reset Tab
+                </button>
+              </RoleGuard>
+            </div>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2269,26 +2413,34 @@ export default function AdminPengaturanPage() {
         )}
 
         <div className="mt-8 pt-6 border-t">
-          <div className="flex gap-4">
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <h3 className="text-lg font-medium text-gray-800 mb-2">💡 Bantuan Pengaturan</h3>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>• <strong>Simpan:</strong> Menyimpan semua perubahan pengaturan</p>
+              <p>• <strong>Reset ke Default:</strong> Mengembalikan semua pengaturan ke nilai awal (hanya Admin)</p>
+              <p>• <strong>Lihat Homepage:</strong> Membuka halaman utama untuk melihat hasil perubahan</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4">
             <button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 px-8 rounded-lg flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 px-8 rounded-lg flex items-center gap-2 transition-colors"
             >
               {isSaving ? "⏳ Menyimpan..." : "💾 Simpan Semua Pengaturan"}
             </button>
-            <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
-              <button
-                onClick={resetToDefault}
-                disabled={isResetting}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2"
-              >
-                {isResetting ? "⏳ Mereset..." : "🔄 Reset ke Default"}
-              </button>
-            </RoleGuard>
+            <button
+              onClick={resetToDefault}
+              disabled={isResetting || isSaving}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2 transition-colors"
+              title="Mengembalikan semua pengaturan ke nilai default"
+            >
+              {isResetting ? "⏳ Mereset..." : "🔄 Reset ke Default"}
+            </button>
             <button
               onClick={() => window.open("/", "_blank")}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2 transition-colors"
+              title="Membuka halaman utama di tab baru untuk melihat hasil perubahan"
             >
               👁️ Lihat Homepage
             </button>

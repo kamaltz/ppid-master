@@ -130,7 +130,8 @@ export default function RegisterPage() {
     const newErrors: {[key: string]: string} = {};
     const requiredFields = ['nama', 'nik', 'email', 'password', 'confirmPassword'];
     requiredFields.forEach(key => {
-      const error = validateField(key, formData[key as keyof typeof formData]);
+      const value = formData[key as keyof typeof formData];
+      const error = validateField(key, typeof value === 'string' ? value : '');
       if (error) newErrors[key] = error;
     });
     
