@@ -20,10 +20,12 @@ echo "📊 Running database migrations..."
 # Check for failed migrations and resolve them
 if ! npx prisma migrate deploy 2>/dev/null; then
   echo "⚠️ Migration failed, attempting to resolve..."
-  # Mark failed migration as resolved
-  npx prisma migrate resolve --applied 20241220000001_fix_settings_structure || echo "Migration resolve failed"
+  # Mark common failed migrations as resolved
+  npx prisma migrate resolve --applied 20241220000001_fix_settings_structure 2>/dev/null || echo "Migration 20241220000001 resolve failed or not needed"
+  npx prisma migrate resolve --applied 20250826_add_pemohon_approval 2>/dev/null || echo "Migration 20250826 resolve failed or not needed"
+  npx prisma migrate resolve --applied 20250827_add_pemohon_fields 2>/dev/null || echo "Migration 20250827 resolve failed or not needed"
   # Try deploy again
-  npx prisma migrate deploy || echo "Migration deploy failed, continuing..."
+  npx prisma migrate deploy || echo "Migration deploy failed, continuing with manual column addition..."
 fi
 
 # Check migration status
@@ -31,7 +33,11 @@ echo "🔍 Checking migration status..."
 npx prisma migrate status || echo "Migration status check completed"
 
 echo "🔧 Adding missing database columns..."
-PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan TEXT;" || echo "Column already exists or failed to add"
+PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS pekerjaan TEXT;" || echo "pekerjaan column already exists or failed to add"
+PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS ktp_image TEXT;" || echo "ktp_image column already exists or failed to add"
+PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT false;" || echo "is_approved column already exists or failed to add"
+PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS approved_by TEXT;" || echo "approved_by column already exists or failed to add"
+PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d ppid_garut -c "ALTER TABLE pemohon ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP(3);" || echo "approved_at column already exists or failed to add"
 
 # Check for custom database import
 if [ -f "/app/ppid_db.sql" ]; then

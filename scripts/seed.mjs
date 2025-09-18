@@ -91,18 +91,37 @@ async function main() {
   console.log("Atasan PPID user created.");
 
   // Seed Pemohon
-  await prisma.pemohon.upsert({
-    where: { email: "pemohon@example.com" },
-    update: {},
-    create: {
-      email: "pemohon@example.com",
-      hashed_password: hashedPassword,
-      nama: "Pemohon Test",
-      is_approved: true,
-      pekerjaan: "Test",
-    },
-  });
-  console.log("Pemohon user created.");
+  try {
+    await prisma.pemohon.upsert({
+      where: { email: "pemohon@example.com" },
+      update: {},
+      create: {
+        email: "pemohon@example.com",
+        hashed_password: hashedPassword,
+        nama: "Pemohon Test",
+        is_approved: true,
+        pekerjaan: "Test",
+      },
+    });
+    console.log("Pemohon user created.");
+  } catch (error) {
+    // Fallback for older schema without pekerjaan field
+    if (error.code === 'P2022') {
+      await prisma.pemohon.upsert({
+        where: { email: "pemohon@example.com" },
+        update: {},
+        create: {
+          email: "pemohon@example.com",
+          hashed_password: hashedPassword,
+          nama: "Pemohon Test",
+          is_approved: true,
+        },
+      });
+      console.log("Pemohon user created (without pekerjaan field).");
+    } else {
+      throw error;
+    }
+  }
 
   // Seed Settings
   const defaultSettings = {
