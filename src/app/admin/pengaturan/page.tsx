@@ -2269,15 +2269,15 @@ export default function AdminPengaturanPage() {
         )}
 
         <div className="mt-8 pt-6 border-t">
-          <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
-            <div className="flex gap-4">
-              <button
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 px-8 rounded-lg flex items-center gap-2"
-              >
-                {isSaving ? "⏳ Menyimpan..." : "💾 Simpan Semua Pengaturan"}
-              </button>
+          <div className="flex gap-4">
+            <button
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 px-8 rounded-lg flex items-center gap-2"
+            >
+              {isSaving ? "⏳ Menyimpan..." : "💾 Simpan Semua Pengaturan"}
+            </button>
+            <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
               <button
                 onClick={resetToDefault}
                 disabled={isResetting}
@@ -2285,14 +2285,14 @@ export default function AdminPengaturanPage() {
               >
                 {isResetting ? "⏳ Mereset..." : "🔄 Reset ke Default"}
               </button>
-              <button
-                onClick={() => window.open("/", "_blank")}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2"
-              >
-                👁️ Lihat Homepage
-              </button>
-            </div>
-          </RoleGuard>
+            </RoleGuard>
+            <button
+              onClick={() => window.open("/", "_blank")}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2"
+            >
+              👁️ Lihat Homepage
+            </button>
+          </div>
         </div>
       </div>
     </div>
