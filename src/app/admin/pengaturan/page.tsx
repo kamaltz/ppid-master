@@ -48,6 +48,19 @@ export default function AdminPengaturanPage() {
     websiteTitle: "PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik",
     websiteDescription:
       "Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut. Layanan informasi publik yang transparan, akuntabel, dan mudah diakses sesuai UU No. 14 Tahun 2008.",
+    marqueeEnabled: false,
+    marqueeText: "Selamat datang di PPID Kabupaten Garut - Layanan Informasi Publik yang Transparan",
+    marqueeSpeed: "slow",
+  });
+  const [applicationsSettings, setApplicationsSettings] = useState({
+    enabled: true,
+    apps: [] as Array<{
+      id: string;
+      name: string;
+      logo: string;
+      url: string;
+      description?: string;
+    }>
   });
   const [headerSettings, setHeaderSettings] = useState({
     menuItems: [
@@ -232,6 +245,7 @@ export default function AdminPengaturanPage() {
         { key: "header", value: cleanedHeaderSettings },
         { key: "footer", value: footerSettings },
         { key: "hero", value: heroSettings },
+        { key: "applications", value: applicationsSettings },
       ];
       
       console.log('Saving header settings:', cleanedHeaderSettings);
@@ -397,14 +411,17 @@ export default function AdminPengaturanPage() {
             slides: slidesWithDefaults || [],
           });
         }
+        if (result.data.applications) {
+          setApplicationsSettings(result.data.applications);
+        }
       }
     } catch (error) {
       console.error("Error loading settings:", error);
     }
   };
 
-  const handleChange = (field: string, value: string) => {
-    setSettings((prev) => ({ ...prev, [field]: value || "" }));
+  const handleChange = (field: string, value: string | boolean) => {
+    setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleFooterChange = (field: string, value: unknown) => {
@@ -682,6 +699,13 @@ export default function AdminPengaturanPage() {
         alamat: "Jl. Pembangunan No. 1, Garut, Jawa Barat",
         websiteTitle: "PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik",
         websiteDescription: "Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut. Layanan informasi publik yang transparan, akuntabel, dan mudah diakses sesuai UU No. 14 Tahun 2008.",
+        marqueeEnabled: false,
+        marqueeText: "Selamat datang di PPID Kabupaten Garut - Layanan Informasi Publik yang Transparan",
+        marqueeSpeed: "slow",
+      },
+      applications: {
+        enabled: true,
+        apps: []
       },
       header: {
         menuItems: [
@@ -783,6 +807,13 @@ export default function AdminPengaturanPage() {
           "PPID Diskominfo Kabupaten Garut - Layanan Informasi Publik",
         websiteDescription:
           "Pejabat Pengelola Informasi dan Dokumentasi (PPID) Dinas Komunikasi dan Informatika Kabupaten Garut. Layanan informasi publik yang transparan, akuntabel, dan mudah diakses sesuai UU No. 14 Tahun 2008.",
+        marqueeEnabled: false,
+        marqueeText: "Selamat datang di PPID Kabupaten Garut - Layanan Informasi Publik yang Transparan",
+        marqueeSpeed: "slow",
+      },
+      applications: {
+        enabled: true,
+        apps: []
       },
       header: {
         menuItems: [
@@ -1050,6 +1081,7 @@ export default function AdminPengaturanPage() {
     { id: "header", label: "📋 Header & Menu", icon: "📋" },
     { id: "footer", label: "📄 Footer", icon: "📄" },
     { id: "hero", label: "🖼️ Hero Section", icon: "🖼️" },
+    { id: "applications", label: "🚀 Aplikasi", icon: "🚀" },
     { id: "stats", label: "📊 Statistik Homepage", icon: "📊" },
   ];
 
@@ -1252,6 +1284,66 @@ export default function AdminPengaturanPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 ></textarea>
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium mb-4">📢 Marquee Text Running</h3>
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={settings.marqueeEnabled || false}
+                      onChange={(e) => handleChange("marqueeEnabled", e.target.checked)}
+                      className="mr-3"
+                    />
+                    <span className="font-medium">Aktifkan Marquee Text</span>
+                  </label>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teks Marquee
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.marqueeText || ""}
+                      onChange={(e) => handleChange("marqueeText", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Selamat datang di PPID Kabupaten Garut - Layanan Informasi Publik yang Transparan"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Teks yang akan berjalan di bawah hero section (default: mati)
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Kecepatan Marquee
+                    </label>
+                    <select
+                      value={settings.marqueeSpeed || "slow"}
+                      onChange={(e) => handleChange("marqueeSpeed", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="slow">Pelan (30 detik)</option>
+                      <option value="medium">Sedang (20 detik)</option>
+                      <option value="fast">Cepat (10 detik)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Atur kecepatan pergerakan teks marquee
+                    </p>
+                  </div>
+                  
+                  {settings.marqueeEnabled && settings.marqueeText && (
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-sm font-medium text-blue-800 mb-2">Preview Marquee:</p>
+                      <div className="bg-blue-600 text-white py-2 px-4 rounded overflow-hidden">
+                        <div className="whitespace-nowrap text-sm">
+                          📢 {settings.marqueeText}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -2008,6 +2100,213 @@ export default function AdminPengaturanPage() {
                     />
                     Tampilkan Link Penting
                   </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "applications" && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">🚀 Pengaturan Aplikasi</h2>
+              <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+                <button
+                  onClick={() => resetTabToDefault("applications")}
+                  disabled={isResettingTab}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                  title="Reset pengaturan aplikasi ke default"
+                >
+                  {isResettingTab ? "⏳" : "🔄"} Reset Tab
+                </button>
+              </RoleGuard>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-medium mb-4">⚙️ Pengaturan Umum</h3>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={applicationsSettings.enabled}
+                    onChange={(e) => setApplicationsSettings(prev => ({ ...prev, enabled: e.target.checked }))}
+                    className="mr-3"
+                  />
+                  <span className="font-medium">Tampilkan Slider Aplikasi di Homepage</span>
+                </label>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">📱 Daftar Aplikasi</h3>
+                  <button
+                    onClick={() => {
+                      const newApp = {
+                        id: Date.now().toString(),
+                        name: "Aplikasi Baru",
+                        logo: "",
+                        url: "https://",
+                        description: ""
+                      };
+                      setApplicationsSettings(prev => ({
+                        ...prev,
+                        apps: [...prev.apps, newApp]
+                      }));
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    + Tambah Aplikasi
+                  </button>
+                </div>
+                
+                {applicationsSettings.apps.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-4xl mb-2">📱</div>
+                    <p>Belum ada aplikasi. Klik "Tambah Aplikasi" untuk menambah aplikasi pertama.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {applicationsSettings.apps.map((app, index) => (
+                      <div key={app.id} className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium text-gray-700">Aplikasi {index + 1}</h4>
+                          <button
+                            onClick={() => {
+                              setApplicationsSettings(prev => ({
+                                ...prev,
+                                apps: prev.apps.filter((_, i) => i !== index)
+                              }));
+                            }}
+                            className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded"
+                          >
+                            🗑️ Hapus
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Nama Aplikasi
+                            </label>
+                            <input
+                              type="text"
+                              value={app.name}
+                              onChange={(e) => {
+                                const newApps = [...applicationsSettings.apps];
+                                newApps[index] = { ...app, name: e.target.value };
+                                setApplicationsSettings(prev => ({ ...prev, apps: newApps }));
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Nama aplikasi"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              URL Aplikasi
+                            </label>
+                            <input
+                              type="url"
+                              value={app.url}
+                              onChange={(e) => {
+                                const newApps = [...applicationsSettings.apps];
+                                newApps[index] = { ...app, url: e.target.value };
+                                setApplicationsSettings(prev => ({ ...prev, apps: newApps }));
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="https://aplikasi.example.com"
+                            />
+                          </div>
+                          
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Deskripsi (Opsional)
+                            </label>
+                            <input
+                              type="text"
+                              value={app.description || ""}
+                              onChange={(e) => {
+                                const newApps = [...applicationsSettings.apps];
+                                newApps[index] = { ...app, description: e.target.value };
+                                setApplicationsSettings(prev => ({ ...prev, apps: newApps }));
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Deskripsi singkat aplikasi"
+                            />
+                          </div>
+                          
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Logo Aplikasi
+                            </label>
+                            <div className="space-y-3">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const formData = new FormData();
+                                    formData.append("file", file);
+                                    try {
+                                      const response = await fetch("/api/upload/image", {
+                                        method: "POST",
+                                        body: formData,
+                                      });
+                                      const result = await response.json();
+                                      if (result.success) {
+                                        const newApps = [...applicationsSettings.apps];
+                                        newApps[index] = { ...app, logo: result.url };
+                                        setApplicationsSettings(prev => ({ ...prev, apps: newApps }));
+                                        alert("✅ Logo berhasil diupload!");
+                                      } else {
+                                        alert("❌ Gagal upload logo: " + result.error);
+                                      }
+                                    } catch {
+                                      alert("❌ Gagal upload logo");
+                                    }
+                                  }
+                                }}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                              />
+                              <input
+                                type="url"
+                                value={app.logo}
+                                onChange={(e) => {
+                                  const newApps = [...applicationsSettings.apps];
+                                  newApps[index] = { ...app, logo: e.target.value };
+                                  setApplicationsSettings(prev => ({ ...prev, apps: newApps }));
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="atau masukkan URL logo"
+                              />
+                              {app.logo && (
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={app.logo}
+                                    alt={app.name}
+                                    className="w-12 h-12 object-contain border rounded"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
+                                  />
+                                  <span className="text-sm text-gray-600">Preview logo</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    💡 <strong>Tips:</strong> Logo aplikasi akan ditampilkan dalam slider di homepage. 
+                    Gunakan logo dengan rasio 1:1 (persegi) untuk hasil terbaik.
+                  </p>
                 </div>
               </div>
             </div>

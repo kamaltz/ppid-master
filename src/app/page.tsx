@@ -1,34 +1,69 @@
+"use client";
+
 // src/app/page.tsx
+import { useEffect, useState } from "react";
 import HeroSection from "@/components/HeroSection";
-// Hapus import InformationGrid, ganti dengan PublicInformationList
-import PublicInformationList from "@/components/PublicInformationList";
+import MarqueeText from "@/components/MarqueeText";
+import ApplicationsSlider from "@/components/ApplicationsSlider";
+import NewsPortal from "@/components/NewsPortal";
 import ServiceSection from "@/components/ServiceSection";
 import StatsSection from "@/components/StatsSection";
 import AccessibilityHelper from "@/components/accessibility/AccessibilityHelper";
 
 export default function Home() {
+  const [settings, setSettings] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        if (data.success) {
+          console.log('Homepage settings:', data.data);
+          setSettings(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  if (loading) {
+    return (
+      <main>
+        <HeroSection />
+        <ServiceSection />
+        <NewsPortal />
+        <StatsSection />
+        <AccessibilityHelper />
+      </main>
+    );
+  }
+  
   return (
     <main>
       <HeroSection />
+      
+      <MarqueeText 
+        text={settings.general?.marqueeText || ''}
+        enabled={settings.general?.marqueeEnabled || false}
+        speed={settings.general?.marqueeSpeed || 'slow'}
+      />
+      
+      {settings.applications?.enabled && (
+        <ApplicationsSlider 
+          applications={settings.applications?.apps || []}
+        />
+      )}
 
       <ServiceSection />
 
-      <section className="bg-slate-50 py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            {/* Ubah judul agar sesuai dengan konten dinamis */}
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">
-              Daftar Informasi Publik Terkini
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Temukan informasi publik yang disediakan oleh Diskominfo Kabupaten
-              Garut. Data diperbarui secara berkala untuk menjamin transparansi.
-            </p>
-          </div>
-          {/* Ganti komponen statis dengan komponen dinamis */}
-          <PublicInformationList />
-        </div>
-      </section>
+      <NewsPortal />
 
       <StatsSection />
       

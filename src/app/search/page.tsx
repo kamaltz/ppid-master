@@ -12,6 +12,8 @@ interface SearchResult {
   kategori?: string;
   tanggal?: string;
   url: string;
+  thumbnail?: string;
+  images?: string;
 }
 
 interface FilterState {
@@ -30,6 +32,8 @@ interface InformasiItem {
   created_at: string;
   file_attachments?: string | unknown[];
   links?: string | unknown[];
+  thumbnail?: string;
+  images?: string;
 }
 
 function SearchPageContent() {
@@ -111,7 +115,9 @@ function SearchPageContent() {
             type: "informasi" as const,
             kategori: item.klasifikasi,
             tanggal: item.tanggal_posting ? new Date(item.tanggal_posting).toLocaleDateString('id-ID') : new Date(item.created_at).toLocaleDateString('id-ID'),
-            url: `/informasi/${item.id}`
+            url: `/informasi/${item.id}`,
+            thumbnail: item.thumbnail,
+            images: item.images
           };
         }),
         {
@@ -305,46 +311,88 @@ function SearchPageContent() {
               Ditemukan {results.length} hasil
             </p>
             
-            {results.map((result) => (
-              <div key={result.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      {result.type === "informasi" ? "Informasi" : "Halaman"}
-                    </span>
-                    {result.kategori && (
-                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                        {result.kategori}
-                      </span>
-                    )}
-                  </div>
-                  {result.tanggal && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <Calendar className="w-3 h-3" />
-                      {result.tanggal}
+            {results.map((result) => {
+              const getImageUrl = () => {
+                if (result.thumbnail) return result.thumbnail;
+                if (result.images) {
+                  try {
+                    const parsedImages = JSON.parse(result.images);
+                    if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                      return parsedImages[0].url || parsedImages[0];
+                    }
+                  } catch {
+                    // Ignore JSON parse errors
+                  }
+                }
+                return null;
+              };
+              
+              return (
+                <div key={result.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="md:flex">
+                    {/* Thumbnail */}
+                    <div className="md:w-48 md:flex-shrink-0">
+                      <div className="h-48 md:h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        {getImageUrl() ? (
+                          <img
+                            src={getImageUrl()!}
+                            alt={result.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement!.innerHTML = '<div class="text-gray-400 text-4xl">📄</div>';
+                            }}
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-4xl">📄</div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                    
+                    {/* Content */}
+                    <div className="p-6 flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            {result.type === "informasi" ? "Informasi" : "Halaman"}
+                          </span>
+                          {result.kategori && (
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                              {result.kategori}
+                            </span>
+                          )}
+                        </div>
+                        {result.tanggal && (
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <Calendar className="w-3 h-3" />
+                            {result.tanggal}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                        <a href={result.url} className="hover:text-blue-600 transition-colors">
+                          {result.title}
+                        </a>
+                      </h3>
+                      
+                      <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                        {result.content.substring(0, 150)}...
+                      </p>
+                      
+                      <a
+                        href={result.url}
+                        className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Lihat selengkapnya →
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  <a href={result.url} className="hover:text-blue-600 transition-colors">
-                    {result.title}
-                  </a>
-                </h3>
-                
-                <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                  {result.content.substring(0, 150)}...
-                </p>
-                
-                <a
-                  href={result.url}
-                  className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  Lihat selengkapnya →
-                </a>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : query ? (
           <div className="text-center py-12">

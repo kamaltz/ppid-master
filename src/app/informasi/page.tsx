@@ -277,32 +277,67 @@ export default function InformasiPage() {
           <>
             {/* Information Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {informasi.map((item) => (
-                <Link key={item.id} href={`/informasi/${item.id}`}>
-                  <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-blue-500">
-                    <CardHeader className="p-6">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="bg-blue-50 p-2 rounded-lg flex-shrink-0">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-800 hover:text-blue-600 transition-colors line-clamp-2 mb-2">
-                            {item.judul}
-                          </h3>
-                        </div>
+              {informasi.map((item) => {
+                const getImageUrl = () => {
+                  if (item.thumbnail) return item.thumbnail;
+                  if (item.images) {
+                    try {
+                      const parsedImages = JSON.parse(item.images);
+                      if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                        return parsedImages[0].url || parsedImages[0];
+                      }
+                    } catch {
+                      // Ignore JSON parse errors
+                    }
+                  }
+                  return null;
+                };
+                
+                return (
+                  <Link key={item.id} href={`/informasi/${item.id}`}>
+                    <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-blue-500 overflow-hidden">
+                      {/* Thumbnail */}
+                      <div className="h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        {getImageUrl() ? (
+                          <img
+                            src={getImageUrl()!}
+                            alt={item.judul}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement!.innerHTML = '<div class="text-gray-400 text-4xl flex items-center justify-center h-full">📄</div>';
+                            }}
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-4xl">📄</div>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                          {item.klasifikasi}
-                        </span>
-                        <span className="text-xs text-gray-500 font-medium">
-                          {new Date(item.tanggal_posting || item.created_at).toLocaleDateString('id-ID')}
-                        </span>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                </Link>
-              ))}
+                      
+                      <CardHeader className="p-4">
+                        <div className="flex items-start gap-2 mb-3">
+                          <div className="bg-blue-50 p-1.5 rounded-lg flex-shrink-0">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-800 hover:text-blue-600 transition-colors line-clamp-2 text-sm">
+                              {item.judul}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            {item.klasifikasi}
+                          </span>
+                          <span className="text-xs text-gray-500 font-medium">
+                            {new Date(item.tanggal_posting || item.created_at).toLocaleDateString('id-ID')}
+                          </span>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Pagination */}

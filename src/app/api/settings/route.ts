@@ -34,7 +34,13 @@ export async function GET() {
         telepon: '(0262) 123456',
         alamat: 'Jl. Pembangunan No. 1, Garut',
         websiteTitle: 'PPID Kabupaten Garut',
-        websiteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi'
+        websiteDescription: 'Pejabat Pengelola Informasi dan Dokumentasi',
+        marqueeEnabled: false,
+        marqueeText: 'Selamat datang di PPID Kabupaten Garut - Layanan Informasi Publik yang Transparan'
+      },
+      applications: {
+        enabled: true,
+        apps: []
       },
       header: {
         menuItems: [
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
       console.log(`Saved setting ${body.key}:`, result);
     } else {
       // Bulk settings update
-      const validKeys = ['general', 'header', 'footer', 'hero'];
+      const validKeys = ['general', 'header', 'footer', 'hero', 'applications'];
       const updates = [];
       
       for (const [key, value] of Object.entries(body)) {
