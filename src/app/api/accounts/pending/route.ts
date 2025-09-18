@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         no_telepon: true,
         alamat: true,
         pekerjaan: true,
+        ktp_image: true,
         is_approved: true,
         created_at: true
       },

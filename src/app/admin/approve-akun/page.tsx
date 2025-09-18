@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Check, X, User, Clock, Mail, CheckSquare, Square } from "lucide-react";
+import { Check, X, User, Clock, Mail, CheckSquare, Square, Eye, Phone, MapPin, Briefcase, Calendar, CreditCard } from "lucide-react";
 
 interface PemohonData {
   id: number;
@@ -12,6 +12,7 @@ interface PemohonData {
   no_telepon: string;
   alamat: string;
   pekerjaan: string;
+  ktp_image: string;
   is_approved: boolean;
   created_at: string;
 }
@@ -23,6 +24,8 @@ export default function ApproveAkunPage() {
   const [processing, setProcessing] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [selectedPemohon, setSelectedPemohon] = useState<PemohonData | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchPemohon = async () => {
     try {
@@ -171,6 +174,16 @@ export default function ApproveAkunPage() {
     );
   };
 
+  const showDetail = (pemohon: PemohonData) => {
+    setSelectedPemohon(pemohon);
+    setShowDetailModal(true);
+  };
+
+  const closeDetail = () => {
+    setSelectedPemohon(null);
+    setShowDetailModal(false);
+  };
+
   useEffect(() => {
     fetchPemohon();
   }, []);
@@ -280,10 +293,50 @@ export default function ApproveAkunPage() {
                         {new Date(pemohon.created_at).toLocaleDateString('id-ID')}
                       </span>
                     </div>
+                    {pemohon.no_telepon && (
+                      <div className="text-sm text-gray-600 mt-1">
+                        Telepon: {pemohon.no_telepon}
+                      </div>
+                    )}
+                    {pemohon.pekerjaan && (
+                      <div className="text-sm text-gray-600 mt-1">
+                        Pekerjaan: {pemohon.pekerjaan}
+                      </div>
+                    )}
+                    {pemohon.alamat && (
+                      <div className="text-sm text-gray-600 mt-1">
+                        Alamat: {pemohon.alamat}
+                      </div>
+                    )}
                   </div>
+                  
+                  {pemohon.ktp_image && (
+                    <div className="ml-4">
+                      <img
+                        src={pemohon.ktp_image.startsWith('http') ? pemohon.ktp_image : pemohon.ktp_image}
+                        alt="KTP"
+                        className="w-32 h-20 object-cover rounded border border-gray-300"
+                        onClick={() => window.open(pemohon.ktp_image, '_blank')}
+                        style={{ cursor: 'pointer' }}
+                        title="Klik untuk memperbesar"
+                        onError={(e) => {
+                          console.error('Image load error:', pemohon.ktp_image);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <p className="text-xs text-gray-500 mt-1 text-center">Foto KTP</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex space-x-2">
+                  <button
+                    onClick={() => showDetail(pemohon)}
+                    className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    Detail
+                  </button>
                   <button
                     onClick={() => handleApprove(pemohon.id)}
                     disabled={processing === pemohon.id}
@@ -304,6 +357,170 @@ export default function ApproveAkunPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      
+      {/* Detail Modal */}
+      {showDetailModal && selectedPemohon && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Detail Pemohon</h2>
+              <button
+                onClick={closeDetail}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+              <div className="p-6 space-y-6">
+                {/* Personal Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Informasi Personal</h3>
+                    
+                    <div className="flex items-center space-x-3">
+                      <User className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Nama Lengkap</p>
+                        <p className="font-medium text-gray-900">{selectedPemohon.nama}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">NIK</p>
+                        <p className="font-medium text-gray-900">{selectedPemohon.nik}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Mail className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <p className="font-medium text-gray-900">{selectedPemohon.email}</p>
+                      </div>
+                    </div>
+                    
+                    {selectedPemohon.no_telepon && (
+                      <div className="flex items-center space-x-3">
+                        <Phone className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm text-gray-600">No. Telepon</p>
+                          <p className="font-medium text-gray-900">{selectedPemohon.no_telepon}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedPemohon.pekerjaan && (
+                      <div className="flex items-center space-x-3">
+                        <Briefcase className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm text-gray-600">Pekerjaan</p>
+                          <p className="font-medium text-gray-900">{selectedPemohon.pekerjaan}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Tanggal Daftar</p>
+                        <p className="font-medium text-gray-900">
+                          {new Date(selectedPemohon.created_at).toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* KTP Image */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Foto KTP</h3>
+                    {selectedPemohon.ktp_image ? (
+                      <div className="space-y-3">
+                        <img
+                          src={selectedPemohon.ktp_image}
+                          alt="KTP"
+                          className="w-full h-auto rounded-lg border border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => window.open(selectedPemohon.ktp_image, '_blank')}
+                          onError={(e) => {
+                            console.error('Image load error:', selectedPemohon.ktp_image);
+                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMyMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNGM0Y0RjYiLz48dGV4dCB4PSIxNjAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNkI3Mjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HYW1iYXIgS1RQIHR0aWRhayBkYXBhdCBkaW11YXQ8L3RleHQ+PC9zdmc+';
+                          }}
+                        />
+                        <p className="text-xs text-gray-500 text-center">
+                          Klik gambar untuk memperbesar
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
+                        <div className="text-center">
+                          <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500">Tidak ada foto KTP</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Address */}
+                {selectedPemohon.alamat && (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Alamat</h3>
+                    <div className="flex items-start space-x-3">
+                      <MapPin className="w-5 h-5 text-blue-600 mt-1" />
+                      <div>
+                        <p className="text-sm text-gray-600">Alamat Lengkap</p>
+                        <p className="font-medium text-gray-900 leading-relaxed">{selectedPemohon.alamat}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={closeDetail}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Tutup
+              </button>
+              <button
+                onClick={() => {
+                  handleReject(selectedPemohon.id);
+                  closeDetail();
+                }}
+                disabled={processing === selectedPemohon.id}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                <X className="w-4 h-4 inline mr-1" />
+                Tolak
+              </button>
+              <button
+                onClick={() => {
+                  handleApprove(selectedPemohon.id);
+                  closeDetail();
+                }}
+                disabled={processing === selectedPemohon.id}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                <Check className="w-4 h-4 inline mr-1" />
+                {processing === selectedPemohon.id ? 'Memproses...' : 'Setujui'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

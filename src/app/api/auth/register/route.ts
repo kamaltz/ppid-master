@@ -5,12 +5,20 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, nama, nik, no_telepon, alamat, pekerjaan } = body;
+    const { email, password, nama, nik, no_telepon, alamat, pekerjaan, ktp_image } = body;
     
     // Basic validation
     if (!email || !password || !nama || !nik) {
       return NextResponse.json(
         { error: "Email, password, nama, dan NIK wajib diisi." },
+        { status: 400 }
+      );
+    }
+    
+    // Validate KTP image is required
+    if (!ktp_image) {
+      return NextResponse.json(
+        { error: "Foto KTP wajib diunggah untuk syarat administrasi." },
         { status: 400 }
       );
     }
@@ -66,6 +74,7 @@ export async function POST(request: NextRequest) {
         no_telepon: no_telepon || null,
         alamat: alamat || null,
         pekerjaan: pekerjaan || null,
+        ktp_image: ktp_image || null,
         is_approved: false
       }
     });

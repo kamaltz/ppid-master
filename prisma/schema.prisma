@@ -32,6 +32,7 @@ model Pemohon {
   approved_by     String?
   approved_at     DateTime?
   pekerjaan       String?
+  ktp_image       String?
   keberatan       Keberatan[]
   requests        Request[]
   usage_evidence  UsageEvidence[]

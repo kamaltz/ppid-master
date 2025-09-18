@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { updatePermintaanStatus } from "@/lib/api";
-import { X, CheckSquare, Square } from "lucide-react";
+import { X, CheckSquare, Square, Eye, User, Mail, Phone, MapPin, Briefcase, Calendar, CreditCard, FileText } from "lucide-react";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
@@ -39,6 +39,7 @@ export default function AdminPermohonanPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string}[]>([]);
   const [selectedPpid, setSelectedPpid] = useState('');
+  const [pemohonDetails, setPemohonDetails] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -696,6 +697,7 @@ export default function AdminPermohonanPage() {
                     onClick={() => setSelectedPermohonan(item)}
                     className="text-blue-600 hover:text-blue-900 text-xs mr-2"
                   >
+                    <Eye className="w-3 h-3 inline mr-1" />
                     Detail
                   </button>
                   {item.status === 'Diajukan' && (
@@ -793,60 +795,13 @@ export default function AdminPermohonanPage() {
         </div>
       )}
       
-      {/* Detail Modal */}
+      {/* Enhanced Detail Modal */}
       {selectedPermohonan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Detail Permohonan</h3>
-              <button 
-                onClick={() => setSelectedPermohonan(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600">ID Permohonan</label>
-                <p className="text-gray-900">{selectedPermohonan.id}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Nama Pemohon</label>
-                <p className="text-gray-900">{selectedPermohonan.nama}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Email</label>
-                <p className="text-gray-900">{selectedPermohonan.email}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Informasi Diminta</label>
-                <p className="text-gray-900">{selectedPermohonan.informasi}</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Status</label>
-                <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedPermohonan.status)}`}>
-                  {selectedPermohonan.status}
-                </span>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Tanggal Pengajuan</label>
-                <p className="text-gray-900">{selectedPermohonan.tanggal}</p>
-              </div>
-            </div>
-            
-            <div className="mt-6 flex justify-end">
-              <button 
-                onClick={() => setSelectedPermohonan(null)}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
+        <DetailPermohonanModal 
+          permohonan={selectedPermohonan}
+          onClose={() => setSelectedPermohonan(null)}
+          getStatusColor={getStatusColor}
+        />
       )}
       
       {/* Confirmation Modal */}
@@ -961,6 +916,222 @@ export default function AdminPermohonanPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Enhanced Detail Modal Component
+function DetailPermohonanModal({ permohonan, onClose, getStatusColor }: {
+  permohonan: Permohonan;
+  onClose: () => void;
+  getStatusColor: (status: string) => string;
+}) {
+  const [pemohonDetails, setPemohonDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPemohonDetails = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`/api/accounts/pemohon/${permohonan.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPemohonDetails(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch pemohon details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPemohonDetails();
+  }, [permohonan.id]);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">Detail Permohonan</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 space-y-6">
+            {/* Request Information */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Informasi Permohonan</h3>
+                
+                <div className="flex items-center space-x-3">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">ID Permohonan</p>
+                    <p className="font-medium text-gray-900">{permohonan.id}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Tanggal Pengajuan</p>
+                    <p className="font-medium text-gray-900">{permohonan.tanggal}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <div className="w-5 h-5 flex items-center justify-center">
+                    <div className={`w-3 h-3 rounded-full ${getStatusColor(permohonan.status).includes('yellow') ? 'bg-yellow-500' : getStatusColor(permohonan.status).includes('green') ? 'bg-green-500' : getStatusColor(permohonan.status).includes('red') ? 'bg-red-500' : 'bg-blue-500'}`}></div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Status</p>
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(permohonan.status)}`}>
+                      {permohonan.status}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">Informasi yang Diminta</p>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-gray-900 leading-relaxed">{permohonan.informasi}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Pemohon Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Data Pemohon</h3>
+                
+                {loading ? (
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                ) : pemohonDetails ? (
+                  <>
+                    <div className="flex items-center space-x-3">
+                      <User className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Nama Lengkap</p>
+                        <p className="font-medium text-gray-900">{pemohonDetails.nama}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">NIK</p>
+                        <p className="font-medium text-gray-900">{pemohonDetails.nik}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Mail className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <p className="font-medium text-gray-900">{pemohonDetails.email}</p>
+                      </div>
+                    </div>
+                    
+                    {pemohonDetails.no_telepon && (
+                      <div className="flex items-center space-x-3">
+                        <Phone className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm text-gray-600">No. Telepon</p>
+                          <p className="font-medium text-gray-900">{pemohonDetails.no_telepon}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {pemohonDetails.pekerjaan && (
+                      <div className="flex items-center space-x-3">
+                        <Briefcase className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm text-gray-600">Pekerjaan</p>
+                          <p className="font-medium text-gray-900">{pemohonDetails.pekerjaan}</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-gray-500">Data pemohon tidak ditemukan</p>
+                )}
+              </div>
+            </div>
+            
+            {/* KTP Image and Address */}
+            {pemohonDetails && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* KTP Image */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Foto KTP</h3>
+                  {pemohonDetails.ktp_image ? (
+                    <div className="space-y-3">
+                      <img
+                        src={pemohonDetails.ktp_image}
+                        alt="KTP"
+                        className="w-full h-auto rounded-lg border border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => window.open(pemohonDetails.ktp_image, '_blank')}
+                        onError={(e) => {
+                          console.error('Image load error:', pemohonDetails.ktp_image);
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMyMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNGM0Y0RjYiLz48dGV4dCB4PSIxNjAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNkI3Mjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HYW1iYXIgS1RQIHR0aWRhayBkYXBhdCBkaW11YXQ8L3RleHQ+PC9zdmc+';
+                        }}
+                      />
+                      <p className="text-xs text-gray-500 text-center">
+                        Klik gambar untuk memperbesar
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-32 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
+                      <div className="text-center">
+                        <CreditCard className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm">Tidak ada foto KTP</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Address */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Alamat</h3>
+                  {pemohonDetails.alamat ? (
+                    <div className="flex items-start space-x-3">
+                      <MapPin className="w-5 h-5 text-blue-600 mt-1" />
+                      <div>
+                        <p className="text-sm text-gray-600">Alamat Lengkap</p>
+                        <p className="font-medium text-gray-900 leading-relaxed">{pemohonDetails.alamat}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Alamat tidak tersedia</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="flex items-center justify-end p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -15,11 +15,14 @@ export default function RegisterPage() {
     confirmPassword: "",
     no_telepon: "",
     alamat: "",
-    pekerjaan: ""
+    pekerjaan: "",
+    ktp_image: null as File | null
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [ktpPreview, setKtpPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
 
   const validateField = (name: string, value: string) => {
@@ -45,6 +48,74 @@ export default function RegisterPage() {
     return '';
   };
 
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        const maxWidth = 800;
+        const maxHeight = 600;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          const compressedFile = new File([blob!], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', 0.8);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, ktp_image: 'File harus berupa gambar' }));
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, ktp_image: 'Ukuran file maksimal 5MB' }));
+      return;
+    }
+    
+    setIsUploading(true);
+    try {
+      const compressedFile = await compressImage(file);
+      setFormData(prev => ({ ...prev, ktp_image: compressedFile }));
+      setKtpPreview(URL.createObjectURL(compressedFile));
+      setErrors(prev => ({ ...prev, ktp_image: '' }));
+    } catch (error) {
+      setErrors(prev => ({ ...prev, ktp_image: 'Gagal memproses gambar' }));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -63,6 +134,11 @@ export default function RegisterPage() {
       if (error) newErrors[key] = error;
     });
     
+    // Validate KTP image is required
+    if (!formData.ktp_image) {
+      newErrors.ktp_image = 'Foto KTP wajib diunggah untuk syarat administrasi';
+    }
+    
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -72,8 +148,36 @@ export default function RegisterPage() {
     setSuccess(null);
 
     try {
-      const { confirmPassword, ...submitData } = formData;
-      const data = await registerUser(submitData);
+      const { confirmPassword, ktp_image, ...submitData } = formData;
+      
+      // Upload KTP image (required)
+      if (!ktp_image) {
+        setErrors({ ktp_image: 'Foto KTP wajib diunggah untuk syarat administrasi' });
+        return;
+      }
+      
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', ktp_image);
+      
+      const uploadResponse = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formDataUpload
+      });
+      
+      if (!uploadResponse.ok) {
+        setErrors({ ktp_image: 'Gagal mengunggah foto KTP. Silakan coba lagi.' });
+        return;
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      const ktpImageUrl = uploadResult.url;
+      
+      const finalData = {
+        ...submitData,
+        ktp_image: ktpImageUrl
+      };
+      
+      const data = await registerUser(finalData);
       setSuccess(data.message || "Registrasi berhasil! Anda akan dialihkan ke halaman login.");
       setTimeout(() => {
         router.push("/login");
@@ -92,6 +196,11 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold text-center text-gray-800">
           Daftar Akun Pemohon
         </h1>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            <span className="font-medium">Persyaratan Administrasi:</span> Foto KTP wajib diunggah untuk verifikasi identitas.
+          </p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           {errors.submit && <p className="text-sm text-center text-red-500">{errors.submit}</p>}
           {success && <p className="text-sm text-center text-green-500">{success}</p>}
@@ -235,6 +344,54 @@ export default function RegisterPage() {
               className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Masukkan alamat lengkap"
             />
+          </div>
+
+          <div>
+            <label htmlFor="ktp_image" className="block text-sm font-medium text-gray-700">
+              Foto KTP <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1">
+              <input
+                type="file"
+                id="ktp_image"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageUpload}
+                disabled={isLoading || isUploading}
+                required
+                className={`block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
+                  errors.ktp_image ? 'border-red-300' : ''
+                }`}
+              />
+              {isUploading && (
+                <p className="text-xs text-blue-500 mt-1">Memproses gambar...</p>
+              )}
+              {errors.ktp_image && (
+                <p className="text-xs text-red-500 mt-1">{errors.ktp_image}</p>
+              )}
+              {ktpPreview && (
+                <div className="mt-2">
+                  <img
+                    src={ktpPreview}
+                    alt="Preview KTP"
+                    className="w-full max-w-xs h-auto rounded-lg border border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKtpPreview(null);
+                      setFormData(prev => ({ ...prev, ktp_image: null }));
+                    }}
+                    className="mt-1 text-xs text-red-600 hover:text-red-800"
+                  >
+                    Hapus gambar
+                  </button>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                <span className="text-red-600 font-medium">Wajib:</span> Upload foto KTP untuk syarat administrasi. Format: JPG, PNG. Maksimal 5MB. Gambar akan dikompres otomatis.
+              </p>
+            </div>
           </div>
 
           <button

@@ -3,15 +3,12 @@ import { prisma } from '../../../../../../lib/prismaClient';
 import jwt from 'jsonwebtoken';
 
 interface JWTPayload {
+  id: string;
   role: string;
-  userId: number;
-  email: string;
+  userId?: number;
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -19,27 +16,42 @@ export async function DELETE(
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-
-    if (decoded.role !== 'Admin' && decoded.role !== 'PPID_UTAMA') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
+    jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     const { id } = await params;
-    const numericId = parseInt(id);
 
-    if (isNaN(numericId)) {
-      return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
+    // Get request first to find pemohon_id
+    const requestData = await prisma.request.findUnique({
+      where: { id: parseInt(id) },
+      select: { pemohon_id: true }
+    });
+
+    if (!requestData) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
-    // Delete related records first
-    await prisma.keberatan.deleteMany({ where: { pemohon_id: numericId } });
-    await prisma.request.deleteMany({ where: { pemohon_id: numericId } });
-    await prisma.pemohon.delete({ where: { id: numericId } });
+    // Get pemohon details
+    const pemohonData = await prisma.pemohon.findUnique({
+      where: { id: requestData.pemohon_id },
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        nik: true,
+        no_telepon: true,
+        alamat: true,
+        pekerjaan: true,
+        ktp_image: true,
+        created_at: true
+      }
+    });
 
-    return NextResponse.json({ success: true, message: 'Akun pemohon berhasil dihapus' });
+    if (!pemohonData) {
+      return NextResponse.json({ error: 'Pemohon not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: pemohonData });
   } catch (error) {
-    console.error('Delete pemohon error:', error);
+    console.error('Get pemohon details error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
