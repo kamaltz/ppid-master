@@ -141,11 +141,67 @@ export default function AdminPengaturanPage() {
     slides: [],
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [statsConfig, setStatsConfig] = useState({
+    mode: 'auto' as 'manual' | 'auto',
+    manual: {
+      permintaanSelesai: 150,
+      rataRataHari: 7,
+      totalInformasi: 85,
+      aksesOnline: '24/7'
+    }
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [autoStats, setAutoStats] = useState({
+    permintaanSelesai: 0,
+    rataRataHari: 0,
+    totalInformasi: 0,
+    aksesOnline: '24/7'
+  });
 
   // Load settings on component mount
   useEffect(() => {
     loadSettings();
+    loadStatsConfig();
   }, []);
+
+  const loadStatsConfig = async () => {
+    try {
+      const response = await fetch('/api/settings/stats');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.config) {
+          setStatsConfig(data.config);
+        }
+        if (data.autoStats) {
+          setAutoStats(data.autoStats);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading stats config:', error);
+    }
+  };
+
+  const saveStatsConfig = async () => {
+    setStatsLoading(true);
+    try {
+      const response = await fetch('/api/settings/stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(statsConfig)
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Pengaturan statistik berhasil disimpan!');
+      } else {
+        alert('❌ Gagal menyimpan: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error saving stats config:', error);
+      alert('❌ Terjadi kesalahan saat menyimpan');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -839,6 +895,156 @@ export default function AdminPengaturanPage() {
       setIsResetting(false);
     }
   };
+  const StatsSettings = () => (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold">📊 Pengaturan Statistik Homepage</h2>
+        <button
+          onClick={saveStatsConfig}
+          disabled={statsLoading}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+        >
+          {statsLoading ? '⏳ Menyimpan...' : '💾 Simpan'}
+        </button>
+      </div>
+      
+      <div className="space-y-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-medium mb-4">🔧 Mode Statistik</h3>
+          <div className="space-y-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="statsMode"
+                value="auto"
+                checked={statsConfig.mode === 'auto'}
+                onChange={(e) => setStatsConfig(prev => ({ ...prev, mode: e.target.value as 'auto' | 'manual' }))}
+                className="mr-3"
+              />
+              <div>
+                <span className="font-medium">Otomatis</span>
+                <p className="text-sm text-gray-600">Ambil data statistik dari database secara real-time</p>
+              </div>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="statsMode"
+                value="manual"
+                checked={statsConfig.mode === 'manual'}
+                onChange={(e) => setStatsConfig(prev => ({ ...prev, mode: e.target.value as 'auto' | 'manual' }))}
+                className="mr-3"
+              />
+              <div>
+                <span className="font-medium">Manual</span>
+                <p className="text-sm text-gray-600">Atur nilai statistik secara manual</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-medium mb-4">📊 Preview Statistik</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
+                {statsConfig.mode === 'auto' ? autoStats.permintaanSelesai : statsConfig.manual.permintaanSelesai}
+              </div>
+              <div className="text-sm text-gray-600">Permohonan Selesai</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {statsConfig.mode === 'auto' ? autoStats.rataRataHari : statsConfig.manual.rataRataHari}
+              </div>
+              <div className="text-sm text-gray-600">Rata-rata Hari</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
+                {statsConfig.mode === 'auto' ? autoStats.totalInformasi : statsConfig.manual.totalInformasi}
+              </div>
+              <div className="text-sm text-gray-600">Total Informasi</div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600">
+                {statsConfig.mode === 'auto' ? autoStats.aksesOnline : statsConfig.manual.aksesOnline}
+              </div>
+              <div className="text-sm text-gray-600">Akses Online</div>
+            </div>
+          </div>
+          <div className="mt-4 text-sm text-gray-500">
+            💡 Mode saat ini: <strong>{statsConfig.mode === 'auto' ? 'Otomatis' : 'Manual'}</strong>
+          </div>
+        </div>
+
+        {statsConfig.mode === 'manual' && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-medium mb-4">⚙️ Nilai Manual</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Permohonan Selesai
+                </label>
+                <input
+                  type="number"
+                  value={statsConfig.manual.permintaanSelesai}
+                  onChange={(e) => setStatsConfig(prev => ({
+                    ...prev,
+                    manual: { ...prev.manual, permintaanSelesai: parseInt(e.target.value) || 0 }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rata-rata Hari Penyelesaian
+                </label>
+                <input
+                  type="number"
+                  value={statsConfig.manual.rataRataHari}
+                  onChange={(e) => setStatsConfig(prev => ({
+                    ...prev,
+                    manual: { ...prev.manual, rataRataHari: parseInt(e.target.value) || 0 }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total Informasi Tersedia
+                </label>
+                <input
+                  type="number"
+                  value={statsConfig.manual.totalInformasi}
+                  onChange={(e) => setStatsConfig(prev => ({
+                    ...prev,
+                    manual: { ...prev.manual, totalInformasi: parseInt(e.target.value) || 0 }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Akses Online
+                </label>
+                <input
+                  type="text"
+                  value={statsConfig.manual.aksesOnline}
+                  onChange={(e) => setStatsConfig(prev => ({
+                    ...prev,
+                    manual: { ...prev.manual, aksesOnline: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="24/7"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const tabs = [
     { id: "general", label: "🏢 Umum", icon: "🏢" },
     { id: "header", label: "📋 Header & Menu", icon: "📋" },
@@ -1808,15 +2014,7 @@ export default function AdminPengaturanPage() {
           </div>
         )}
 
-        {activeTab === "stats" && (
-          <div>
-            <iframe
-              src="/admin/pengaturan/statistik"
-              className="w-full h-[600px] border-0 rounded-lg"
-              title="Pengaturan Statistik"
-            />
-          </div>
-        )}
+        {activeTab === "stats" && <StatsSettings />}
 
         {activeTab === "hero" && (
           <div>

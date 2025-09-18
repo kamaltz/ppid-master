@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Save, BarChart3, Settings } from "lucide-react";
+
+// Fallback icons if lucide-react is not available
+const SaveIcon = () => <span>💾</span>;
+const BarChartIcon = () => <span>📊</span>;
+const SettingsIcon = () => <span>⚙️</span>;
 
 interface StatsConfig {
   mode: 'manual' | 'auto';
@@ -15,7 +19,8 @@ interface StatsConfig {
 }
 
 export default function StatistikSettingsPage() {
-  const { getToken } = useAuth();
+  const auth = useAuth();
+  const getToken = auth?.getToken || (() => null);
   const [config, setConfig] = useState<StatsConfig>({
     mode: 'manual',
     manual: {
@@ -27,32 +32,54 @@ export default function StatistikSettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         const token = getToken();
+        if (!token) {
+          setError('Token tidak tersedia. Silakan login ulang.');
+          setLoading(false);
+          return;
+        }
+        
         const response = await fetch('/api/settings/stats', {
           headers: { Authorization: `Bearer ${token}` }
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         if (data.success && data.config) {
           setConfig(data.config);
+          setError(null);
+        } else {
+          setError(data.error || 'Gagal memuat konfigurasi');
         }
       } catch (error) {
         console.error('Failed to fetch config:', error);
+        setError(error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchConfig();
-  }, [getToken]);
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
     try {
       const token = getToken();
+      if (!token) {
+        setError('Token tidak tersedia. Silakan login ulang.');
+        return;
+      }
+      
       const response = await fetch('/api/settings/stats', {
         method: 'POST',
         headers: {
@@ -62,15 +89,21 @@ export default function StatistikSettingsPage() {
         body: JSON.stringify(config)
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         alert('Pengaturan statistik berhasil disimpan!');
       } else {
-        alert('Gagal menyimpan: ' + data.error);
+        setError(data.error || 'Gagal menyimpan pengaturan');
       }
     } catch (error) {
       console.error('Failed to save config:', error);
-      alert('Terjadi kesalahan saat menyimpan');
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan';
+      setError(errorMessage);
+      alert(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -93,6 +126,23 @@ export default function StatistikSettingsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">Error</h2>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -105,10 +155,17 @@ export default function StatistikSettingsPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-8">
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm">
+              ⚠️ <strong>Error:</strong> {error}
+            </p>
+          </div>
+        )}
+        
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <BarChart3 className="w-5 h-5 mr-2" />
-            Mode Statistik
+            <BarChartIcon /> Mode Statistik
           </h2>
           
           <div className="space-y-4">
@@ -147,8 +204,7 @@ export default function StatistikSettingsPage() {
         {config.mode === 'manual' && (
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Settings className="w-5 h-5 mr-2" />
-              Nilai Manual
+              <SettingsIcon /> Nilai Manual
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -222,7 +278,7 @@ export default function StatistikSettingsPage() {
             disabled={saving}
             className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4 mr-2" />
+            <SaveIcon />
             {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
           </button>
         </div>
