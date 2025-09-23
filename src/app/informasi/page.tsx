@@ -13,6 +13,8 @@ interface Informasi {
   klasifikasi: string;
   tanggal_posting: string;
   created_at: string;
+  thumbnail?: string;
+  images?: string;
 }
 
 interface Category {

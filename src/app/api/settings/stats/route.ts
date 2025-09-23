@@ -39,8 +39,7 @@ export async function GET(request: NextRequest) {
       prisma.informasiPublik.count(),
       prisma.request.findMany({
         where: { 
-          status: 'Selesai',
-          updated_at: { not: null }
+          status: 'Selesai'
         },
         select: {
           created_at: true,
