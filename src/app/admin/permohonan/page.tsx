@@ -796,13 +796,15 @@ export default function AdminPermohonanPage() {
       )}
       
       {/* Enhanced Detail Modal */}
-      {selectedPermohonan && (
-        <DetailPermohonanModal 
-          permohonan={selectedPermohonan}
-          onClose={() => setSelectedPermohonan(null)}
-          getStatusColor={getStatusColor}
-        />
-      )}
+      <div style={{display: selectedPermohonan ? 'block' : 'none'}}>
+        {selectedPermohonan && (
+          <DetailPermohonanModal 
+            permohonan={selectedPermohonan}
+            onClose={() => setSelectedPermohonan(null)}
+            getStatusColor={getStatusColor}
+          />
+        )}
+      </div>
       
       {/* Confirmation Modal */}
       <ConfirmModal
@@ -928,27 +930,51 @@ function DetailPermohonanModal({ permohonan, onClose, getStatusColor }: {
 }) {
   const [pemohonDetails, setPemohonDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(true);
 
   useEffect(() => {
+    let isCancelled = false;
+    
     const fetchPemohonDetails = async () => {
       try {
         const token = localStorage.getItem('auth_token');
         const response = await fetch(`/api/accounts/pemohon/${permohonan.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (response.ok) {
+        if (response.ok && !isCancelled) {
           const data = await response.json();
-          setPemohonDetails(data.data);
+          if (mounted) {
+            setPemohonDetails(data.data);
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch pemohon details:', error);
+        if (!isCancelled) {
+          console.error('Failed to fetch pemohon details:', error);
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled && mounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchPemohonDetails();
-  }, [permohonan.id]);
+    
+    return () => {
+      isCancelled = true;
+    };
+  }, [permohonan.id, mounted]);
+  
+  useEffect(() => {
+    return () => {
+      setMounted(false);
+    };
+  }, []);
+  
+  const handleClose = () => {
+    setMounted(false);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -957,7 +983,7 @@ function DetailPermohonanModal({ permohonan, onClose, getStatusColor }: {
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Detail Permohonan</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-6 h-6" />
@@ -1125,7 +1151,7 @@ function DetailPermohonanModal({ permohonan, onClose, getStatusColor }: {
         {/* Footer */}
         <div className="flex items-center justify-end p-6 border-t border-gray-200 bg-gray-50">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Tutup

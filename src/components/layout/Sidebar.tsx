@@ -357,24 +357,31 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
                     {/* Notification Badges */}
                     {(() => {
-                      let count = 0;
-                      if (item.label === 'Approve Akun') count = counts.pendingAccounts;
-                      else if (item.label === 'Chat') count = counts.newChats;
-                      else if (item.label === 'Permohonan') count = counts.newRequests;
-                      else if (item.label === 'Keberatan') count = counts.newObjections;
-                      else if (item.label === 'Log Aktivitas') count = counts.newLogs;
-                      else if (item.label === 'Media') count = counts.newMedia;
-                      
-                      if (count > 0) {
-                        return (
-                          <span className={`bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${
-                            isOpen ? 'ml-auto' : 'absolute -top-1 -right-1'
-                          }`}>
-                            {count > 99 ? '99+' : count}
-                          </span>
-                        );
+                      try {
+                        let count = 0;
+                        if (counts && typeof counts === 'object') {
+                          if (item.label === 'Approve Akun') count = counts.pendingAccounts || 0;
+                          else if (item.label === 'Chat') count = counts.newChats || 0;
+                          else if (item.label === 'Permohonan') count = counts.newRequests || 0;
+                          else if (item.label === 'Keberatan') count = counts.newObjections || 0;
+                          else if (item.label === 'Log Aktivitas') count = counts.newLogs || 0;
+                          else if (item.label === 'Media') count = counts.newMedia || 0;
+                        }
+                        
+                        if (count > 0) {
+                          return (
+                            <span key={`badge-${item.href}-${count}`} className={`bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${
+                              isOpen ? 'ml-auto' : 'absolute -top-1 -right-1'
+                            }`}>
+                              {count > 99 ? '99+' : count}
+                            </span>
+                          );
+                        }
+                        return null;
+                      } catch (error) {
+                        console.warn('Badge render error:', error);
+                        return null;
                       }
-                      return null;
                     })()}
 
                     {/* Tooltip for collapsed state */}

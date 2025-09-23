@@ -24,6 +24,7 @@ export const useOptimizedNotifications = () => {
   
   const lastFetchRef = useRef<number>(0);
   const isLoadingRef = useRef<boolean>(false);
+  const mountedRef = useRef<boolean>(true);
   const { debouncedCallback: debouncedFetch } = useDebounce(fetchNotifications, 5000);
 
   async function fetchNotifications() {
@@ -48,7 +49,7 @@ export const useOptimizedNotifications = () => {
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
       
-      if (chatResponse.ok) {
+      if (chatResponse.ok && mountedRef.current) {
         const chatData = await chatResponse.json();
         setCounts(prev => ({ ...prev, newChats: chatData.count || 0 }));
       }
@@ -60,7 +61,7 @@ export const useOptimizedNotifications = () => {
           signal: AbortSignal.timeout(10000)
         });
         
-        if (requestsResponse.ok) {
+        if (requestsResponse.ok && mountedRef.current) {
           const requestsData = await requestsResponse.json();
           setCounts(prev => ({ ...prev, newRequests: requestsData.pagination?.total || 0 }));
         }
@@ -71,7 +72,7 @@ export const useOptimizedNotifications = () => {
           signal: AbortSignal.timeout(10000)
         });
         
-        if (pendingResponse.ok) {
+        if (pendingResponse.ok && mountedRef.current) {
           const pendingData = await pendingResponse.json();
           setCounts(prev => ({ ...prev, pendingAccounts: pendingData.data?.length || 0 }));
         }
@@ -82,7 +83,7 @@ export const useOptimizedNotifications = () => {
           signal: AbortSignal.timeout(10000)
         });
         
-        if (newRequestsResponse.ok) {
+        if (newRequestsResponse.ok && mountedRef.current) {
           const newRequestsData = await newRequestsResponse.json();
           setCounts(prev => ({ ...prev, newRequests: newRequestsData.pagination?.total || 0 }));
         }
@@ -93,7 +94,7 @@ export const useOptimizedNotifications = () => {
           signal: AbortSignal.timeout(10000)
         });
         
-        if (newObjectionsResponse.ok) {
+        if (newObjectionsResponse.ok && mountedRef.current) {
           const newObjectionsData = await newObjectionsResponse.json();
           setCounts(prev => ({ ...prev, newObjections: newObjectionsData.pagination?.total || 0 }));
         }
@@ -121,21 +122,39 @@ export const useOptimizedNotifications = () => {
   }, [debouncedFetch]);
 
   useEffect(() => {
+    mountedRef.current = true;
     const token = getToken();
     const role = getUserRole();
     
-    if (token && role) {
+    if (token && role && mountedRef.current) {
       // Initial fetch
       fetchNotifications();
       
       // Different intervals based on role
       const interval = role === 'Pemohon' 
-        ? setInterval(fetchNotifications, 30000)  // 30 seconds for Pemohon
-        : setInterval(fetchNotifications, 30000); // 30 seconds for Admin/PPID to catch new requests faster
+        ? setInterval(() => {
+            if (mountedRef.current) fetchNotifications();
+          }, 30000)  // 30 seconds for Pemohon
+        : setInterval(() => {
+            if (mountedRef.current) fetchNotifications();
+          }, 30000); // 30 seconds for Admin/PPID to catch new requests faster
       
-      return () => clearInterval(interval);
+      return () => {
+        mountedRef.current = false;
+        clearInterval(interval);
+      };
     }
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
   return { counts, clearNotification, getDisplayCount, refreshNotifications };
 };

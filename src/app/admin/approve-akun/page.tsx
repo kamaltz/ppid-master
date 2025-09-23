@@ -180,8 +180,10 @@ export default function ApproveAkunPage() {
   };
 
   const closeDetail = () => {
-    setSelectedPemohon(null);
     setShowDetailModal(false);
+    setTimeout(() => {
+      setSelectedPemohon(null);
+    }, 100);
   };
 
   useEffect(() => {
@@ -361,7 +363,8 @@ export default function ApproveAkunPage() {
       )}
       
       {/* Detail Modal */}
-      {showDetailModal && selectedPemohon && (
+      <div style={{display: showDetailModal && selectedPemohon ? 'block' : 'none'}}>
+        {showDetailModal && selectedPemohon && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
             {/* Header */}
@@ -522,7 +525,8 @@ export default function ApproveAkunPage() {
             </div>
           </div>
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

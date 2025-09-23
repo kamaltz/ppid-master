@@ -15,7 +15,7 @@ interface Informasi {
   images?: string;
 }
 
-export default function NewsPortal() {
+function NewsPortalContent() {
   const [informasi, setInformasi] = useState<Informasi[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -135,8 +135,7 @@ export default function NewsPortal() {
                               onError={(e) => {
                                 console.log('Image error:', getImageUrl(featuredNews));
                                 const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.parentElement!.innerHTML = '<div class="text-white text-6xl">📄</div>';
+                                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNGM0Y0RjYiLz48dGV4dCB4PSIxMDAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNkI3Mjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HYW1iYXIgdGlkYWsgZGl0ZW11a2FuPC90ZXh0Pjwvc3ZnPg==';
                               }}
                             />
                           ) : (
@@ -190,8 +189,7 @@ export default function NewsPortal() {
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                      target.parentElement!.innerHTML = '<div class="text-gray-400 text-3xl flex items-center justify-center h-full">📄</div>';
+                                      target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNGM0Y0RjYiLz48dGV4dCB4PSIxMDAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNkI3Mjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HYW1iYXIgdGlkYWsgZGl0ZW11a2FuPC90ZXh0Pjwvc3ZnPg==';
                                     }}
                                   />
                                 ) : (
@@ -296,5 +294,13 @@ export default function NewsPortal() {
         )}
       </div>
     </section>
+  );
+}
+
+export default function NewsPortal() {
+  return (
+    <div key="news-portal-wrapper">
+      <NewsPortalContent />
+    </div>
   );
 }
