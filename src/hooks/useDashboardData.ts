@@ -68,10 +68,15 @@ export const useDashboardData = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [keberatanData, setKeberatanData] = useState<ChartDataItem[]>([]);
 
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Load keberatan data
+      const keberatanChartData = await generateKeberatanData();
+      setKeberatanData(keberatanChartData);
       
       // Try database first, fallback to localStorage
       let permintaanData = [];
@@ -249,31 +254,54 @@ export const useDashboardData = () => {
     });
   };
 
-  const generateKeberatanData = (data: PermintaanData[]): ChartDataItem[] => {
-    const currentDate = new Date();
-    const months = [];
-    
-    // Generate 6 months for keberatan data
-    for (let i = -2; i <= 3; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-      months.push(date);
-    }
-    
-    return months.map(month => {
-      const count = data.filter((item: PermintaanData) => {
-        if (!item.created_at || item.status !== 'Ditolak') return false;
-        const itemDate = new Date(item.created_at);
-        if (isNaN(itemDate.getTime())) return false;
-        return itemDate.getFullYear() === month.getFullYear() && 
-               itemDate.getMonth() === month.getMonth();
-      }).length;
+  const generateKeberatanData = async (): Promise<ChartDataItem[]> => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        return Array.from({ length: 12 }, (_, i) => ({
+          label: new Date(new Date().getFullYear(), i, 1).toLocaleDateString('id-ID', { month: 'short' }),
+          value: 0,
+          color: '#EF4444'
+        }));
+      }
       
-      return {
-        label: month.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
-        value: count,
+      const response = await fetch('/api/keberatan', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch keberatan data');
+      }
+      
+      const keberatanResponse = await response.json();
+      const keberatanData = keberatanResponse.data || [];
+      
+      const currentYear = new Date().getFullYear();
+      const months = Array.from({ length: 12 }, (_, i) => new Date(currentYear, i, 1));
+      
+      return months.map(month => {
+        const count = keberatanData.filter((item: any) => {
+          if (!item.created_at) return false;
+          const itemDate = new Date(item.created_at);
+          if (isNaN(itemDate.getTime())) return false;
+          return itemDate.getFullYear() === month.getFullYear() && 
+                 itemDate.getMonth() === month.getMonth();
+        }).length;
+        
+        return {
+          label: month.toLocaleDateString('id-ID', { month: 'short' }),
+          value: count,
+          color: '#EF4444'
+        };
+      });
+    } catch (error) {
+      console.error('Error generating keberatan data:', error);
+      return Array.from({ length: 12 }, (_, i) => ({
+        label: new Date(new Date().getFullYear(), i, 1).toLocaleDateString('id-ID', { month: 'short' }),
+        value: 0,
         color: '#EF4444'
-      };
-    });
+      }));
+    }
   };
   
   const generateYearlyData = (data: PermintaanData[]) => {
@@ -319,7 +347,7 @@ export const useDashboardData = () => {
     ],
     monthly: generateMonthlyData(permintaan),
     daily: generateDailyData(permintaan),
-    keberatan: generateKeberatanData(permintaan),
+    keberatan: keberatanData,
     yearlyPermohonan: yearlyData.yearlyPermohonan,
     yearlyKeberatan: yearlyData.yearlyKeberatan
   };
