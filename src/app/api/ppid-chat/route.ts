@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Allow PPID roles and ADMIN to access PPID chat
-    if (!decoded.role.includes('PPID') && decoded.role !== 'ADMIN') {
+    if (!decoded.role.includes('PPID') && decoded.role !== 'ADMIN' && decoded.role !== 'ATASAN_PPID') {
       return NextResponse.json({ error: 'Access denied. Only PPID and Admin can access this feature.' }, { status: 403 });
     }
 
@@ -99,9 +99,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Only PPID roles can send inter-PPID messages
-    if (!decoded.role.includes('PPID')) {
-      return NextResponse.json({ error: 'Only PPID can send messages' }, { status: 403 });
+    // Only PPID roles and ADMIN can send inter-PPID messages
+    if (!decoded.role.includes('PPID') && decoded.role !== 'ADMIN' && decoded.role !== 'ATASAN_PPID') {
+      return NextResponse.json({ error: 'Only PPID and Admin can send messages' }, { status: 403 });
     }
 
     const { receiverId, subject, message, attachments } = await request.json();
