@@ -20,7 +20,8 @@ type PermissionKey =
   | "log_aktivitas"
   | "pengaturan"
   | "media"
-  | "profile";
+  | "profile"
+  | "kelola_halaman";
 import {
   LayoutDashboard,
   FileText,
@@ -88,13 +89,7 @@ const menuItems = [
     permission: "kategori",
     category: "content",
   },
-  {
-    href: "/admin/halaman",
-    icon: Globe,
-    label: "Kelola Halaman",
-    permission: null,
-    category: "content",
-  },
+
   {
     href: "/admin/akun",
     icon: UserCog,
@@ -121,6 +116,13 @@ const menuItems = [
     icon: Shield,
     label: "Kelola Akses",
     permission: "kelola_akses",
+    category: "user",
+  },
+  {
+    href: "/admin/halaman",
+    icon: Globe,
+    label: "Kelola Halaman",
+    permission: "kelola_halaman",
     category: "user",
   },
   {
@@ -180,15 +182,20 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
     if (!item.permission) return true; // Dashboard, Kelola Halaman, Laporan always visible
     
     // Admin and PPID Utama have full access to all menus immediately
-    if (userRole === 'Admin' || userRole === 'PPID') return true;
+    if (userRole === 'ADMIN' || userRole === 'PPID_UTAMA' || userRole === 'PPID') return true;
     
     // Fallback permissions when database is unstable
     // Show basic menus based on role even if permission check fails
-    if (userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
+    if (userRole === 'PPID_PELAKSANA' || userRole === 'ATASAN_PPID') {
       const basicMenus = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile'];
       if (basicMenus.includes(item.permission as string)) {
         return true;
       }
+    }
+    
+    // PPID Utama gets access to kelola_halaman
+    if ((userRole === 'PPID' || userRole === 'PPID_UTAMA') && item.permission === 'kelola_halaman') {
+      return true;
     }
     
     // Try permission check, but don't fail if database is down

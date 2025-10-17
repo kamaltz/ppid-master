@@ -14,6 +14,7 @@ interface UserPermissions {
   pengaturan: boolean;
   media: boolean;
   profile: boolean;
+  kelola_halaman: boolean;
 }
 
 export const useUserPermissions = () => {
@@ -23,7 +24,7 @@ export const useUserPermissions = () => {
 
   useEffect(() => {
     // Admin and PPID Utama get immediate full access
-    if (userRole === 'Admin' || userRole === 'PPID') {
+    if (userRole === 'ADMIN' || userRole === 'PPID_UTAMA' || userRole === 'PPID') {
       const fullPermissions: UserPermissions = {
         informasi: true,
         kategori: true,
@@ -36,7 +37,8 @@ export const useUserPermissions = () => {
         log_aktivitas: true,
         pengaturan: true,
         media: true,
-        profile: true
+        profile: true,
+        kelola_halaman: true
       };
       setPermissions(fullPermissions);
       return;
@@ -67,7 +69,7 @@ export const useUserPermissions = () => {
     };
     
     const setFallbackPermissions = () => {
-      if (userRole === 'PPID' || userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
+      if (userRole === 'PPID' || userRole === 'PPID_PELAKSANA' || userRole === 'ATASAN_PPID') {
         const fallbackPermissions: UserPermissions = {
           informasi: true,
           kategori: true,
@@ -80,7 +82,8 @@ export const useUserPermissions = () => {
           log_aktivitas: false,
           pengaturan: false,
           media: false,
-          profile: true
+          profile: true,
+          kelola_halaman: (userRole === 'PPID' || userRole === 'PPID_UTAMA') // Only PPID Utama gets access
         };
         setPermissions(fallbackPermissions);
       }
@@ -91,14 +94,19 @@ export const useUserPermissions = () => {
 
   const hasPermission = (permission: keyof UserPermissions): boolean => {
     // Admin and PPID Utama always have permission
-    if (userRole === 'Admin' || userRole === 'PPID') return true;
+    if (userRole === 'ADMIN' || userRole === 'PPID_UTAMA' || userRole === 'PPID') return true;
     
     // Fallback permissions when database is unstable
     if (!permissions) {
       // Basic permissions for PPID roles when database is down
-      if (userRole === 'PPID_Pelaksana' || userRole === 'Atasan_PPID') {
+      if (userRole === 'PPID_PELAKSANA' || userRole === 'ATASAN_PPID') {
         const basicPermissions = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile'];
         return basicPermissions.includes(permission);
+      }
+      
+      // PPID Utama gets kelola_halaman permission even when database is down
+      if ((userRole === 'PPID' || userRole === 'PPID_UTAMA') && permission === 'kelola_halaman') {
+        return true;
       }
       return false;
     }

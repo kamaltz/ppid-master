@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ROLES } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import FileUpload from "@/components/ui/FileUpload";
 
@@ -12,12 +13,12 @@ interface PageContent {
   title: string;
   slug: string;
   content: string;
+  thumbnail?: string;
+  links?: { title: string; url: string }[];
   files: FileItem[];
   sections?: unknown[];
   lastUpdated: string;
 }
-
-
 
 interface FileItem {
   id: string;
@@ -28,6 +29,7 @@ interface FileItem {
 }
 
 export default function AdminHalamanPage() {
+  const { hasPermission } = useUserPermissions();
   const [pages, setPages] = useState<PageContent[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -36,6 +38,8 @@ export default function AdminHalamanPage() {
     title: "",
     slug: "",
     content: "",
+    thumbnail: "",
+    links: [{ title: '', url: '' }] as { title: string; url: string }[],
     files: [] as FileItem[],
     sections: [] as unknown[]
   });
@@ -43,6 +47,12 @@ export default function AdminHalamanPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const handleAutoSave = useCallback(async () => {
     if (!selectedPage || !hasUnsavedChanges) return;
@@ -91,6 +101,8 @@ export default function AdminHalamanPage() {
             title: formData.title,
             slug: formData.slug,
             content: formData.content,
+            thumbnail: formData.thumbnail,
+            links: formData.links.filter(link => link.title.trim() && link.url.trim()),
             status: 'published'
           })
         });
@@ -102,9 +114,9 @@ export default function AdminHalamanPage() {
               ? { ...page, ...formData, lastUpdated: new Date().toISOString().split('T')[0] }
               : page
           ));
-          alert('Halaman berhasil diperbarui!');
+          showNotification('success', '✅ Halaman berhasil diperbarui!');
         } else {
-          alert(result.error || 'Gagal memperbarui halaman');
+          showNotification('error', '❌ ' + (result.error || 'Gagal memperbarui halaman'));
         }
       } else {
         // Add new page
@@ -119,6 +131,8 @@ export default function AdminHalamanPage() {
             title: formData.title,
             slug: formData.slug,
             content: formData.content,
+            thumbnail: formData.thumbnail,
+            links: formData.links.filter(link => link.title.trim() && link.url.trim()),
             status: 'published'
           })
         });
@@ -130,23 +144,25 @@ export default function AdminHalamanPage() {
             title: result.data.title,
             slug: result.data.slug,
             content: result.data.content,
+            thumbnail: result.data.thumbnail,
+            links: result.data.links ? JSON.parse(result.data.links) : [],
             files: [],
             sections: [],
             lastUpdated: new Date().toISOString().split('T')[0]
           };
           setPages(prev => [...prev, newPage]);
           setSelectedPage(newPage.id);
-          alert('Halaman baru berhasil ditambahkan!');
+          showNotification('success', '✅ Halaman baru berhasil ditambahkan!');
         } else {
-          alert(result.error || 'Gagal membuat halaman');
+          showNotification('error', '❌ ' + (result.error || 'Gagal membuat halaman'));
         }
       }
       setShowAddForm(false);
       setHasUnsavedChanges(false);
       setAutoSaveStatus('saved');
-    } catch {
-      console.error('Error saving page');
-      alert('Terjadi kesalahan saat menyimpan halaman');
+    } catch (error) {
+      console.error('Error saving page:', error);
+      showNotification('error', '❌ Terjadi kesalahan saat menyimpan halaman');
     } finally {
       setIsSaving(false);
     }
@@ -157,6 +173,8 @@ export default function AdminHalamanPage() {
       title: "",
       slug: "",
       content: "",
+      thumbnail: "",
+      links: [{ title: '', url: '' }],
       files: [],
       sections: []
     });
@@ -207,11 +225,13 @@ export default function AdminHalamanPage() {
       const response = await fetch('/api/pages');
       const result = await response.json();
       if (result.success) {
-        setPages(result.data.map((page: { id: string; title: string; slug: string; content?: string; updated_at?: string; created_at: string }) => ({
+        setPages(result.data.map((page: { id: string; title: string; slug: string; content?: string; thumbnail?: string; links?: string; updated_at?: string; created_at: string }) => ({
           id: page.id,
           title: page.title,
           slug: page.slug,
           content: page.content || '',
+          thumbnail: page.thumbnail || '',
+          links: page.links ? JSON.parse(page.links) : [{ title: '', url: '' }],
           files: [],
           sections: [],
           lastUpdated: new Date(page.updated_at || page.created_at).toISOString().split('T')[0]
@@ -231,6 +251,8 @@ export default function AdminHalamanPage() {
         title: page.title,
         slug: page.slug,
         content: page.content,
+        thumbnail: page.thumbnail || '',
+        links: page.links || [{ title: '', url: '' }],
         files: page.files,
         sections: page.sections || []
       });
@@ -297,7 +319,16 @@ export default function AdminHalamanPage() {
   }
 
   return (
+    <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA]} showAccessDenied={true}>
     <div className="p-8">
+      {/* Notification */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+          notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`}>
+          {notification.message}
+        </div>
+      )}
       <h1 className="text-3xl font-bold text-gray-800 mb-8">Kelola Halaman</h1>
       
       <div className="grid lg:grid-cols-4 gap-8">
@@ -313,14 +344,14 @@ export default function AdminHalamanPage() {
                   {pages.length} halaman
                 </span>
               </div>
-              <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+              {hasPermission('kelola_halaman') && (
                 <button
                   onClick={handleAddPage}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   ➕ Buat Halaman Baru
                 </button>
-              </RoleGuard>
+              )}
             </div>
 
             {/* Pages List */}
@@ -434,7 +465,7 @@ export default function AdminHalamanPage() {
                         )}
                       </div>
                       
-                      <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+                      {hasPermission('kelola_halaman') && (
                         <button
                           onClick={handleSave}
                           disabled={isSaving || !formData.title || !formData.slug}
@@ -447,7 +478,7 @@ export default function AdminHalamanPage() {
                             <>{showAddForm ? '✨ Buat Halaman' : '💾 Simpan Perubahan'}</>
                           )}
                         </button>
-                      </RoleGuard>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -490,6 +521,76 @@ export default function AdminHalamanPage() {
                   </div>
                 </div>
 
+                {/* Thumbnail */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    🖼️ Gambar Thumbnail (Opsional)
+                  </label>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            try {
+                              const token = localStorage.getItem('auth_token');
+                              const response = await fetch('/api/upload/image', {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: formData
+                              });
+                              const result = await response.json();
+                              if (result.success) {
+                                setFormData(prev => ({ ...prev, thumbnail: result.url }));
+                              }
+                            } catch (error) {
+                              console.error('Upload failed:', error);
+                            }
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                      <span className="text-sm text-gray-500 self-center">atau</span>
+                      <input 
+                        type="url" 
+                        value={formData.thumbnail}
+                        onChange={(e) => setFormData(prev => ({ ...prev, thumbnail: e.target.value }))}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                    {formData.thumbnail && (
+                      <div className="mt-3">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Preview Thumbnail:</p>
+                        <div className="flex items-start gap-3">
+                          <img 
+                            src={formData.thumbnail} 
+                            alt="Thumbnail Preview" 
+                            className="w-32 h-24 object-cover rounded border shadow-sm"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder-image.png';
+                            }}
+                          />
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-600 mb-2">Gambar ini akan muncul sebagai thumbnail halaman</p>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, thumbnail: '' }))}
+                              className="text-red-500 hover:text-red-700 text-sm font-medium"
+                            >
+                              ❌ Hapus Thumbnail
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Content Editor */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -505,20 +606,77 @@ export default function AdminHalamanPage() {
                   <p className="text-xs text-gray-500 mt-2">Gunakan toolbar untuk format teks, tambah gambar, link, dan lainnya</p>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      📎 File Lampiran
-                    </h4>
-                    <FileUpload
-                      files={formData.files}
-                      onFilesChange={(files) => setFormData({...formData, files})}
-                    />
-                    <p className="text-xs text-gray-500 mt-2">Upload dokumen, gambar, atau file pendukung lainnya</p>
+                {/* Links */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    🔗 Link Terkait
+                  </label>
+                  <div className="space-y-3">
+                    {formData.links.map((link, index) => (
+                      <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 space-y-2">
+                            <input
+                              type="text"
+                              value={link.title}
+                              onChange={(e) => {
+                                const newLinks = [...formData.links];
+                                newLinks[index] = { ...newLinks[index], title: e.target.value };
+                                setFormData(prev => ({ ...prev, links: newLinks }));
+                              }}
+                              placeholder="Judul link"
+                              className="w-full border rounded px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="url"
+                              value={link.url}
+                              onChange={(e) => {
+                                const newLinks = [...formData.links];
+                                newLinks[index] = { ...newLinks[index], url: e.target.value };
+                                setFormData(prev => ({ ...prev, links: newLinks }));
+                              }}
+                              placeholder="https://example.com"
+                              className="w-full border rounded px-3 py-2 text-sm"
+                            />
+                          </div>
+                          {formData.links.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newLinks = formData.links.filter((_, i) => i !== index);
+                                setFormData(prev => ({ ...prev, links: newLinks }));
+                              }}
+                              className="text-red-500 hover:text-red-700 mt-1"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, links: [...prev.links, { title: '', url: '' }] }));
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      + Tambah Link
+                    </button>
                   </div>
+                </div>
 
-
+                {/* File Attachments - Temporarily disabled */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    📎 File Lampiran
+                  </h4>
+                  <p className="text-sm text-yellow-700 mb-2">
+                    ⚠️ Fitur upload file untuk halaman sedang dalam pengembangan.
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Sementara ini, Anda dapat menambahkan link ke file eksternal di bagian "Link Terkait" di atas.
+                  </p>
                 </div>
 
                 {/* Preview Info & Shortcuts */}
@@ -592,18 +750,19 @@ export default function AdminHalamanPage() {
                   <span>Preview langsung sebelum publish</span>
                 </div>
               </div>
-              <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID]} showAccessDenied={false}>
+              {hasPermission('kelola_halaman') && (
                 <button
                   onClick={handleAddPage}
                   className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
                 >
                   ✨ Buat Halaman Baru
                 </button>
-              </RoleGuard>
+              )}
             </div>
           )}
         </div>
       </div>
     </div>
+    </RoleGuard>
   );
 }

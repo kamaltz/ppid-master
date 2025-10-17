@@ -62,7 +62,7 @@ export async function PUT(
       }, { status: 403 });
     }
 
-    const { title, slug, content, status } = await request.json();
+    const { title, slug, content, thumbnail, links, status } = await request.json();
     const pageId = (await params).id;
 
     if (!title) {
@@ -109,6 +109,8 @@ export async function PUT(
         title,
         slug: finalSlug,
         content: content !== undefined ? content : existingPage.content,
+        thumbnail: thumbnail !== undefined ? thumbnail : existingPage.thumbnail,
+        links: links !== undefined ? JSON.stringify(links) : existingPage.links,
         status: status || existingPage.status
       }
     });

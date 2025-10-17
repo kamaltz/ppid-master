@@ -25,6 +25,7 @@ interface Permission {
   pengaturan: boolean;
   media: boolean;
   profile: boolean;
+  kelola_halaman: boolean;
 }
 
 export default function PermissionsPage() {
@@ -45,12 +46,14 @@ export default function PermissionsPage() {
     log_aktivitas: false,
     pengaturan: false,
     media: false,
-    profile: false
+    profile: false,
+    kelola_halaman: false
   });
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
 
   const fetchUsers = useCallback(async () => {
+    if (!token) return;
     try {
       const response = await fetch('/api/admin/users', { 
         headers: { Authorization: `Bearer ${token}` } 
@@ -119,7 +122,8 @@ export default function PermissionsPage() {
           log_aktivitas: true,
           pengaturan: true,
           media: true,
-          profile: true
+          profile: true,
+          kelola_halaman: true
         };
       case 'PPID_UTAMA':
         return {
@@ -134,7 +138,8 @@ export default function PermissionsPage() {
           log_aktivitas: false,
           pengaturan: true,
           media: true,
-          profile: true
+          profile: true,
+          kelola_halaman: true
         };
       case 'PPID_PELAKSANA':
         return {
@@ -149,7 +154,8 @@ export default function PermissionsPage() {
           log_aktivitas: false,
           pengaturan: false,
           media: false,
-          profile: true
+          profile: true,
+          kelola_halaman: false
         };
       case 'ATASAN_PPID':
         return {
@@ -164,7 +170,8 @@ export default function PermissionsPage() {
           log_aktivitas: false,
           pengaturan: false,
           media: false,
-          profile: true
+          profile: true,
+          kelola_halaman: false
         };
       default:
         return {
@@ -179,7 +186,8 @@ export default function PermissionsPage() {
           log_aktivitas: false,
           pengaturan: false,
           media: false,
-          profile: false
+          profile: false,
+          kelola_halaman: false
         };
     }
   };
@@ -202,8 +210,6 @@ export default function PermissionsPage() {
 
   useEffect(() => {
     fetchUsers();
-    const interval = setInterval(fetchUsers, 30000);
-    return () => clearInterval(interval);
   }, [fetchUsers]);
 
   useEffect(() => {
@@ -242,11 +248,11 @@ export default function PermissionsPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Kelola Akses Role</h1>
-          <p className="text-gray-600 mt-2">Kelola akses untuk PPID Utama, PPID Pelaksana, dan Atasan PPID</p>
+          <h1 className="text-3xl font-bold text-gray-800">Kelola Akses PPID</h1>
+          <p className="text-gray-600 mt-2">Kelola akses untuk semua akun PPID yang terdaftar</p>
         </div>
         <div className="text-sm text-gray-500">
-          Total: {filteredUsers.length} pengguna PPID
+          Total: {filteredUsers.length} akun PPID
         </div>
       </div>
 
@@ -273,7 +279,7 @@ export default function PermissionsPage() {
               onChange={(e) => setRoleFilter(e.target.value)}
               className="w-full border rounded-lg px-3 py-2"
             >
-              <option value="all">Semua Role</option>
+              <option value="all">Semua Role PPID</option>
               <option value="PPID_UTAMA">PPID Utama</option>
               <option value="PPID_PELAKSANA">PPID Pelaksana</option>
               <option value="ATASAN_PPID">Atasan PPID</option>
@@ -369,6 +375,7 @@ export default function PermissionsPage() {
                   { key: 'kelola_akun', label: 'Kelola Akun' },
                   { key: 'manajemen_role', label: 'Manajemen Role' },
                   { key: 'kelola_akses', label: 'Kelola Akses' },
+                  { key: 'kelola_halaman', label: 'Kelola Halaman' },
                   { key: 'log_aktivitas', label: 'Log Aktivitas' },
                   { key: 'pengaturan', label: 'Pengaturan' },
                   { key: 'media', label: 'Media' },

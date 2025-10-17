@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
     console.log('Authorization passed');
 
-    const { title, slug, content, status } = await request.json();
+    const { title, slug, content, thumbnail, links, status } = await request.json();
     console.log('Creating page:', { title, slug, status });
 
     if (!title || !slug) {
@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
         title,
         slug,
         content: content || '',
+        thumbnail: thumbnail || null,
+        links: links ? JSON.stringify(links) : null,
         status: status || 'draft'
       }
     });

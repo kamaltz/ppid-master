@@ -193,6 +193,8 @@ model Page {
   title      String
   slug       String   @unique
   content    String?
+  thumbnail  String?
+  links      String?
   status     String   @default("draft")
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt

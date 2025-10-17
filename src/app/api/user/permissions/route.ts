@@ -23,7 +23,8 @@ const getDefaultPermissions = (role: string) => {
         log_aktivitas: true,
         pengaturan: true,
         media: true,
-        profile: true
+        profile: true,
+        kelola_halaman: true
       };
     case 'PPID_UTAMA':
       return {
@@ -38,7 +39,8 @@ const getDefaultPermissions = (role: string) => {
         log_aktivitas: false,
         pengaturan: true,
         media: true,
-        profile: true
+        profile: true,
+        kelola_halaman: true
       };
     case 'PPID_PELAKSANA':
       return {
@@ -53,7 +55,8 @@ const getDefaultPermissions = (role: string) => {
         log_aktivitas: false,
         pengaturan: false,
         media: false,
-        profile: true
+        profile: true,
+        kelola_halaman: false
       };
     case 'ATASAN_PPID':
       return {
@@ -68,7 +71,8 @@ const getDefaultPermissions = (role: string) => {
         log_aktivitas: false,
         pengaturan: false,
         media: false,
-        profile: true
+        profile: true,
+        kelola_halaman: false
       };
     default:
       return {
@@ -83,7 +87,8 @@ const getDefaultPermissions = (role: string) => {
         log_aktivitas: false,
         pengaturan: false,
         media: false,
-        profile: false
+        profile: false,
+        kelola_halaman: false
       };
   }
 };

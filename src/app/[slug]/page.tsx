@@ -8,6 +8,8 @@ interface PageData {
   title: string;
   slug: string;
   content: string;
+  thumbnail?: string;
+  links?: string;
   created_at: string;
   updated_at: string;
 }
@@ -83,11 +85,57 @@ export default function DynamicPage({ params }: { params: Promise<{ slug: string
       {/* Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <div 
-              className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: page.content }}
-            />
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            {/* Thumbnail */}
+            {page.thumbnail && (
+              <div className="w-full h-64 bg-gray-200">
+                <img 
+                  src={page.thumbnail} 
+                  alt={page.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            
+            {/* Content */}
+            <div className="p-8">
+              <div 
+                className="prose prose-lg max-w-none mb-8"
+                dangerouslySetInnerHTML={{ __html: page.content }}
+              />
+              
+              {/* Links */}
+              {page.links && (() => {
+                try {
+                  const links = JSON.parse(page.links);
+                  if (Array.isArray(links) && links.length > 0 && links.some(link => link.title && link.url)) {
+                    return (
+                      <div className="border-t pt-6 mt-8">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">🔗 Link Terkait</h3>
+                        <div className="space-y-2">
+                          {links.filter(link => link.title && link.url).map((link, index) => (
+                            <a
+                              key={index}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              <span>📎</span>
+                              <span>{link.title}</span>
+                              <span className="text-xs text-gray-500">↗</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  console.error('Error parsing links:', e);
+                }
+                return null;
+              })()}
+            </div>
           </div>
         </div>
       </div>
