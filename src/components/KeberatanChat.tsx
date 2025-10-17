@@ -364,7 +364,7 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
           {!chatActive && (
             <span className="text-sm text-red-600 font-medium">Chat Diakhiri</span>
           )}
-          {keberatanStatus === 'Selesai' && actualUserRole === 'PEMOHON' && (
+          {actualUserRole === 'PEMOHON' && (
             <button
               onClick={() => setShowEvidenceForm(true)}
               className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 flex items-center gap-1"
