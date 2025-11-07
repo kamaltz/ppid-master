@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRoleAccess } from "@/lib/useRoleAccess";
 import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { Plus, Edit, Trash2, Key, Upload, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Key, Upload, Download, Settings } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Account {
@@ -45,6 +45,11 @@ export default function AdminAkunPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [defaultPassword, setDefaultPassword] = useState('Garut@2025?');
+  const [newPassword, setNewPassword] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const fetchAccounts = useCallback(async () => {
     if (!token) return;
@@ -67,9 +72,25 @@ export default function AdminAkunPage() {
     }
   }, [token]);
 
+  const fetchDefaultPassword = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch('/api/settings/default-password', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setDefaultPassword(data.password);
+      }
+    } catch (error) {
+      console.error('Failed to fetch default password:', error);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]);
+    fetchDefaultPassword();
+  }, [fetchAccounts, fetchDefaultPassword]);
 
   useEffect(() => {
     let filtered = [...accounts];
@@ -132,7 +153,8 @@ export default function AdminAkunPage() {
         const data = await response.json();
         
         if (data.success) {
-          alert('Akun berhasil diperbarui');
+          setSuccessMessage('Akun berhasil diperbarui');
+          setShowSuccessModal(true);
           fetchAccounts();
         } else {
           alert(data.error || 'Gagal memperbarui akun');
@@ -150,7 +172,8 @@ export default function AdminAkunPage() {
         const data = await response.json();
         
         if (data.success) {
-          alert(`Akun berhasil dibuat dengan password default: Garut@2025?`);
+          setSuccessMessage(`Akun berhasil dibuat dengan password default: ${defaultPassword}`);
+          setShowSuccessModal(true);
           fetchAccounts();
         } else {
           alert(data.error || 'Gagal membuat akun');
@@ -202,7 +225,8 @@ export default function AdminAkunPage() {
       const data = await response.json();
       
       if (data.success) {
-        alert('Akun berhasil dihapus');
+        setSuccessMessage('Akun berhasil dihapus');
+        setShowSuccessModal(true);
         fetchAccounts();
       } else {
         alert(data.error || 'Gagal menghapus akun');
@@ -239,7 +263,8 @@ export default function AdminAkunPage() {
       const data = await response.json();
       
       if (data.success) {
-        alert('Password berhasil direset ke: Garut@2025?');
+        setSuccessMessage(`Password berhasil direset ke: ${defaultPassword}`);
+        setShowSuccessModal(true);
       } else {
         alert(data.error || 'Gagal reset password');
       }
@@ -287,7 +312,8 @@ export default function AdminAkunPage() {
         });
       }
       
-      alert(`${ids?.length || 0} akun berhasil dihapus`);
+      setSuccessMessage(`${ids?.length || 0} akun berhasil dihapus`);
+      setShowSuccessModal(true);
       fetchAccounts();
       setSelectedAccounts([]);
     } catch (error) {
@@ -316,7 +342,8 @@ export default function AdminAkunPage() {
         });
       }
       
-      alert(`Password ${ids?.length || 0} akun berhasil direset ke: Garut@2025?`);
+      setSuccessMessage(`Password ${ids?.length || 0} akun berhasil direset ke: ${defaultPassword}`);
+      setShowSuccessModal(true);
       setSelectedAccounts([]);
     } catch (error) {
       console.error('Error bulk resetting passwords:', error);
@@ -366,7 +393,8 @@ export default function AdminAkunPage() {
       const data = await response.json();
       
       if (data.success) {
-        alert(data.message);
+        setSuccessMessage(data.message);
+        setShowSuccessModal(true);
         if (data.errors && data.errors.length > 0) {
           console.warn('Import errors:', data.errors);
         }
@@ -400,6 +428,36 @@ export default function AdminAkunPage() {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleUpdatePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password minimal 6 karakter');
+      return;
+    }
+    try {
+      const response = await fetch('/api/settings/default-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: newPassword })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSuccessMessage('Password default berhasil diubah');
+        setShowSuccessModal(true);
+        setDefaultPassword(newPassword);
+        setShowPasswordModal(false);
+        setNewPassword('');
+      } else {
+        alert(data.error || 'Gagal mengubah password');
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      alert('Terjadi kesalahan');
+    }
+  };
+
 
 
 
@@ -420,6 +478,13 @@ export default function AdminAkunPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Kelola Akun</h1>
           <div className="flex gap-2">
+            <button 
+              onClick={() => setShowPasswordModal(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Password Default
+            </button>
             <button 
               onClick={downloadTemplate}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2"
@@ -564,7 +629,7 @@ export default function AdminAkunPage() {
               {!editId && (
                 <div className="bg-blue-50 p-3 rounded">
                   <p className="text-sm text-blue-700">
-                    Password default: <strong>Garut@2025?</strong>
+                    Password default: <strong>{defaultPassword}</strong>
                   </p>
                 </div>
               )}
@@ -776,7 +841,7 @@ export default function AdminAkunPage() {
                   <strong>Role yang valid:</strong> ADMIN, PEMOHON, PPID_UTAMA, PPID_PELAKSANA
                 </p>
                 <p className="text-sm text-blue-700">
-                  <strong>Password default:</strong> Garut@2025?
+                  <strong>Password default:</strong> {defaultPassword}
                 </p>
               </div>
               
@@ -797,6 +862,85 @@ export default function AdminAkunPage() {
                   className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {isImporting ? 'Mengimpor...' : 'Import'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Password Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Ubah Password Default</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Password Default Saat Ini</label>
+                <input
+                  type="text"
+                  value={defaultPassword}
+                  disabled
+                  className="w-full border rounded px-3 py-2 bg-gray-100"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Password Default Baru</label>
+                <input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  placeholder="Minimal 6 karakter"
+                />
+              </div>
+              
+              <div className="bg-yellow-50 p-3 rounded mb-4">
+                <p className="text-sm text-yellow-700">
+                  Password ini akan digunakan untuk reset password dan pembuatan akun baru (manual atau import).
+                </p>
+              </div>
+              
+              <div className="flex space-x-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setNewPassword('');
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleUpdatePassword}
+                  className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                >
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-center">Berhasil</h3>
+              <p className="text-gray-600 mb-6 text-center">{successMessage}</p>
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  OK
                 </button>
               </div>
             </div>

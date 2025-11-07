@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import crypto from 'crypto';
+
+const ALGORITHM = 'aes-256-cbc';
+const KEY = crypto.scryptSync(process.env.JWT_SECRET || 'default-secret-key', 'salt', 32);
+
+function encryptFile(buffer: Buffer): { encrypted: Buffer; iv: string } {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
+  return { encrypted, iv: iv.toString('hex') };
+}
 
 // Determine upload directory based on environment
 function getUploadDir() {
@@ -40,7 +51,40 @@ export async function POST(request: NextRequest) {
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\\.\\./g, '_');
     const filename = `${timestamp}-${sanitizedName}`;
     const uploadDir = getUploadDir();
-    const filePath = join(uploadDir, filename);
+    
+    const isKtp = data.get('isKtp') === 'true';
+    let filePath = join(uploadDir, filename);
+    let iv = null;
+    
+    if (isKtp) {
+      const { encrypted, iv: ivHex } = encryptFile(buffer);
+      iv = ivHex;
+      filePath = join(uploadDir, `${timestamp}-${sanitizedName}.enc`);
+      
+      try {
+        await mkdir(uploadDir, { recursive: true });
+        await writeFile(filePath, encrypted);
+        await writeFile(join(uploadDir, `${timestamp}-${sanitizedName}.iv`), iv);
+        
+        if (!existsSync(filePath)) {
+          throw new Error('File was not saved properly');
+        }
+        
+        console.log('Encrypted KTP uploaded:', filePath);
+      } catch (fsError) {
+        console.error('File system error:', fsError);
+        throw new Error(`Failed to save file: ${(fsError as Error).message}`);
+      }
+      
+      return NextResponse.json({ 
+        success: true, 
+        filename: `${timestamp}-${sanitizedName}.enc`,
+        originalName: file.name,
+        size: file.size,
+        url: `/uploads/${timestamp}-${sanitizedName}.enc`,
+        iv
+      });
+    }
 
     try {
       await mkdir(uploadDir, { recursive: true });
@@ -55,8 +99,6 @@ export async function POST(request: NextRequest) {
       console.error('File system error:', fsError);
       throw new Error(`Failed to save file: ${(fsError as Error).message}`);
     }
-
-    console.log('File uploaded successfully:', filename);
 
     return NextResponse.json({ 
       success: true, 

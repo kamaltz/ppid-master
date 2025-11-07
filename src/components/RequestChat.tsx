@@ -37,11 +37,15 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
   const [chatSession, setChatSession] = useState<ChatSession>({ is_active: true });
   const [canSendMessage, setCanSendMessage] = useState(true);
   const [showPpidModal, setShowPpidModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string, no_pegawai: string, role: string}[]>([]);
+  const [selectedPpid, setSelectedPpid] = useState<{id: number, nama: string, email: string, role: string} | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingPpid, setLoadingPpid] = useState(false);
+  const [isForwarding, setIsForwarding] = useState(false);
   const loadingPpidRef = useRef(false);
   const [showEvidenceForm, setShowEvidenceForm] = useState(false);
   const [isSubmittingEvidence, setIsSubmittingEvidence] = useState(false);
@@ -72,14 +76,11 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
         
         // Check if pemohon can send message
         if (actualUserRole === 'PEMOHON') {
-          const pemohonMessages = data.data.filter((msg: Response) => msg.user_role === 'PEMOHON');
-          const adminMessages = data.data.filter((msg: Response) => ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
-          
           // Check if request is completed
           const isCompleted = data.data.some((msg: Response) => msg.message_type === 'system' && msg.message.includes('Selesai'));
           
-          // Pemohon can send first message freely, then must wait for reply
-          const canSend = !isEnded && !isCompleted && (pemohonMessages.length === 0 || adminMessages.length >= pemohonMessages.length);
+          // Pemohon can always send message unless chat is ended or completed
+          const canSend = !isEnded && !isCompleted;
           setCanSendMessage(canSend);
         } else {
           setCanSendMessage(!isEnded || isAdmin || actualUserRole === 'PPID_PELAKSANA');
@@ -91,10 +92,6 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
   }, [requestId, actualUserRole, isAdmin]);
 
   const sendResponse = async () => {
-    if (actualUserRole === 'PEMOHON' && !canSendMessage) {
-      alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
-      return;
-    }
     if (!chatSession.is_active && !isAdmin && actualUserRole !== 'PPID_PELAKSANA') {
       alert('Chat telah diakhiri.');
       return;
@@ -143,29 +140,7 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
         setMessage('');
         setAttachments([]);
         
-        // Send system notification for pemohon after first message only
-        if (actualUserRole === 'PEMOHON') {
-          const pemohonMessages = responses.filter(msg => msg.user_role === 'PEMOHON');
-          if (pemohonMessages.length === 0) {
-            setTimeout(async () => {
-              const token = localStorage.getItem('auth_token');
-              await fetch(`/api/permintaan/${requestId}/responses`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  message: '✅ Pesan Anda telah terkirim. Mohon tunggu balasan dari PPID.',
-                  attachments: [],
-                  user_role: 'System',
-                  message_type: 'system'
-                })
-              });
-              fetchResponses();
-            }, 1000);
-          }
-        }
+
         
         await fetchResponses();
         // Refresh chat list to show updated conversation
@@ -255,6 +230,13 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (response.status === 429) {
+        console.warn('Rate limit reached, waiting...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         if (page === 1) {
@@ -279,7 +261,16 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
     }
   };
 
-  const forwardToPpid = async (ppidId: number) => {
+  const handleForwardClick = () => {
+    if (!selectedPpid) return;
+    setShowConfirmModal(true);
+  };
+
+  const forwardToPpid = async () => {
+    if (!selectedPpid) return;
+    
+    setIsForwarding(true);
+    setShowConfirmModal(false);
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/admin/assign-ppid', {
@@ -290,18 +281,29 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
         },
         body: JSON.stringify({
           requestId: requestId,
-          ppidId: ppidId,
+          ppidId: selectedPpid.id,
           type: 'request'
         })
       });
       if (response.ok) {
         setShowPpidModal(false);
-        alert('Permohonan berhasil diteruskan ke PPID');
-        window.location.reload();
+        setShowSuccessModal(true);
+        
+        // Trigger notification refresh for the assigned PPID
+        window.dispatchEvent(new Event('notification-refresh'));
+        localStorage.setItem('notification-refresh', Date.now().toString());
+        
+        setTimeout(() => {
+          window.location.href = '/admin/dashboard';
+        }, 2000);
+      } else {
+        alert('Gagal meneruskan permohonan');
       }
     } catch (error) {
       console.error('Failed to forward request:', error);
       alert('Gagal meneruskan permohonan');
+    } finally {
+      setIsForwarding(false);
     }
   };
 
@@ -311,17 +313,18 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
       setPpidList([]);
       setCurrentPage(1);
       setHasMore(true);
-      fetchPpidList('', 1);
+      const timer = setTimeout(() => fetchPpidList('', 1), 100);
+      return () => clearTimeout(timer);
     }
   }, [showPpidModal, fetchPpidList]);
 
   useEffect(() => {
-    if (showPpidModal && searchTerm !== '') {
+    if (showPpidModal) {
       const timeoutId = setTimeout(() => {
         setCurrentPage(1);
         setPpidList([]);
         fetchPpidList(searchTerm, 1);
-      }, 300);
+      }, 500);
       return () => clearTimeout(timeoutId);
     }
   }, [searchTerm, showPpidModal, fetchPpidList]);
@@ -415,7 +418,7 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
               Kirim Bukti Penggunaan
             </button>
           )}
-          {(isAdmin || actualUserRole === 'PPID_PELAKSANA') && (
+          {(isAdmin || actualUserRole === 'PPID_PELAKSANA' || actualUserRole === 'PPID_UTAMA') && (
             <div className="flex gap-2">
               {chatSession.is_active ? (
                 <button
@@ -620,7 +623,6 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={
                   !chatSession.is_active ? "Chat telah diakhiri" :
-                  actualUserRole === 'PEMOHON' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
                   "Tulis pesan..."
                 }
                 className="flex-1 border rounded-lg px-3 py-2"
@@ -673,8 +675,10 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
                 ppidList.map((ppid) => (
                   <button
                     key={ppid.id}
-                    onClick={() => forwardToPpid(ppid.id)}
-                    className="w-full flex items-center p-3 border rounded-lg hover:bg-gray-50 text-left"
+                    onClick={() => setSelectedPpid(ppid)}
+                    className={`w-full flex items-center p-3 border rounded-lg hover:bg-gray-50 text-left ${
+                      selectedPpid?.id === ppid.id ? 'bg-blue-50 border-blue-500' : ''
+                    }`}
                   >
                     <div className="flex-1">
                       <div className="font-medium">{ppid.nama}</div>
@@ -710,12 +714,81 @@ export default function RequestChat({ requestId, userRole, currentUserRole, isAd
               <button
                 onClick={() => {
                   setShowPpidModal(false);
+                  setSelectedPpid(null);
                   setSearchTerm('');
                   setPpidList([]);
                 }}
                 className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
                 Batal
+              </button>
+              <button
+                onClick={handleForwardClick}
+                disabled={!selectedPpid || isForwarding}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isForwarding ? 'Meneruskan...' : 'Teruskan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && selectedPpid && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">Berhasil Diteruskan!</h3>
+              <p className="text-gray-600 mb-4">
+                Permohonan berhasil diteruskan ke <span className="font-semibold">{selectedPpid.nama}</span>
+              </p>
+              <p className="text-sm text-gray-500">
+                Anda akan dialihkan ke dashboard...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && selectedPpid && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-blue-600">Konfirmasi Penerusan</h3>
+            <p className="text-gray-700 mb-2">
+              Anda akan meneruskan permohonan ini ke:
+            </p>
+            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+              <p className="font-semibold text-gray-900">{selectedPpid.nama}</p>
+              <p className="text-sm text-gray-600">{selectedPpid.email}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {selectedPpid.role === 'PPID_UTAMA' ? 'PPID Utama' :
+                 selectedPpid.role === 'PPID_PELAKSANA' ? 'PPID Pelaksana' :
+                 'Atasan PPID'}
+              </p>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Apakah Anda yakin ingin melanjutkan?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+              >
+                Batal
+              </button>
+              <button
+                onClick={forwardToPpid}
+                disabled={isForwarding}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isForwarding ? 'Meneruskan...' : 'Ya, Teruskan'}
               </button>
             </div>
           </div>

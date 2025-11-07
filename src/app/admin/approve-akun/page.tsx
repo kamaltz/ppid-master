@@ -315,10 +315,10 @@ export default function ApproveAkunPage() {
                   {pemohon.ktp_image && (
                     <div className="ml-4">
                       <img
-                        src={pemohon.ktp_image.startsWith('http') ? pemohon.ktp_image : pemohon.ktp_image}
+                        src={pemohon.ktp_image.includes('.enc') ? `/api/ktp/${pemohon.ktp_image.replace('/uploads/', '')}?token=${getToken()}` : pemohon.ktp_image}
                         alt="KTP"
                         className="w-32 h-20 object-cover rounded border border-gray-300"
-                        onClick={() => window.open(pemohon.ktp_image, '_blank')}
+                        onClick={() => window.open(pemohon.ktp_image.includes('.enc') ? `/api/ktp/${pemohon.ktp_image.replace('/uploads/', '')}?token=${getToken()}` : pemohon.ktp_image, '_blank')}
                         style={{ cursor: 'pointer' }}
                         title="Klik untuk memperbesar"
                         onError={(e) => {
@@ -452,10 +452,10 @@ export default function ApproveAkunPage() {
                     {selectedPemohon.ktp_image ? (
                       <div className="space-y-3">
                         <img
-                          src={selectedPemohon.ktp_image}
+                          src={selectedPemohon.ktp_image.includes('.enc') ? `/api/ktp/${selectedPemohon.ktp_image.replace('/uploads/', '')}?token=${getToken()}` : selectedPemohon.ktp_image}
                           alt="KTP"
                           className="w-full h-auto rounded-lg border border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => window.open(selectedPemohon.ktp_image, '_blank')}
+                          onClick={() => window.open(selectedPemohon.ktp_image.includes('.enc') ? `/api/ktp/${selectedPemohon.ktp_image.replace('/uploads/', '')}?token=${getToken()}` : selectedPemohon.ktp_image, '_blank')}
                           onError={(e) => {
                             console.error('Image load error:', selectedPemohon.ktp_image);
                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMyMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNGM0Y0RjYiLz48dGV4dCB4PSIxNjAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNkI3Mjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HYW1iYXIgS1RQIHR0aWRhayBkYXBhdCBkaW11YXQ8L3RleHQ+PC9zdmc+';

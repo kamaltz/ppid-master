@@ -196,6 +196,7 @@ async function generateInformasiReport() {
     ID: i.id,
     Judul: i.judul,
     Klasifikasi: i.klasifikasi,
+    'Penulis': i.pejabat_penguasa_informasi || 'Tidak ditentukan',
     'Tanggal Dibuat': i.created_at.toLocaleDateString('id-ID'),
     'Tanggal Update': i.updated_at.toLocaleDateString('id-ID')
   }));

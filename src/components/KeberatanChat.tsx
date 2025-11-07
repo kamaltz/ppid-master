@@ -31,11 +31,15 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
   const [chatActive, setChatActive] = useState(true);
   const [canSendMessage, setCanSendMessage] = useState(true);
   const [showPpidModal, setShowPpidModal] = useState(false);
-  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string}[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [ppidList, setPpidList] = useState<{id: number, nama: string, email: string, role: string}[]>([]);
+  const [selectedPpid, setSelectedPpid] = useState<{id: number, nama: string, email: string, role: string} | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingPpid, setLoadingPpid] = useState(false);
+  const [isForwarding, setIsForwarding] = useState(false);
   const [showEvidenceForm, setShowEvidenceForm] = useState(false);
   const [isSubmittingEvidence, setIsSubmittingEvidence] = useState(false);
   const [keberatanStatus, setKeberatanStatus] = useState('');
@@ -61,14 +65,11 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
           
           // Check if pemohon can send message
           if (actualUserRole === 'PEMOHON') {
-            const pemohonMessages = data.data.filter((msg: Response) => msg.user_role === 'PEMOHON');
-            const adminMessages = data.data.filter((msg: Response) => ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'System'].includes(msg.user_role));
-            
             // Check if keberatan is completed
             const isCompleted = data.data.some((msg: Response) => msg.message_type === 'system' && msg.message.includes('Selesai'));
             
-            // Pemohon can send first message freely, then must wait for reply
-            const canSend = !isEnded && !isCompleted && (pemohonMessages.length === 0 || adminMessages.length >= pemohonMessages.length);
+            // Pemohon can always send message unless chat is ended or completed
+            const canSend = !isEnded && !isCompleted;
             setCanSendMessage(canSend);
           } else {
             setCanSendMessage(!isEnded || isAdmin || actualUserRole === 'PPID_PELAKSANA');
@@ -81,10 +82,6 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
   }, [keberatanId, actualUserRole, isAdmin]);
 
   const sendResponse = async () => {
-    if (actualUserRole === 'PEMOHON' && !canSendMessage) {
-      alert('⏳ Mohon tunggu balasan dari PPID sebelum mengirim pesan lagi.');
-      return;
-    }
     if (!chatActive && !isAdmin && actualUserRole !== 'PPID_PELAKSANA') {
       alert('Chat telah diakhiri.');
       return;
@@ -133,29 +130,7 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
         setMessage('');
         setAttachments([]);
         
-        // Send system notification for pemohon after first message only
-        if (actualUserRole === 'PEMOHON') {
-          const pemohonMessages = responses.filter(msg => msg.user_role === 'PEMOHON');
-          if (pemohonMessages.length === 0) {
-            setTimeout(async () => {
-              const token = localStorage.getItem('auth_token');
-              await fetch(`/api/keberatan/${keberatanId}/responses`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  message: '✅ Pesan Anda telah terkirim. Mohon tunggu balasan dari PPID.',
-                  attachments: [],
-                  user_role: 'System',
-                  message_type: 'system'
-                })
-              });
-              fetchResponses();
-            }, 1000);
-          }
-        }
+
         
         await fetchResponses();
         // Refresh chat list to show updated conversation
@@ -230,8 +205,11 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
     }
   };
 
+  const loadingPpidRef = useRef(false);
+  
   const fetchPpidList = useCallback(async (search = '', page = 1) => {
-    if (loadingPpid) return;
+    if (loadingPpidRef.current) return;
+    loadingPpidRef.current = true;
     setLoadingPpid(true);
     try {
       const token = localStorage.getItem('auth_token');
@@ -239,6 +217,13 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (response.status === 429) {
+        console.warn('Rate limit reached, waiting...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         if (page === 1) {
@@ -252,9 +237,10 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
     } catch (error) {
       console.error('Failed to fetch PPID list:', error);
     } finally {
+      loadingPpidRef.current = false;
       setLoadingPpid(false);
     }
-  }, [loadingPpid]);
+  }, []);
 
   const loadMorePpid = () => {
     if (hasMore && !loadingPpid) {
@@ -262,7 +248,16 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
     }
   };
 
-  const forwardToPpid = async (ppidId: number) => {
+  const handleForwardClick = () => {
+    if (!selectedPpid) return;
+    setShowConfirmModal(true);
+  };
+
+  const forwardToPpid = async () => {
+    if (!selectedPpid) return;
+    
+    setIsForwarding(true);
+    setShowConfirmModal(false);
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/admin/assign-ppid', {
@@ -273,24 +268,40 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
         },
         body: JSON.stringify({
           keberatanId: keberatanId,
-          ppidId: ppidId,
+          ppidId: selectedPpid.id,
           type: 'keberatan'
         })
       });
       if (response.ok) {
         setShowPpidModal(false);
-        alert('Keberatan berhasil diteruskan ke PPID Pelaksana');
-        window.location.reload();
+        setShowSuccessModal(true);
+        
+        // Trigger notification refresh for the assigned PPID
+        window.dispatchEvent(new Event('notification-refresh'));
+        localStorage.setItem('notification-refresh', Date.now().toString());
+        
+        setTimeout(() => {
+          window.location.href = '/admin/dashboard';
+        }, 2000);
+      } else {
+        alert('Gagal meneruskan keberatan');
       }
     } catch (error) {
       console.error('Failed to forward keberatan:', error);
       alert('Gagal meneruskan keberatan');
+    } finally {
+      setIsForwarding(false);
     }
   };
 
   useEffect(() => {
     if (showPpidModal) {
-      fetchPpidList();
+      setSearchTerm('');
+      setPpidList([]);
+      setCurrentPage(1);
+      setHasMore(true);
+      const timer = setTimeout(() => fetchPpidList('', 1), 100);
+      return () => clearTimeout(timer);
     }
   }, [showPpidModal, fetchPpidList]);
 
@@ -300,7 +311,7 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
         setCurrentPage(1);
         setPpidList([]);
         fetchPpidList(searchTerm, 1);
-      }, 300);
+      }, 500);
       return () => clearTimeout(timeoutId);
     }
   }, [searchTerm, showPpidModal, fetchPpidList]);
@@ -373,7 +384,7 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
               Kirim Bukti Penggunaan
             </button>
           )}
-          {(isAdmin || actualUserRole === 'PPID_PELAKSANA') && (
+          {(isAdmin || actualUserRole === 'PPID_PELAKSANA' || actualUserRole === 'PPID_UTAMA') && (
             <div className="flex gap-2">
               {chatActive ? (
                 <button
@@ -544,7 +555,6 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={
                   !chatActive ? "Chat telah diakhiri" :
-                  actualUserRole === 'PEMOHON' && !canSendMessage ? "⏳ Menunggu balasan PPID..." :
                   "Tulis pesan keberatan..."
                 }
                 className="flex-1 border rounded-lg px-3 py-2"
@@ -595,8 +605,10 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
                 ppidList.map((ppid) => (
                   <button
                     key={ppid.id}
-                    onClick={() => forwardToPpid(ppid.id)}
-                    className="w-full flex items-center p-3 border rounded-lg hover:bg-gray-50 text-left"
+                    onClick={() => setSelectedPpid(ppid)}
+                    className={`w-full flex items-center p-3 border rounded-lg hover:bg-gray-50 text-left ${
+                      selectedPpid?.id === ppid.id ? 'bg-red-50 border-red-500' : ''
+                    }`}
                   >
                     <div>
                       <div className="font-medium">{ppid.nama}</div>
@@ -620,12 +632,81 @@ export default function KeberatanChat({ keberatanId, userRole, currentUserRole, 
               <button
                 onClick={() => {
                   setShowPpidModal(false);
+                  setSelectedPpid(null);
                   setSearchTerm('');
                   setPpidList([]);
                 }}
                 className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
                 Batal
+              </button>
+              <button
+                onClick={handleForwardClick}
+                disabled={!selectedPpid || isForwarding}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isForwarding ? 'Meneruskan...' : 'Teruskan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && selectedPpid && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">Berhasil Diteruskan!</h3>
+              <p className="text-gray-600 mb-4">
+                Keberatan berhasil diteruskan ke <span className="font-semibold">{selectedPpid.nama}</span>
+              </p>
+              <p className="text-sm text-gray-500">
+                Anda akan dialihkan ke dashboard...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && selectedPpid && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-red-600">Konfirmasi Penerusan Keberatan</h3>
+            <p className="text-gray-700 mb-2">
+              Anda akan meneruskan keberatan ini ke:
+            </p>
+            <div className="bg-red-50 p-4 rounded-lg mb-4">
+              <p className="font-semibold text-gray-900">{selectedPpid.nama}</p>
+              <p className="text-sm text-gray-600">{selectedPpid.email}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {selectedPpid.role === 'PPID_UTAMA' ? 'PPID Utama' :
+                 selectedPpid.role === 'PPID_PELAKSANA' ? 'PPID Pelaksana' :
+                 'Atasan PPID'}
+              </p>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Apakah Anda yakin ingin melanjutkan?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+              >
+                Batal
+              </button>
+              <button
+                onClick={forwardToPpid}
+                disabled={isForwarding}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {isForwarding ? 'Meneruskan...' : 'Ya, Teruskan'}
               </button>
             </div>
           </div>

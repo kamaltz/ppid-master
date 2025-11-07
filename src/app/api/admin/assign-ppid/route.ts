@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Only PPID_UTAMA and ADMIN can assign requests
-    if (!['PPID_UTAMA', 'ADMIN'].includes(decoded.role)) {
-      return NextResponse.json({ error: 'Only PPID Utama and Admin can assign requests' }, { status: 403 });
+    // PPID_UTAMA, ADMIN, and PPID_PELAKSANA can assign requests
+    if (!['PPID_UTAMA', 'ADMIN', 'PPID_PELAKSANA'].includes(decoded.role)) {
+      return NextResponse.json({ error: 'Only PPID can assign requests' }, { status: 403 });
     }
 
     const { requestId, keberatanId, ppidId, type } = await request.json();

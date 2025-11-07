@@ -56,6 +56,7 @@ export const useOptimizedNotifications = () => {
       
       // Role-specific requests (only if needed)
       if (role === 'PPID_PELAKSANA') {
+        // Check for forwarded requests assigned to this PPID
         const requestsResponse = await fetch('/api/permintaan?status=Diteruskan&limit=1', {
           headers: { Authorization: `Bearer ${token}` },
           signal: AbortSignal.timeout(10000)
@@ -64,6 +65,44 @@ export const useOptimizedNotifications = () => {
         if (requestsResponse.ok && mountedRef.current) {
           const requestsData = await requestsResponse.json();
           setCounts(prev => ({ ...prev, newRequests: requestsData.pagination?.total || 0 }));
+        }
+        
+        // Check for forwarded objections assigned to this PPID
+        const objectionsResponse = await fetch('/api/keberatan?status=Diteruskan&limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (objectionsResponse.ok && mountedRef.current) {
+          const objectionsData = await objectionsResponse.json();
+          setCounts(prev => ({ ...prev, newObjections: objectionsData.pagination?.total || 0 }));
+        }
+      } else if (role === 'PPID_UTAMA') {
+        // PPID Utama also sees forwarded items
+        const requestsResponse = await fetch('/api/permintaan?status=Diteruskan&limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (requestsResponse.ok && mountedRef.current) {
+          const requestsData = await requestsResponse.json();
+          const forwardedCount = requestsData.pagination?.total || 0;
+          if (forwardedCount > 0) {
+            setCounts(prev => ({ ...prev, newRequests: forwardedCount }));
+          }
+        }
+        
+        const objectionsResponse = await fetch('/api/keberatan?status=Diteruskan&limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (objectionsResponse.ok && mountedRef.current) {
+          const objectionsData = await objectionsResponse.json();
+          const forwardedCount = objectionsData.pagination?.total || 0;
+          if (forwardedCount > 0) {
+            setCounts(prev => ({ ...prev, newObjections: forwardedCount }));
+          }
         }
       } else if (role === 'ADMIN' || role === 'PPID_UTAMA') {
         // Check for pending accounts
@@ -130,6 +169,22 @@ export const useOptimizedNotifications = () => {
       // Initial fetch
       fetchNotifications();
       
+      // Listen for notification refresh events
+      const handleNotificationRefresh = () => {
+        if (mountedRef.current) {
+          fetchNotifications();
+        }
+      };
+      
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'notification-refresh' && mountedRef.current) {
+          fetchNotifications();
+        }
+      };
+      
+      window.addEventListener('notification-refresh', handleNotificationRefresh);
+      window.addEventListener('storage', handleStorageChange);
+      
       // Different intervals based on role
       const interval = role === 'Pemohon' 
         ? setInterval(() => {
@@ -142,6 +197,8 @@ export const useOptimizedNotifications = () => {
       return () => {
         mountedRef.current = false;
         clearInterval(interval);
+        window.removeEventListener('notification-refresh', handleNotificationRefresh);
+        window.removeEventListener('storage', handleStorageChange);
       };
     }
     

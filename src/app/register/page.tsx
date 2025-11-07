@@ -16,9 +16,9 @@ export default function RegisterPage() {
     no_telepon: "",
     alamat: "",
     pekerjaan: "",
-    ktp_image: null as File | null
+    ktp_image: null as File | null,
   });
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [ktpPreview, setKtpPreview] = useState<string | null>(null);
@@ -27,38 +27,42 @@ export default function RegisterPage() {
 
   const validateField = (name: string, value: string) => {
     switch (name) {
-      case 'nama':
-        if (value.length < 3) return 'Nama minimal 3 karakter';
-        if (!/^[a-zA-Z\s]+$/.test(value)) return 'Nama hanya boleh huruf dan spasi';
+      case "nama":
+        if (value.length < 3) return "Nama minimal 3 karakter";
+        if (!/^[a-zA-Z\s]+$/.test(value))
+          return "Nama hanya boleh huruf dan spasi";
         break;
-      case 'nik':
-        if (!/^\d{16}$/.test(value)) return 'NIK harus 16 digit angka';
+      case "nik":
+        if (!/^\d{16}$/.test(value)) return "NIK harus 16 digit angka";
         break;
-      case 'email':
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Format email tidak valid';
+      case "email":
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          return "Format email tidak valid";
         break;
-      case 'password':
-        if (value.length < 6) return 'Password minimal 6 karakter';
-        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) return 'Password harus mengandung huruf besar, kecil, dan angka';
+      case "password":
+        if (value.length < 6) return "Password minimal 6 karakter";
+        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value))
+          return "Password harus mengandung huruf besar, kecil, dan angka";
         break;
-      case 'confirmPassword':
-        if (value !== formData.password) return 'Konfirmasi password tidak cocok';
+      case "confirmPassword":
+        if (value !== formData.password)
+          return "Konfirmasi password tidak cocok";
         break;
     }
-    return '';
+    return "";
   };
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d")!;
       const img = new Image();
-      
+
       img.onload = () => {
         const maxWidth = 800;
         const maxHeight = 600;
         let { width, height } = img;
-        
+
         if (width > height) {
           if (width > maxWidth) {
             height = (height * maxWidth) / width;
@@ -70,21 +74,25 @@ export default function RegisterPage() {
             height = maxHeight;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob((blob) => {
-          const compressedFile = new File([blob!], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now()
-          });
-          resolve(compressedFile);
-        }, 'image/jpeg', 0.8);
+
+        canvas.toBlob(
+          (blob) => {
+            const compressedFile = new File([blob!], file.name, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          0.8
+        );
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
@@ -92,25 +100,25 @@ export default function RegisterPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({ ...prev, ktp_image: 'File harus berupa gambar' }));
+
+    if (!file.type.startsWith("image/")) {
+      setErrors((prev) => ({ ...prev, ktp_image: "File harus berupa gambar" }));
       return;
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, ktp_image: 'Ukuran file maksimal 5MB' }));
+      setErrors((prev) => ({ ...prev, ktp_image: "Ukuran file maksimal 5MB" }));
       return;
     }
-    
+
     setIsUploading(true);
     try {
       const compressedFile = await compressImage(file);
-      setFormData(prev => ({ ...prev, ktp_image: compressedFile }));
+      setFormData((prev) => ({ ...prev, ktp_image: compressedFile }));
       setKtpPreview(URL.createObjectURL(compressedFile));
-      setErrors(prev => ({ ...prev, ktp_image: '' }));
+      setErrors((prev) => ({ ...prev, ktp_image: "" }));
     } catch (error) {
-      setErrors(prev => ({ ...prev, ktp_image: 'Gagal memproses gambar' }));
+      setErrors((prev) => ({ ...prev, ktp_image: "Gagal memproses gambar" }));
     } finally {
       setIsUploading(false);
     }
@@ -119,27 +127,33 @@ export default function RegisterPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    
+
     const error = validateField(name, value);
-    setErrors(prev => ({ ...prev, [name]: error }));
+    setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const newErrors: {[key: string]: string} = {};
-    const requiredFields = ['nama', 'nik', 'email', 'password', 'confirmPassword'];
-    requiredFields.forEach(key => {
+
+    const newErrors: { [key: string]: string } = {};
+    const requiredFields = [
+      "nama",
+      "nik",
+      "email",
+      "password",
+      "confirmPassword",
+    ];
+    requiredFields.forEach((key) => {
       const value = formData[key as keyof typeof formData];
-      const error = validateField(key, typeof value === 'string' ? value : '');
+      const error = validateField(key, typeof value === "string" ? value : "");
       if (error) newErrors[key] = error;
     });
-    
+
     // Validate KTP image is required
     if (!formData.ktp_image) {
-      newErrors.ktp_image = 'Foto KTP wajib diunggah untuk syarat administrasi';
+      newErrors.ktp_image = "Foto KTP wajib diunggah untuk syarat administrasi";
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -150,41 +164,52 @@ export default function RegisterPage() {
 
     try {
       const { confirmPassword, ktp_image, ...submitData } = formData;
-      
+
       // Upload KTP image (required)
       if (!ktp_image) {
-        setErrors({ ktp_image: 'Foto KTP wajib diunggah untuk syarat administrasi' });
+        setErrors({
+          ktp_image: "Foto KTP wajib diunggah untuk syarat administrasi",
+        });
         return;
       }
-      
+
       const formDataUpload = new FormData();
-      formDataUpload.append('file', ktp_image);
-      
-      const uploadResponse = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: formDataUpload
+      formDataUpload.append("file", ktp_image);
+      formDataUpload.append("isKtp", "true");
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataUpload,
       });
-      
+
       if (!uploadResponse.ok) {
-        setErrors({ ktp_image: 'Gagal mengunggah foto KTP. Silakan coba lagi.' });
+        setErrors({
+          ktp_image: "Gagal mengunggah foto KTP. Silakan coba lagi.",
+        });
         return;
       }
-      
+
       const uploadResult = await uploadResponse.json();
       const ktpImageUrl = uploadResult.url;
-      
+
       const finalData = {
         ...submitData,
-        ktp_image: ktpImageUrl
+        ktp_image: ktpImageUrl,
       };
-      
+
       const data = await registerUser(finalData);
-      setSuccess(data.message || "Registrasi berhasil! Anda akan dialihkan ke halaman login.");
+      setSuccess(
+        data.message ||
+          "Registrasi berhasil! Anda akan dialihkan ke halaman login."
+      );
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat registrasi.";
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat registrasi.";
       setErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
@@ -199,15 +224,23 @@ export default function RegisterPage() {
         </h1>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
-            <span className="font-medium">Persyaratan Administrasi:</span> Foto KTP wajib diunggah untuk verifikasi identitas.
+            <span className="font-medium">Persyaratan Administrasi:</span> Foto
+            KTP wajib diunggah untuk verifikasi identitas.
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.submit && <p className="text-sm text-center text-red-500">{errors.submit}</p>}
-          {success && <p className="text-sm text-center text-green-500">{success}</p>}
+          {errors.submit && (
+            <p className="text-sm text-center text-red-500">{errors.submit}</p>
+          )}
+          {success && (
+            <p className="text-sm text-center text-green-500">{success}</p>
+          )}
 
           <div>
-            <label htmlFor="nama" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="nama"
+              className="block text-sm font-medium text-gray-700"
+            >
               Nama Lengkap
             </label>
             <input
@@ -218,15 +251,22 @@ export default function RegisterPage() {
               required
               disabled={isLoading}
               className={`px-3 py-2 mt-1 w-full rounded-lg border focus:outline-none focus:ring-2 ${
-                errors.nama ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                errors.nama
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
               }`}
               placeholder="Masukkan nama lengkap"
             />
-            {errors.nama && <p className="text-xs text-red-500 mt-1">{errors.nama}</p>}
+            {errors.nama && (
+              <p className="text-xs text-red-500 mt-1">{errors.nama}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="nik" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="nik"
+              className="block text-sm font-medium text-gray-700"
+            >
               NIK
             </label>
             <input
@@ -238,15 +278,22 @@ export default function RegisterPage() {
               disabled={isLoading}
               maxLength={16}
               className={`px-3 py-2 mt-1 w-full rounded-lg border focus:outline-none focus:ring-2 ${
-                errors.nik ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                errors.nik
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
               }`}
               placeholder="16 digit NIK"
             />
-            {errors.nik && <p className="text-xs text-red-500 mt-1">{errors.nik}</p>}
+            {errors.nik && (
+              <p className="text-xs text-red-500 mt-1">{errors.nik}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
               Email
             </label>
             <input
@@ -257,15 +304,22 @@ export default function RegisterPage() {
               required
               disabled={isLoading}
               className={`px-3 py-2 mt-1 w-full rounded-lg border focus:outline-none focus:ring-2 ${
-                errors.email ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                errors.email
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
               }`}
               placeholder="contoh@email.com"
             />
-            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
               Password
             </label>
             <input
@@ -276,15 +330,22 @@ export default function RegisterPage() {
               required
               disabled={isLoading}
               className={`px-3 py-2 mt-1 w-full rounded-lg border focus:outline-none focus:ring-2 ${
-                errors.password ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                errors.password
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
               }`}
               placeholder="Minimal 6 karakter"
             />
-            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+            {errors.password && (
+              <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700"
+            >
               Konfirmasi Password
             </label>
             <input
@@ -295,15 +356,24 @@ export default function RegisterPage() {
               required
               disabled={isLoading}
               className={`px-3 py-2 mt-1 w-full rounded-lg border focus:outline-none focus:ring-2 ${
-                errors.confirmPassword ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                errors.confirmPassword
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
               }`}
               placeholder="Ulangi password"
             />
-            {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
+            {errors.confirmPassword && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.confirmPassword}
+              </p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="no_telepon" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="no_telepon"
+              className="block text-sm font-medium text-gray-700"
+            >
               No. Telepon (Opsional)
             </label>
             <input
@@ -318,7 +388,10 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="pekerjaan" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="pekerjaan"
+              className="block text-sm font-medium text-gray-700"
+            >
               Pekerjaan/Profesi (Opsional)
             </label>
             <input
@@ -333,13 +406,18 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="alamat" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="alamat"
+              className="block text-sm font-medium text-gray-700"
+            >
               Alamat (Opsional)
             </label>
             <textarea
               name="alamat"
               value={formData.alamat}
-              onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, alamat: e.target.value })
+              }
               disabled={isLoading}
               rows={2}
               className="px-3 py-2 mt-1 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -348,7 +426,10 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="ktp_image" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="ktp_image"
+              className="block text-sm font-medium text-gray-700"
+            >
               Foto KTP <span className="text-red-500">*</span>
             </label>
             <div className="mt-1">
@@ -361,11 +442,13 @@ export default function RegisterPage() {
                 disabled={isLoading || isUploading}
                 required
                 className={`block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-                  errors.ktp_image ? 'border-red-300' : ''
+                  errors.ktp_image ? "border-red-300" : ""
                 }`}
               />
               {isUploading && (
-                <p className="text-xs text-blue-500 mt-1">Memproses gambar...</p>
+                <p className="text-xs text-blue-500 mt-1">
+                  Memproses gambar...
+                </p>
               )}
               {errors.ktp_image && (
                 <p className="text-xs text-red-500 mt-1">{errors.ktp_image}</p>
@@ -381,7 +464,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => {
                       setKtpPreview(null);
-                      setFormData(prev => ({ ...prev, ktp_image: null }));
+                      setFormData((prev) => ({ ...prev, ktp_image: null }));
                     }}
                     className="mt-1 text-xs text-red-600 hover:text-red-800"
                   >
@@ -390,7 +473,9 @@ export default function RegisterPage() {
                 </div>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                <span className="text-red-600 font-medium">Wajib:</span> Upload foto KTP untuk syarat administrasi. Format: JPG, PNG. Maksimal 5MB. Gambar akan dikompres otomatis.
+                <span className="text-red-600 font-medium">Wajib:</span> Upload
+                foto KTP untuk syarat administrasi. Format: JPG, PNG. Maksimal
+                5MB.
               </p>
             </div>
           </div>
@@ -400,17 +485,20 @@ export default function RegisterPage() {
             disabled={isLoading}
             className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
               isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
             }`}
           >
-            {isLoading ? 'Mendaftar...' : 'Daftar'}
+            {isLoading ? "Mendaftar..." : "Daftar"}
           </button>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Sudah punya akun?{' '}
-              <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+              Sudah punya akun?{" "}
+              <Link
+                href="/login"
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
                 Login di sini
               </Link>
             </p>

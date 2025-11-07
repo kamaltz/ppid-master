@@ -125,7 +125,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash('Garut@2025?', 10);
+    const defaultPasswordSetting = await prisma.setting.findFirst({
+      where: { key: 'default_password' }
+    });
+    const defaultPassword = defaultPasswordSetting?.value || 'Garut@2025?';
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
     let newAccount;
     if (role === 'ADMIN') {

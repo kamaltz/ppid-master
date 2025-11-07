@@ -1324,6 +1324,7 @@ export default function AdminPengaturanPage() {
                       onChange={(e) => handleChange("marqueeSpeed", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
+                      <option value="very-slow">Sangat Pelan (45 detik)</option>
                       <option value="slow">Pelan (30 detik)</option>
                       <option value="medium">Sedang (20 detik)</option>
                       <option value="fast">Cepat (10 detik)</option>

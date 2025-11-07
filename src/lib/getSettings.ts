@@ -10,11 +10,14 @@ export async function getSettings() {
     const settings = await prisma.setting.findMany();
     
     const settingsObj = settings.reduce((acc, setting) => {
-      try {
-        acc[setting.key] = JSON.parse(setting.value);
-      } catch (error) {
-        console.error(`Error parsing setting ${setting.key}:`, error);
+      if (setting.key === 'default_password') {
         acc[setting.key] = setting.value;
+      } else {
+        try {
+          acc[setting.key] = JSON.parse(setting.value);
+        } catch (error) {
+          acc[setting.key] = setting.value;
+        }
       }
       return acc;
     }, {} as Record<string, unknown>);
