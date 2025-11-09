@@ -53,7 +53,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" data-scroll-behavior="smooth" className="scroll-smooth" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <ErrorBoundary>
           <AuthProvider>
             <DynamicLayout />

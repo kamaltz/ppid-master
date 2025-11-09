@@ -177,6 +177,24 @@ export async function POST(request: NextRequest) {
     if (admin) {
       const isValid = await bcrypt.compare(password, admin.hashed_password);
       console.log("Admin password valid:", isValid);
+      if (!isValid) {
+        // Log failed admin login
+        try {
+          await prisma.activityLog.create({
+            data: {
+              action: "LOGIN_FAILED",
+              level: "WARN",
+              details: `Percobaan login gagal untuk Admin ${email}`,
+              user_id: admin.id.toString(),
+              user_role: "ADMIN",
+              ip_address: clientIP,
+              user_agent: request.headers.get("user-agent") || "Unknown"
+            }
+          });
+        } catch (logError) {
+          console.error('Failed to log admin failed login:', logError);
+        }
+      }
       if (isValid) {
         const token = jwt.sign(
           {
@@ -193,7 +211,23 @@ export async function POST(request: NextRequest) {
         // Clear failed attempts on successful login
         global.loginAttempts?.delete(getClientIP(request));
 
-        // Log successful admin login
+        // Log successful admin login to database
+        try {
+          await prisma.activityLog.create({
+            data: {
+              action: "LOGIN",
+              level: "SUCCESS",
+              details: `Admin ${email} berhasil login ke sistem`,
+              user_id: admin.id.toString(),
+              user_role: "ADMIN",
+              ip_address: getClientIP(request),
+              user_agent: request.headers.get("user-agent") || "Unknown"
+            }
+          });
+        } catch (logError) {
+          console.error('Failed to log admin login:', logError);
+        }
+        
         await logActivity({
           action: "LOGIN",
           level: "SUCCESS",
@@ -224,6 +258,24 @@ export async function POST(request: NextRequest) {
     if (ppid) {
       const isValid = await bcrypt.compare(password, ppid.hashed_password);
       console.log("PPID password valid:", isValid);
+      if (!isValid) {
+        // Log failed PPID login
+        try {
+          await prisma.activityLog.create({
+            data: {
+              action: "LOGIN_FAILED",
+              level: "WARN",
+              details: `Percobaan login gagal untuk ${ppid.role} ${email}`,
+              user_id: ppid.id.toString(),
+              user_role: ppid.role,
+              ip_address: clientIP,
+              user_agent: request.headers.get("user-agent") || "Unknown"
+            }
+          });
+        } catch (logError) {
+          console.error('Failed to log PPID failed login:', logError);
+        }
+      }
       if (isValid) {
         const token = jwt.sign(
           {
@@ -240,7 +292,24 @@ export async function POST(request: NextRequest) {
         // Clear failed attempts on successful login
         global.loginAttempts?.delete(getClientIP(request));
 
-        // Log successful PPID login
+        // Log successful PPID login to database
+        try {
+          await prisma.activityLog.create({
+            data: {
+              action: "LOGIN",
+              level: "SUCCESS",
+              details: `${ppid.role} ${email} berhasil login ke sistem`,
+              user_id: ppid.id.toString(),
+              user_role: ppid.role,
+              ip_address: getClientIP(request),
+              user_agent: request.headers.get("user-agent") || "Unknown"
+            }
+          });
+          console.log('✅ PPID login logged to database, user_id:', ppid.id);
+        } catch (logError) {
+          console.error('❌ Failed to log PPID login:', logError);
+        }
+        
         await logActivity({
           action: "LOGIN",
           level: "SUCCESS",
@@ -298,7 +367,23 @@ export async function POST(request: NextRequest) {
         // Clear failed attempts on successful login
         global.loginAttempts?.delete(getClientIP(request));
 
-        // Log successful Pemohon login
+        // Log successful Pemohon login to database
+        try {
+          await prisma.activityLog.create({
+            data: {
+              action: "LOGIN",
+              level: "SUCCESS",
+              details: `Pemohon ${email} berhasil login ke sistem`,
+              user_id: pemohon.id.toString(),
+              user_role: "PEMOHON",
+              ip_address: getClientIP(request),
+              user_agent: request.headers.get("user-agent") || "Unknown"
+            }
+          });
+        } catch (logError) {
+          console.error('Failed to log pemohon login:', logError);
+        }
+        
         await logActivity({
           action: "LOGIN",
           level: "SUCCESS",
@@ -345,7 +430,25 @@ export async function POST(request: NextRequest) {
         ? `CRITICAL: ${cleanAttempts.length} percobaan login gagal dari IP ${clientIP} untuk ${email} - IP akan diblokir pada percobaan berikutnya`
         : `Percobaan login gagal untuk ${email} dari IP ${clientIP} (${cleanAttempts.length}/5)`;
 
-    // Log failed login directly
+    // Log failed login to database
+    try {
+      await prisma.activityLog.create({
+        data: {
+          action: "LOGIN_FAILED",
+          level,
+          details: message,
+          user_id: email,
+          user_role: "UNKNOWN",
+          ip_address: clientIP,
+          user_agent: userAgent
+        }
+      });
+      console.log("Failed login logged to database");
+    } catch (logError) {
+      console.error("Failed to log failed login:", logError);
+    }
+    
+    // Log failed login to memory
     try {
       global.activityLogs = global.activityLogs || [];
       global.activityLogs.unshift({
@@ -363,9 +466,8 @@ export async function POST(request: NextRequest) {
         },
         created_at: new Date().toISOString(),
       });
-      console.log("Failed login logged successfully");
     } catch (logError) {
-      console.error("Failed to log failed login:", logError);
+      console.error("Failed to log failed login to memory:", logError);
     }
 
     return NextResponse.json(

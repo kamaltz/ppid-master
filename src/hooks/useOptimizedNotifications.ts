@@ -9,6 +9,7 @@ interface NotificationCounts {
   newObjections: number;
   newLogs: number;
   newMedia: number;
+  activityLogs: number;
 }
 
 export const useOptimizedNotifications = () => {
@@ -19,7 +20,8 @@ export const useOptimizedNotifications = () => {
     newRequests: 0,
     newObjections: 0,
     newLogs: 0,
-    newMedia: 0
+    newMedia: 0,
+    activityLogs: 0
   });
   
   const lastFetchRef = useRef<number>(0);
@@ -52,6 +54,26 @@ export const useOptimizedNotifications = () => {
       if (chatResponse.ok && mountedRef.current) {
         const chatData = await chatResponse.json();
         setCounts(prev => ({ ...prev, newChats: chatData.count || 0 }));
+      }
+      
+      // Check for new activity logs
+      const logsResponse = await fetch('/api/activity-logs?limit=1', {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (logsResponse.ok && mountedRef.current) {
+        const logsData = await logsResponse.json();
+        const storageKey = `lastViewedLogId_${role}_${token.substring(0, 10)}`;
+        const lastViewedLogId = localStorage.getItem(storageKey);
+        
+        if (logsData.data && logsData.data.length > 0) {
+          const latestLogId = logsData.data[0].id;
+          const hasNewLogs = !lastViewedLogId || latestLogId > parseInt(lastViewedLogId);
+          setCounts(prev => ({ ...prev, activityLogs: hasNewLogs ? 1 : 0 }));
+        } else {
+          setCounts(prev => ({ ...prev, activityLogs: 0 }));
+        }
       }
       
       // Role-specific requests (only if needed)

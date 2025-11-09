@@ -6,6 +6,9 @@ import RoleGuard from "@/components/auth/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import { MenuItem, DropdownItem } from "@/types/menu";
+import SuccessModal from "@/components/ui/SuccessModal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import Toast from "@/components/ui/Toast";
 
 interface Slide {
   id: number;
@@ -15,9 +18,26 @@ interface Slide {
   description: string;
   ctaText: string;
   ctaUrl: string;
+  ctaEnabled: boolean;
+  ctaPosition?: string;
+  ctaCustomCss?: string;
   backgroundPosition: string;
-  cleanNoCTA?: boolean;
   cleanImage?: boolean;
+  overlayColor?: string;
+  overlayOpacity?: number;
+  titleColor?: string;
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  subtitleColor?: string;
+  subtitleFontSize?: string;
+  descriptionColor?: string;
+  descriptionFontSize?: string;
+  ctaBackground?: string;
+  ctaTextColor?: string;
+  ctaBorderRadius?: string;
+  ctaPadding?: string;
+  ctaFontSize?: string;
+  ctaFontWeight?: string;
 }
 
 interface HeroSettings {
@@ -25,14 +45,35 @@ interface HeroSettings {
   subtitle: string;
   description: string;
   backgroundImage: string;
+  backgroundType?: 'gradient' | 'image' | 'solid';
+  backgroundGradient?: string;
+  backgroundColor?: string;
+  backgroundPosition?: string;
+  overlayColor?: string;
+  overlayOpacity?: number;
   ctaText: string;
   ctaUrl: string;
+  ctaPosition?: string;
+  ctaCustomCss?: string;
   isCarousel: boolean;
   autoSlide: boolean;
   slideInterval: number;
   showCarouselCTA: boolean;
   cleanTemplate: boolean;
   slides: Slide[];
+  titleColor?: string;
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  subtitleColor?: string;
+  subtitleFontSize?: string;
+  descriptionColor?: string;
+  descriptionFontSize?: string;
+  ctaBackground?: string;
+  ctaTextColor?: string;
+  ctaBorderRadius?: string;
+  ctaPadding?: string;
+  ctaFontSize?: string;
+  ctaFontWeight?: string;
 }
 
 export default function AdminPengaturanPage() {
@@ -51,6 +92,10 @@ export default function AdminPengaturanPage() {
     marqueeEnabled: false,
     marqueeText: "Selamat datang di PPID Kabupaten Garut - Layanan Informasi Publik yang Transparan",
     marqueeSpeed: "slow",
+    marqueeTextColor: "#ffffff",
+    marqueeBackgroundColor: "#2563eb",
+    marqueeFontSize: "14",
+    marqueeFontWeight: "normal",
   });
   const [applicationsSettings, setApplicationsSettings] = useState({
     enabled: true,
@@ -144,8 +189,16 @@ export default function AdminPengaturanPage() {
     description:
       "Kami berkomitmen untuk memberikan akses informasi publik yang transparan, akuntabel, dan mudah diakses oleh seluruh masyarakat.",
     backgroundImage: "",
+    backgroundType: "gradient",
+    backgroundGradient: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)",
+    backgroundColor: "#0f172a",
+    backgroundPosition: "cover",
+    overlayColor: "#0f172a",
+    overlayOpacity: 0.7,
     ctaText: "Ajukan Permohonan",
     ctaUrl: "/permohonan",
+    ctaPosition: "center",
+    ctaCustomCss: "",
     isCarousel: false,
     autoSlide: true,
     slideInterval: 4000,
@@ -170,6 +223,148 @@ export default function AdminPengaturanPage() {
     totalInformasi: 0,
     aksesOnline: '24/7'
   });
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+
+  const HeroPreview = ({ slide, isStatic = false }: { slide: Slide | HeroSettings, isStatic?: boolean }) => {
+    const bgImage = 'image' in slide ? slide.image : 'backgroundImage' in slide ? slide.backgroundImage : '';
+    const bgPos = 'backgroundPosition' in slide ? slide.backgroundPosition || 'cover' : 'cover';
+    const cleanImage = isStatic ? heroSettings.cleanTemplate : ('cleanImage' in slide ? slide.cleanImage : false);
+    const overlayColor = 'overlayColor' in slide ? slide.overlayColor || '#0f172a' : '#0f172a';
+    const overlayOpacity = 'overlayOpacity' in slide ? slide.overlayOpacity ?? 0.7 : 0.7;
+    const ctaPos = isStatic ? heroSettings.ctaPosition || 'center' : ('ctaPosition' in slide ? slide.ctaPosition || 'center' : 'center');
+    const ctaCss = isStatic ? heroSettings.ctaCustomCss || '' : ('ctaCustomCss' in slide ? slide.ctaCustomCss || '' : '');
+    
+    const titleColor = slide.titleColor || '#ffffff';
+    const titleSize = slide.titleFontSize || '24px';
+    const titleWeight = slide.titleFontWeight || 'bold';
+    const subtitleColor = slide.subtitleColor || '#ffffff';
+    const subtitleSize = slide.subtitleFontSize || '14px';
+    const descColor = slide.descriptionColor || '#bfdbfe';
+    const descSize = slide.descriptionFontSize || '14px';
+    const ctaBg = slide.ctaBackground || '#ffffff';
+    const ctaColor = slide.ctaTextColor || '#1e40af';
+    const ctaRadius = slide.ctaBorderRadius || '8px';
+    const ctaPad = slide.ctaPadding || '8px 16px';
+    const ctaSize = slide.ctaFontSize || '14px';
+    const ctaWeight = slide.ctaFontWeight || '600';
+    
+    const getBackgroundStyle = () => {
+      if (isStatic) {
+        const bgType = heroSettings.backgroundType || 'gradient';
+        if (bgType === 'solid') {
+          return heroSettings.backgroundColor || '#0f172a';
+        }
+        if (bgType === 'gradient') {
+          return heroSettings.backgroundGradient || 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)';
+        }
+        if (bgType === 'image' && bgImage) {
+          if (cleanImage) return `url(${bgImage})`;
+          const hexOpacity = Math.round(overlayOpacity * 255).toString(16).padStart(2, '0');
+          return `linear-gradient(${overlayColor}${hexOpacity}, ${overlayColor}${hexOpacity}), url(${bgImage})`;
+        }
+        return heroSettings.backgroundGradient || 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)';
+      }
+      
+      if (!bgImage) {
+        return 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)';
+      }
+      if (cleanImage) {
+        return `url(${bgImage})`;
+      }
+      const hexOpacity = Math.round(overlayOpacity * 255).toString(16).padStart(2, '0');
+      return `linear-gradient(${overlayColor}${hexOpacity}, ${overlayColor}${hexOpacity}), url(${bgImage})`;
+    };
+    
+    return (
+      <div 
+        className="relative w-full h-64 rounded-lg overflow-hidden"
+        style={{
+          backgroundImage: getBackgroundStyle(),
+          backgroundSize: bgPos === 'fill' ? '100% 100%' : bgPos === 'contain' ? 'contain' : 'cover',
+          backgroundPosition: ['top','bottom','left','right','center'].includes(bgPos) ? bgPos : 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
+          {!cleanImage && (
+            <>
+              <span 
+                className="bg-white/20 px-3 py-1 rounded-full mb-2"
+                style={{ color: subtitleColor, fontSize: subtitleSize }}
+              >
+                {slide.subtitle}
+              </span>
+              <h3 
+                className="mb-2"
+                style={{ color: titleColor, fontSize: titleSize, fontWeight: titleWeight }}
+              >
+                {slide.title}
+              </h3>
+              <p 
+                className="mb-3"
+                style={{ color: descColor, fontSize: descSize }}
+              >
+                {slide.description}
+              </p>
+            </>
+          )}
+          {'ctaEnabled' in slide && slide.ctaEnabled && slide.ctaText && (
+            <div className={`flex w-full ${
+              slide.ctaPosition === 'left' ? 'justify-start' :
+              slide.ctaPosition === 'right' ? 'justify-end' : 'justify-center'
+            }`}>
+              <button 
+                className="flex items-center"
+                style={{
+                  background: ctaBg,
+                  color: ctaColor,
+                  padding: ctaPad,
+                  borderRadius: ctaRadius,
+                  fontSize: ctaSize,
+                  fontWeight: ctaWeight,
+                  ...(slide.ctaCustomCss ? Object.fromEntries(
+                    slide.ctaCustomCss.split(';').filter(s => s.trim()).map(s => {
+                      const [key, value] = s.split(':').map(p => p.trim());
+                      return [key.replace(/-([a-z])/g, (_, l) => l.toUpperCase()), value];
+                    })
+                  ) : {})
+                }}
+              >
+                → {slide.ctaText}
+              </button>
+            </div>
+          )}
+          {isStatic && !heroSettings.cleanTemplate && heroSettings.ctaText && (
+            <div className={`flex w-full ${
+              ctaPos === 'left' ? 'justify-start' :
+              ctaPos === 'right' ? 'justify-end' : 'justify-center'
+            }`}>
+              <button 
+                className="flex items-center"
+                style={{
+                  background: ctaBg,
+                  color: ctaColor,
+                  padding: ctaPad,
+                  borderRadius: ctaRadius,
+                  fontSize: ctaSize,
+                  fontWeight: ctaWeight,
+                  ...(ctaCss ? Object.fromEntries(
+                    ctaCss.split(';').filter(s => s.trim()).map(s => {
+                      const [key, value] = s.split(':').map(p => p.trim());
+                      return [key.replace(/-([a-z])/g, (_, l) => l.toUpperCase()), value];
+                    })
+                  ) : {})
+                }}
+              >
+                → {heroSettings.ctaText}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Load settings on component mount
   useEffect(() => {
@@ -178,39 +373,89 @@ export default function AdminPengaturanPage() {
   }, []);
 
   const loadStatsConfig = async () => {
+    setStatsLoading(true);
+    setStatsError(null);
     try {
       const response = await fetch('/api/settings/stats');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.config) {
-          setStatsConfig(data.config);
-        }
-        if (data.autoStats) {
-          setAutoStats(data.autoStats);
-        }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Loaded stats config:', data);
+      
+      if (data.success && data.config) {
+        console.log('⚙️ Settings: Loaded config:', data.config);
+        setStatsConfig(data.config);
+        setStatsError(null);
+      } else {
+        setStatsError(data.error || 'Gagal memuat konfigurasi statistik');
+      }
+      
+      if (data.autoStats) {
+        console.log('⚙️ Settings: Loaded auto stats:', data.autoStats);
+        setAutoStats(data.autoStats);
       }
     } catch (error) {
       console.error('Error loading stats config:', error);
+      setStatsError(error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat data statistik');
+    } finally {
+      setStatsLoading(false);
     }
   };
 
   const saveStatsConfig = async () => {
     setStatsLoading(true);
+    setStatsError(null);
     try {
+      console.log('Saving stats config:', statsConfig);
+      
       const response = await fetch('/api/settings/stats', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(statsConfig)
       });
+      
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
+      console.log('Response data:', data);
+      
       if (data.success) {
-        alert('✅ Pengaturan statistik berhasil disimpan!');
+        setToast({ message: 'Pengaturan statistik berhasil disimpan!', type: 'success' });
+        // Refresh the config to show updated values
+        await loadStatsConfig();
+        
+        // Force homepage stats refresh
+        if (typeof window !== 'undefined') {
+          // Clear any cached data
+          if ('caches' in window) {
+            caches.delete('stats-cache');
+          }
+          
+          // Trigger immediate refresh
+          window.dispatchEvent(new CustomEvent('statsConfigChanged'));
+          
+          // Cross-tab updates
+          localStorage.setItem('statsUpdated', Date.now().toString());
+          setTimeout(() => localStorage.removeItem('statsUpdated'), 100);
+        }
       } else {
-        alert('❌ Gagal menyimpan: ' + data.error);
+        setStatsError(data.error || 'Gagal menyimpan pengaturan');
+        setToast({ message: data.error || 'Gagal menyimpan pengaturan statistik', type: 'error' });
       }
     } catch (error) {
       console.error('Error saving stats config:', error);
-      alert('❌ Terjadi kesalahan saat menyimpan');
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan';
+      setStatsError(errorMessage);
+      setToast({ message: errorMessage, type: 'error' });
     } finally {
       setStatsLoading(false);
     }
@@ -313,20 +558,44 @@ export default function AdminPengaturanPage() {
         }
       }
 
+      // Save statistics settings if on stats tab or saving all
+      try {
+        const statsResponse = await fetch('/api/settings/stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(statsConfig)
+        });
+        
+        if (!statsResponse.ok) {
+          console.warn('Failed to save statistics settings');
+        }
+      } catch (error) {
+        console.error('Error saving statistics:', error);
+      }
+
       if (allSuccess) {
-        alert("✅ Semua pengaturan berhasil disimpan!");
+        setShowSuccessModal(true);
 
         // Force reload all components by clearing cache
         if (typeof window !== "undefined") {
-          // Clear settings cache
+          // Clear all caches
           sessionStorage.removeItem('cachedSettings');
+          if ('caches' in window) {
+            caches.delete('stats-cache');
+          }
           
           // Immediate event dispatch
           window.dispatchEvent(new CustomEvent("settingsChanged"));
+          window.dispatchEvent(new CustomEvent('statsConfigChanged'));
           
-          // Trigger storage event for cross-tab updates
+          // Cross-tab updates
+          localStorage.setItem('statsUpdated', Date.now().toString());
           localStorage.setItem("settingsUpdated", Date.now().toString());
-          localStorage.removeItem("settingsUpdated");
+          
+          setTimeout(() => {
+            localStorage.removeItem('statsUpdated');
+            localStorage.removeItem("settingsUpdated");
+          }, 100);
         }
         
         // Reload settings immediately
@@ -344,16 +613,17 @@ export default function AdminPengaturanPage() {
           }
         }
       } else {
-        alert(
-          "❌ Gagal menyimpan pengaturan. Database tidak tersedia (Error 503). Silakan coba lagi nanti atau hubungi administrator."
-        );
+        setToast({
+          message: "Gagal menyimpan pengaturan. Database tidak tersedia (Error 503). Silakan coba lagi nanti atau hubungi administrator.",
+          type: "error"
+        });
       }
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert(
-        "❌ Gagal menyimpan pengaturan: " +
-          (error instanceof Error ? error.message : "Unknown error")
-      );
+      setToast({
+        message: "Gagal menyimpan pengaturan: " + (error instanceof Error ? error.message : "Unknown error"),
+        type: "error"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -399,9 +669,13 @@ export default function AdminPengaturanPage() {
                 ...slideData,
                 ctaText: slideData.ctaText ?? "",
                 ctaUrl: slideData.ctaUrl ?? "",
+                ctaEnabled: slideData.ctaEnabled ?? false,
+                ctaPosition: slideData.ctaPosition ?? "center",
+                ctaCustomCss: slideData.ctaCustomCss ?? "",
                 backgroundPosition: slideData.backgroundPosition ?? "cover",
-                cleanNoCTA: slideData.cleanNoCTA ?? false,
-                cleanImage: slideData.cleanImage ?? false,
+                cleanImage: slideData.cleanImage ?? true,
+                overlayColor: slideData.overlayColor ?? "#0f172a",
+                overlayOpacity: slideData.overlayOpacity ?? 0.7,
               };
             }
           );
@@ -450,13 +724,13 @@ export default function AdminPengaturanPage() {
 
       if (result.success) {
         setHeroSettings((prev) => ({ ...prev, backgroundImage: result.url }));
-        alert("✅ Gambar berhasil diupload!");
+        setToast({ message: 'Gambar berhasil diupload!', type: 'success' });
       } else {
-        alert("❌ Gagal upload gambar: " + result.error);
+        setToast({ message: 'Gagal upload gambar: ' + result.error, type: 'error' });
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("❌ Gagal upload gambar");
+      setToast({ message: 'Gagal upload gambar', type: 'error' });
     }
   };
 
@@ -473,13 +747,13 @@ export default function AdminPengaturanPage() {
       const result = await response.json();
       if (result.success) {
         setSettings((prev) => ({ ...prev, favicon: result.url }));
-        alert("✅ Favicon berhasil diupload!");
+        setToast({ message: 'Favicon berhasil diupload!', type: 'success' });
       } else {
-        alert("❌ Gagal upload favicon: " + result.error);
+        setToast({ message: 'Gagal upload favicon: ' + result.error, type: 'error' });
       }
     } catch (error) {
       console.error("Favicon upload error:", error);
-      alert("❌ Gagal upload favicon");
+      setToast({ message: 'Gagal upload favicon', type: 'error' });
     }
   };
 
@@ -492,9 +766,26 @@ export default function AdminPengaturanPage() {
       description: "",
       ctaText: "",
       ctaUrl: "",
+      ctaEnabled: false,
+      ctaPosition: "center",
+      ctaCustomCss: "",
       backgroundPosition: "cover",
-      cleanNoCTA: false,
-      cleanImage: false,
+      cleanImage: true,
+      overlayColor: "#0f172a",
+      overlayOpacity: 0.7,
+      titleColor: "#ffffff",
+      titleFontSize: "32px",
+      titleFontWeight: "bold",
+      subtitleColor: "#ffffff",
+      subtitleFontSize: "14px",
+      descriptionColor: "#bfdbfe",
+      descriptionFontSize: "14px",
+      ctaBackground: "#ffffff",
+      ctaTextColor: "#1e40af",
+      ctaBorderRadius: "8px",
+      ctaPadding: "10px 20px",
+      ctaFontSize: "14px",
+      ctaFontWeight: "600",
     };
     setHeroSettings((prev) => ({
       ...prev,
@@ -595,12 +886,12 @@ export default function AdminPengaturanPage() {
       const result = await response.json();
       if (result.success) {
         updateSlide(slideIndex, "image", result.url);
-        alert("✅ Gambar slide berhasil diupload dan disesuaikan!");
+        setToast({ message: 'Gambar slide berhasil diupload dan disesuaikan!', type: 'success' });
       } else {
-        alert("❌ Gagal upload gambar: " + result.error);
+        setToast({ message: 'Gagal upload gambar: ' + result.error, type: 'error' });
       }
     } catch {
-      alert("❌ Gagal upload gambar");
+      setToast({ message: 'Gagal upload gambar', type: 'error' });
     }
   };
 
@@ -678,15 +969,23 @@ export default function AdminPengaturanPage() {
 
   const [isResetting, setIsResetting] = useState(false);
   const [isResettingTab, setIsResettingTab] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<() => void>(() => {});
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [toast, setToast] = useState<{message: string; type: 'success' | 'error' | 'warning'} | null>(null);
 
   const resetTabToDefault = async (tabName: string) => {
-    if (
-      !confirm(
-        `⚠️ Yakin ingin reset pengaturan ${tabName} ke default? Kustomisasi pada tab ini akan hilang.`
-      )
-    ) {
-      return;
-    }
+    setConfirmTitle(`Reset Pengaturan ${tabName}`);
+    setConfirmMessage(`Yakin ingin reset pengaturan ${tabName} ke default? Kustomisasi pada tab ini akan hilang.`);
+    setConfirmAction(() => async () => {
+      await performResetTab(tabName);
+    });
+    setShowConfirmModal(true);
+  };
+
+  const performResetTab = async (tabName: string) => {
 
     setIsResettingTab(true);
 
@@ -765,34 +1064,63 @@ export default function AdminPengaturanPage() {
     };
 
     try {
-      const response = await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: tabName, value: defaultSettings[tabName] }),
-      });
+      if (tabName === 'stats') {
+        // Reset statistics settings
+        const defaultStatsConfig = {
+          mode: 'auto' as 'manual' | 'auto',
+          manual: {
+            permintaanSelesai: 150,
+            rataRataHari: 7,
+            totalInformasi: 85,
+            aksesOnline: '24/7'
+          }
+        };
+        
+        const response = await fetch('/api/settings/stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(defaultStatsConfig)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to reset statistics`);
+        }
+        
+        setStatsConfig(defaultStatsConfig);
+        setToast({ message: 'Pengaturan statistik berhasil direset ke default!', type: 'success' });
+      } else {
+        // Reset other settings
+        const response = await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: tabName, value: defaultSettings[tabName] }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Failed to reset ${tabName}`);
+        if (!response.ok) {
+          throw new Error(`Failed to reset ${tabName}`);
+        }
+
+        setToast({ message: `Pengaturan ${tabName} berhasil direset ke default!`, type: 'success' });
+        await loadSettings();
       }
-
-      alert(`✅ Pengaturan ${tabName} berhasil direset ke default!`);
-      await loadSettings();
     } catch (error) {
       console.error(`Reset ${tabName} error:`, error);
-      alert(`❌ Gagal reset pengaturan ${tabName}`);
+      setToast({ message: `Gagal reset pengaturan ${tabName}`, type: 'error' });
     } finally {
       setIsResettingTab(false);
     }
   };
 
   const resetToDefault = async () => {
-    if (
-      !confirm(
-        "⚠️ Yakin ingin reset semua pengaturan ke default? Semua kustomisasi akan hilang."
-      )
-    ) {
-      return;
-    }
+    setConfirmTitle("Reset Semua Pengaturan");
+    setConfirmMessage("Yakin ingin reset semua pengaturan ke default? Semua kustomisasi akan hilang.");
+    setConfirmAction(() => async () => {
+      await performResetAll();
+    });
+    setShowConfirmModal(true);
+  };
+
+  const performResetAll = async () => {
 
     setIsResetting(true);
 
@@ -878,6 +1206,16 @@ export default function AdminPengaturanPage() {
         slides: [],
       },
     };
+    
+    const defaultStatsConfig = {
+      mode: 'auto' as 'manual' | 'auto',
+      manual: {
+        permintaanSelesai: 150,
+        rataRataHari: 7,
+        totalInformasi: 85,
+        aksesOnline: '24/7'
+      }
+    };
 
     try {
       for (const [key, value] of Object.entries(defaultSettings)) {
@@ -916,165 +1254,240 @@ export default function AdminPengaturanPage() {
         }
       }
 
-      alert("✅ Pengaturan berhasil direset ke default!");
+      // Reset statistics settings
+      try {
+        const statsResponse = await fetch('/api/settings/stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(defaultStatsConfig)
+        });
+        
+        if (statsResponse.ok) {
+          setStatsConfig(defaultStatsConfig);
+        }
+      } catch (error) {
+        console.error('Failed to reset statistics:', error);
+      }
+      
+      setToast({ message: 'Semua pengaturan berhasil direset ke default!', type: 'success' });
       loadSettings();
       setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       console.error("Reset error:", error);
-      alert("❌ Gagal reset pengaturan");
+      setToast({ message: 'Gagal reset pengaturan', type: 'error' });
     } finally {
       setIsResetting(false);
     }
   };
-  const StatsSettings = () => (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">📊 Pengaturan Statistik Homepage</h2>
-        <button
-          onClick={saveStatsConfig}
-          disabled={statsLoading}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
-        >
-          {statsLoading ? '⏳ Menyimpan...' : '💾 Simpan'}
-        </button>
-      </div>
-      
-      <div className="space-y-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium mb-4">🔧 Mode Statistik</h3>
-          <div className="space-y-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="statsMode"
-                value="auto"
-                checked={statsConfig.mode === 'auto'}
-                onChange={(e) => setStatsConfig(prev => ({ ...prev, mode: e.target.value as 'auto' | 'manual' }))}
-                className="mr-3"
-              />
-              <div>
-                <span className="font-medium">Otomatis</span>
-                <p className="text-sm text-gray-600">Ambil data statistik dari database secara real-time</p>
+  const StatsSettings = () => {
+    if (statsLoading) {
+      return (
+        <div>
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <div className="space-y-4">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                ))}
               </div>
-            </label>
-            
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="statsMode"
-                value="manual"
-                checked={statsConfig.mode === 'manual'}
-                onChange={(e) => setStatsConfig(prev => ({ ...prev, mode: e.target.value as 'auto' | 'manual' }))}
-                className="mr-3"
-              />
-              <div>
-                <span className="font-medium">Manual</span>
-                <p className="text-sm text-gray-600">Atur nilai statistik secara manual</p>
-              </div>
-            </label>
+            </div>
           </div>
         </div>
+      );
+    }
 
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium mb-4">📊 Preview Statistik</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {statsConfig.mode === 'auto' ? autoStats.permintaanSelesai : statsConfig.manual.permintaanSelesai}
-              </div>
-              <div className="text-sm text-gray-600">Permohonan Selesai</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {statsConfig.mode === 'auto' ? autoStats.rataRataHari : statsConfig.manual.rataRataHari}
-              </div>
-              <div className="text-sm text-gray-600">Rata-rata Hari</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {statsConfig.mode === 'auto' ? autoStats.totalInformasi : statsConfig.manual.totalInformasi}
-              </div>
-              <div className="text-sm text-gray-600">Total Informasi</div>
-            </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">
-                {statsConfig.mode === 'auto' ? autoStats.aksesOnline : statsConfig.manual.aksesOnline}
-              </div>
-              <div className="text-sm text-gray-600">Akses Online</div>
-            </div>
-          </div>
-          <div className="mt-4 text-sm text-gray-500">
-            💡 Mode saat ini: <strong>{statsConfig.mode === 'auto' ? 'Otomatis' : 'Manual'}</strong>
+    if (statsError) {
+      return (
+        <div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-red-800 mb-2">Error</h2>
+            <p className="text-red-700 mb-4">{statsError}</p>
+            <button
+              onClick={loadStatsConfig}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              Muat Ulang
+            </button>
           </div>
         </div>
+      );
+    }
 
-        {statsConfig.mode === 'manual' && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-medium mb-4">⚙️ Nilai Manual</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Permohonan Selesai
-                </label>
-                <input
-                  type="number"
-                  value={statsConfig.manual.permintaanSelesai}
-                  onChange={(e) => setStatsConfig(prev => ({
-                    ...prev,
-                    manual: { ...prev.manual, permintaanSelesai: parseInt(e.target.value) || 0 }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rata-rata Hari Penyelesaian
-                </label>
-                <input
-                  type="number"
-                  value={statsConfig.manual.rataRataHari}
-                  onChange={(e) => setStatsConfig(prev => ({
-                    ...prev,
-                    manual: { ...prev.manual, rataRataHari: parseInt(e.target.value) || 0 }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Informasi Tersedia
-                </label>
-                <input
-                  type="number"
-                  value={statsConfig.manual.totalInformasi}
-                  onChange={(e) => setStatsConfig(prev => ({
-                    ...prev,
-                    manual: { ...prev.manual, totalInformasi: parseInt(e.target.value) || 0 }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Akses Online
-                </label>
-                <input
-                  type="text"
-                  value={statsConfig.manual.aksesOnline}
-                  onChange={(e) => setStatsConfig(prev => ({
-                    ...prev,
-                    manual: { ...prev.manual, aksesOnline: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="24/7"
-                />
-              </div>
-            </div>
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold">📊 Pengaturan Statistik Homepage</h2>
+          <div className="flex gap-2">
+            <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
+              <button
+                onClick={() => resetTabToDefault("stats")}
+                disabled={isResettingTab}
+                className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                title="Reset pengaturan statistik ke default"
+              >
+                {isResettingTab ? "⏳" : "🔄"} Reset Tab
+              </button>
+            </RoleGuard>
+            <button
+              onClick={saveStatsConfig}
+              disabled={statsLoading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+            >
+              {statsLoading ? '⏳ Menyimpan...' : '💾 Simpan Statistik'}
+            </button>
+          </div>
+        </div>
+        
+        {statsError && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm">
+              ⚠️ <strong>Error:</strong> {statsError}
+            </p>
           </div>
         )}
+        
+        <div className="space-y-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-medium mb-4 flex items-center">
+              📊 Mode Statistik
+            </h3>
+            <div className="space-y-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="statsMode"
+                  value="manual"
+                  checked={statsConfig.mode === 'manual'}
+                  onChange={(e) => setStatsConfig(prev => ({ ...prev, mode: e.target.value as 'manual' | 'auto' }))}
+                  className="mr-3"
+                />
+                <div>
+                  <span className="font-medium">Manual</span>
+                  <p className="text-sm text-gray-600">Atur nilai statistik secara manual</p>
+                </div>
+              </label>
+              
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="statsMode"
+                  value="auto"
+                  checked={statsConfig.mode === 'auto'}
+                  onChange={(e) => setStatsConfig(prev => ({ ...prev, mode: e.target.value as 'manual' | 'auto' }))}
+                  className="mr-3"
+                />
+                <div>
+                  <span className="font-medium">Otomatis</span>
+                  <p className="text-sm text-gray-600">Ambil data statistik dari database secara otomatis</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-medium mb-4">📊 Preview Statistik</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {statsConfig.mode === 'auto' ? autoStats.permintaanSelesai : statsConfig.manual.permintaanSelesai}
+                </div>
+                <div className="text-sm text-gray-600">Permohonan Selesai</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {statsConfig.mode === 'auto' ? autoStats.rataRataHari : statsConfig.manual.rataRataHari}
+                </div>
+                <div className="text-sm text-gray-600">Rata-rata Hari</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {statsConfig.mode === 'auto' ? autoStats.totalInformasi : statsConfig.manual.totalInformasi}
+                </div>
+                <div className="text-sm text-gray-600">Total Informasi</div>
+              </div>
+              <div className="text-center p-4 bg-orange-50 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">
+                  {statsConfig.mode === 'auto' ? autoStats.aksesOnline : statsConfig.manual.aksesOnline}
+                </div>
+                <div className="text-sm text-gray-600">Akses Online</div>
+              </div>
+            </div>
+            <div className="mt-4 text-sm text-gray-500">
+              💡 Mode saat ini: <strong>{statsConfig.mode === 'auto' ? 'Otomatis' : 'Manual'}</strong>
+            </div>
+          </div>
+
+          {statsConfig.mode === 'manual' && (
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-medium mb-4 flex items-center">
+                ⚙️ Nilai Manual
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Permohonan Selesai
+                  </label>
+                  <input
+                    type="number"
+                    value={statsConfig.manual.permintaanSelesai}
+                    onChange={(e) => setStatsConfig(prev => ({
+                      ...prev,
+                      manual: { ...prev.manual, permintaanSelesai: parseInt(e.target.value) || 0 }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rata-rata Hari Penyelesaian
+                  </label>
+                  <input
+                    type="number"
+                    value={statsConfig.manual.rataRataHari}
+                    onChange={(e) => setStatsConfig(prev => ({
+                      ...prev,
+                      manual: { ...prev.manual, rataRataHari: parseInt(e.target.value) || 0 }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Total Informasi Tersedia
+                  </label>
+                  <input
+                    type="number"
+                    value={statsConfig.manual.totalInformasi}
+                    onChange={(e) => setStatsConfig(prev => ({
+                      ...prev,
+                      manual: { ...prev.manual, totalInformasi: parseInt(e.target.value) || 0 }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Akses Online
+                  </label>
+                  <input
+                    type="text"
+                    value={statsConfig.manual.aksesOnline}
+                    onChange={(e) => setStatsConfig(prev => ({
+                      ...prev,
+                      manual: { ...prev.manual, aksesOnline: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="24/7"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const tabs = [
     { id: "general", label: "🏢 Umum", icon: "🏢" },
@@ -1165,12 +1578,12 @@ export default function AdminPengaturanPage() {
                             const result = await response.json();
                             if (result.success) {
                               handleChange("logo", result.url);
-                              alert("✅ Logo berhasil diupload!");
+                              setToast({ message: 'Logo berhasil diupload!', type: 'success' });
                             } else {
-                              alert("❌ Gagal upload logo: " + result.error);
+                              setToast({ message: 'Gagal upload logo: ' + result.error, type: 'error' });
                             }
                           } catch {
-                            alert("❌ Gagal upload logo");
+                            setToast({ message: 'Gagal upload logo', type: 'error' });
                           }
                         }
                       }}
@@ -1315,30 +1728,113 @@ export default function AdminPengaturanPage() {
                     </p>
                   </div>
                   
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Kecepatan Marquee
+                      </label>
+                      <select
+                        value={settings.marqueeSpeed || "slow"}
+                        onChange={(e) => handleChange("marqueeSpeed", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="very-slow">Sangat Pelan (45 detik)</option>
+                        <option value="slow">Pelan (30 detik)</option>
+                        <option value="medium">Sedang (20 detik)</option>
+                        <option value="fast">Cepat (10 detik)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ukuran Font (px)
+                      </label>
+                      <input
+                        type="number"
+                        value={settings.marqueeFontSize || "14"}
+                        onChange={(e) => handleChange("marqueeFontSize", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="10"
+                        max="24"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Warna Teks
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={settings.marqueeTextColor || "#ffffff"}
+                          onChange={(e) => handleChange("marqueeTextColor", e.target.value)}
+                          className="h-10 w-16 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={settings.marqueeTextColor || "#ffffff"}
+                          onChange={(e) => handleChange("marqueeTextColor", e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                          placeholder="#ffffff"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Warna Background
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={settings.marqueeBackgroundColor || "#2563eb"}
+                          onChange={(e) => handleChange("marqueeBackgroundColor", e.target.value)}
+                          className="h-10 w-16 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={settings.marqueeBackgroundColor || "#2563eb"}
+                          onChange={(e) => handleChange("marqueeBackgroundColor", e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                          placeholder="#2563eb"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Kecepatan Marquee
+                      Ketebalan Font
                     </label>
                     <select
-                      value={settings.marqueeSpeed || "slow"}
-                      onChange={(e) => handleChange("marqueeSpeed", e.target.value)}
+                      value={settings.marqueeFontWeight || "normal"}
+                      onChange={(e) => handleChange("marqueeFontWeight", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="very-slow">Sangat Pelan (45 detik)</option>
-                      <option value="slow">Pelan (30 detik)</option>
-                      <option value="medium">Sedang (20 detik)</option>
-                      <option value="fast">Cepat (10 detik)</option>
+                      <option value="normal">Normal</option>
+                      <option value="medium">Medium</option>
+                      <option value="semibold">Semi Bold</option>
+                      <option value="bold">Bold</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Atur kecepatan pergerakan teks marquee
-                    </p>
                   </div>
                   
                   {settings.marqueeEnabled && settings.marqueeText && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-blue-800 mb-2">Preview Marquee:</p>
-                      <div className="bg-blue-600 text-white py-2 px-4 rounded overflow-hidden">
-                        <div className="whitespace-nowrap text-sm">
+                    <div className="bg-gray-50 p-3 rounded-lg border">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Live Preview:</p>
+                      <div 
+                        className="py-2 px-4 rounded overflow-hidden"
+                        style={{
+                          backgroundColor: settings.marqueeBackgroundColor || "#2563eb",
+                          color: settings.marqueeTextColor || "#ffffff"
+                        }}
+                      >
+                        <div 
+                          className="whitespace-nowrap"
+                          style={{
+                            fontSize: `${settings.marqueeFontSize || 14}px`,
+                            fontWeight: settings.marqueeFontWeight || "normal"
+                          }}
+                        >
                           📢 {settings.marqueeText}
                         </div>
                       </div>
@@ -2259,12 +2755,12 @@ export default function AdminPengaturanPage() {
                                         const newApps = [...applicationsSettings.apps];
                                         newApps[index] = { ...app, logo: result.url };
                                         setApplicationsSettings(prev => ({ ...prev, apps: newApps }));
-                                        alert("✅ Logo berhasil diupload!");
+                                        setToast({ message: 'Logo berhasil diupload!', type: 'success' });
                                       } else {
-                                        alert("❌ Gagal upload logo: " + result.error);
+                                        setToast({ message: 'Gagal upload logo: ' + result.error, type: 'error' });
                                       }
                                     } catch {
-                                      alert("❌ Gagal upload logo");
+                                      setToast({ message: 'Gagal upload logo', type: 'error' });
                                     }
                                   }
                                 }}
@@ -2331,6 +2827,56 @@ export default function AdminPengaturanPage() {
                 </button>
               </RoleGuard>
             </div>
+            
+            {/* Live Preview Section */}
+            <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border-2 border-blue-200">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <span className="text-2xl">👁️</span>
+                Live Preview - {heroSettings.isCarousel ? 'Carousel Mode' : 'Static Hero'}
+              </h3>
+              {heroSettings.isCarousel && heroSettings.slides.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg">
+                    <button
+                      onClick={() => setPreviewSlideIndex(prev => prev > 0 ? prev - 1 : heroSettings.slides.length - 1)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="font-medium text-gray-700">
+                      Slide {previewSlideIndex + 1} / {heroSettings.slides.length}
+                    </span>
+                    <button
+                      onClick={() => setPreviewSlideIndex(prev => prev < heroSettings.slides.length - 1 ? prev + 1 : 0)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                  <HeroPreview slide={heroSettings.slides[previewSlideIndex]} />
+                  <div className="flex gap-2 justify-center">
+                    {heroSettings.slides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setPreviewSlideIndex(idx)}
+                        className={`w-3 h-3 rounded-full transition-all ${
+                          idx === previewSlideIndex ? 'bg-blue-600 w-8' : 'bg-gray-300 hover:bg-gray-400'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : !heroSettings.isCarousel ? (
+                <HeroPreview slide={heroSettings} isStatic={true} />
+              ) : (
+                <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="text-6xl mb-4">🎠</div>
+                  <p className="text-gray-600 font-medium">Carousel aktif tapi belum ada slide</p>
+                  <p className="text-sm text-gray-500 mt-2">Tambahkan slide pertama untuk melihat preview</p>
+                </div>
+              )}
+            </div>
+            
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2370,78 +2916,244 @@ export default function AdminPengaturanPage() {
                 ></textarea>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Background Image
-                </label>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file);
-                      }}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
-                    <span className="text-xs text-gray-500">atau</span>
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-medium mb-3">🎨 Pengaturan Background</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipe Background
+                    </label>
+                    <select
+                      value={heroSettings.backgroundType || "gradient"}
+                      onChange={(e) => setHeroSettings(prev => ({ ...prev, backgroundType: e.target.value as 'gradient' | 'image' | 'solid' }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="gradient">Gradient (Default)</option>
+                      <option value="solid">Solid Color</option>
+                      <option value="image">Image</option>
+                    </select>
                   </div>
-                  <input
-                    type="url"
-                    value={heroSettings.backgroundImage}
-                    onChange={(e) =>
-                      handleHeroChange("backgroundImage", e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://example.com/hero-bg.jpg"
-                  />
-                  <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
-                    <p className="font-semibold mb-1">
-                      📝 Rekomendasi Ukuran Gambar:
-                    </p>
-                    <ul className="space-y-1">
-                      <li>• Ukuran: 1920x1080 pixels (Full HD)</li>
-                      <li>• Format: JPG, PNG, WebP</li>
-                      <li>• Ukuran file: Maksimal 5MB</li>
-                      <li>• Rasio: 16:9 untuk hasil terbaik</li>
-                    </ul>
+
+                  {heroSettings.backgroundType === 'gradient' && (
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          CSS Gradient
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={heroSettings.backgroundGradient || ""}
+                          onChange={(e) => setHeroSettings(prev => ({ ...prev, backgroundGradient: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                          placeholder="linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)"
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                        💡 <strong>Preset Gradients:</strong>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <button onClick={() => setHeroSettings(prev => ({ ...prev, backgroundGradient: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)' }))} className="text-left px-2 py-1 bg-white rounded hover:bg-gray-100">🔵 Blue Default</button>
+                          <button onClick={() => setHeroSettings(prev => ({ ...prev, backgroundGradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }))} className="text-left px-2 py-1 bg-white rounded hover:bg-gray-100">💙 Blue Light</button>
+                          <button onClick={() => setHeroSettings(prev => ({ ...prev, backgroundGradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)' }))} className="text-left px-2 py-1 bg-white rounded hover:bg-gray-100">💜 Purple</button>
+                          <button onClick={() => setHeroSettings(prev => ({ ...prev, backgroundGradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)' }))} className="text-left px-2 py-1 bg-white rounded hover:bg-gray-100">💚 Green</button>
+                          <button onClick={() => setHeroSettings(prev => ({ ...prev, backgroundGradient: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' }))} className="text-left px-2 py-1 bg-white rounded hover:bg-gray-100">❤️ Red</button>
+                          <button onClick={() => setHeroSettings(prev => ({ ...prev, backgroundGradient: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)' }))} className="text-left px-2 py-1 bg-white rounded hover:bg-gray-100">⚫ Dark</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {heroSettings.backgroundType === 'solid' && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Background Color
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={heroSettings.backgroundColor || "#0f172a"}
+                          onChange={(e) => setHeroSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                          className="h-10 w-16 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={heroSettings.backgroundColor || "#0f172a"}
+                          onChange={(e) => setHeroSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                          placeholder="#0f172a"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {heroSettings.backgroundType === 'image' && (
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Background Image
+                        </label>
+                        <div className="space-y-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file);
+                            }}
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                          <input
+                            type="url"
+                            value={heroSettings.backgroundImage}
+                            onChange={(e) => handleHeroChange("backgroundImage", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://example.com/hero-bg.jpg"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Posisi Background
+                        </label>
+                        <select
+                          value={heroSettings.backgroundPosition || "cover"}
+                          onChange={(e) => setHeroSettings(prev => ({ ...prev, backgroundPosition: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="cover">Cover - Gambar menutupi area</option>
+                          <option value="contain">Contain - Gambar utuh terlihat</option>
+                          <option value="center">Center - Posisi tengah</option>
+                          <option value="top">Top - Posisi atas</option>
+                          <option value="bottom">Bottom - Posisi bawah</option>
+                          <option value="left">Left - Posisi kiri</option>
+                          <option value="right">Right - Posisi kanan</option>
+                          <option value="fill">Fill - Regangkan penuh</option>
+                        </select>
+                      </div>
+                      <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                        📝 Rekomendasi: 1920x1080px, JPG/PNG/WebP, max 5MB
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-medium mb-3">🎨 Style Teks Hero</h3>
+                <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Warna Judul</label>
+                      <input type="color" value={heroSettings.titleColor || "#ffffff"} onChange={(e) => setHeroSettings(prev => ({ ...prev, titleColor: e.target.value }))} className="w-full h-10 border rounded cursor-pointer" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ukuran Font</label>
+                      <input type="text" value={heroSettings.titleFontSize || "32px"} onChange={(e) => setHeroSettings(prev => ({ ...prev, titleFontSize: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" placeholder="32px" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ketebalan</label>
+                      <select value={heroSettings.titleFontWeight || "bold"} onChange={(e) => setHeroSettings(prev => ({ ...prev, titleFontWeight: e.target.value }))} className="w-full px-3 py-2 border rounded-lg">
+                        <option value="normal">Normal</option>
+                        <option value="500">Medium</option>
+                        <option value="600">Semibold</option>
+                        <option value="bold">Bold</option>
+                        <option value="800">Extra Bold</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Warna Subtitle</label>
+                      <input type="color" value={heroSettings.subtitleColor || "#ffffff"} onChange={(e) => setHeroSettings(prev => ({ ...prev, subtitleColor: e.target.value }))} className="w-full h-10 border rounded cursor-pointer" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ukuran Subtitle</label>
+                      <input type="text" value={heroSettings.subtitleFontSize || "14px"} onChange={(e) => setHeroSettings(prev => ({ ...prev, subtitleFontSize: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" placeholder="14px" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Warna Deskripsi</label>
+                      <input type="color" value={heroSettings.descriptionColor || "#bfdbfe"} onChange={(e) => setHeroSettings(prev => ({ ...prev, descriptionColor: e.target.value }))} className="w-full h-10 border rounded cursor-pointer" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ukuran Deskripsi</label>
+                      <input type="text" value={heroSettings.descriptionFontSize || "14px"} onChange={(e) => setHeroSettings(prev => ({ ...prev, descriptionFontSize: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" placeholder="14px" />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teks Tombol CTA
-                  </label>
-                  <input
-                    type="text"
-                    value={heroSettings.ctaText}
-                    onChange={(e) =>
-                      handleHeroChange("ctaText", e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL Tombol CTA
-                  </label>
-                  <input
-                    type="text"
-                    value={heroSettings.ctaUrl}
-                    onChange={(e) => handleHeroChange("ctaUrl", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-medium mb-3">🔘 Style Tombol CTA</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Teks Tombol</label>
+                      <input type="text" value={heroSettings.ctaText} onChange={(e) => handleHeroChange("ctaText", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">URL Tujuan</label>
+                      <input type="text" value={heroSettings.ctaUrl} onChange={(e) => handleHeroChange("ctaUrl", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Warna Background</label>
+                        <input type="color" value={heroSettings.ctaBackground || "#ffffff"} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaBackground: e.target.value }))} className="w-full h-10 border rounded cursor-pointer" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Warna Teks</label>
+                        <input type="color" value={heroSettings.ctaTextColor || "#1e40af"} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaTextColor: e.target.value }))} className="w-full h-10 border rounded cursor-pointer" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Border Radius</label>
+                        <input type="text" value={heroSettings.ctaBorderRadius || "8px"} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaBorderRadius: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" placeholder="8px" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Padding</label>
+                        <input type="text" value={heroSettings.ctaPadding || "10px 20px"} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaPadding: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" placeholder="10px 20px" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Font Size</label>
+                        <input type="text" value={heroSettings.ctaFontSize || "14px"} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaFontSize: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" placeholder="14px" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Font Weight</label>
+                        <select value={heroSettings.ctaFontWeight || "600"} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaFontWeight: e.target.value }))} className="w-full px-3 py-2 border rounded-lg">
+                          <option value="normal">Normal</option>
+                          <option value="500">Medium</option>
+                          <option value="600">Semibold</option>
+                          <option value="bold">Bold</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Posisi</label>
+                        <select value={heroSettings.ctaPosition || "center"} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaPosition: e.target.value }))} className="w-full px-3 py-2 border rounded-lg">
+                          <option value="left">Kiri</option>
+                          <option value="center">Tengah</option>
+                          <option value="right">Kanan</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Custom CSS Tambahan (Opsional)</label>
+                    <textarea rows={2} value={heroSettings.ctaCustomCss || ""} onChange={(e) => setHeroSettings(prev => ({ ...prev, ctaCustomCss: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs" placeholder="box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #000;" />
+                    <p className="text-xs text-gray-500 mt-1">Untuk style lanjutan seperti shadow, border, transform, dll</p>
+                  </div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
                 <h3 className="text-lg font-medium mb-3">
-                  🎨 Mode Tampilan Hero
+                  🎨 Pengaturan Overlay & Style
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <label className="flex items-center">
                     <input
                       type="checkbox"
@@ -2454,14 +3166,54 @@ export default function AdminPengaturanPage() {
                       }
                       className="mr-2"
                     />
-                    <span className="text-sm">
-                      Gambar Clean (Tanpa Overlay Gradient)
+                    <span className="text-sm font-medium">
+                      Gambar Clean (Tanpa Overlay)
                     </span>
                   </label>
-                  <div className="text-xs text-gray-500">
-                    Menghilangkan overlay gradient pada gambar background untuk
-                    tampilan yang lebih bersih
-                  </div>
+                  
+                  {!heroSettings.cleanTemplate && (
+                    <div className="ml-6 space-y-3 bg-gray-50 p-4 rounded-lg">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Warna Overlay
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={heroSettings.overlayColor || "#0f172a"}
+                              onChange={(e) => setHeroSettings(prev => ({ ...prev, overlayColor: e.target.value }))}
+                              className="h-10 w-16 border border-gray-300 rounded cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={heroSettings.overlayColor || "#0f172a"}
+                              onChange={(e) => setHeroSettings(prev => ({ ...prev, overlayColor: e.target.value }))}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                              placeholder="#0f172a"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Opacity ({Math.round((heroSettings.overlayOpacity ?? 0.7) * 100)}%)
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={heroSettings.overlayOpacity ?? 0.7}
+                            onChange={(e) => setHeroSettings(prev => ({ ...prev, overlayOpacity: parseFloat(e.target.value) }))}
+                            className="w-full h-10"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                        💡 Overlay membantu teks lebih terbaca di atas gambar
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2699,6 +3451,50 @@ export default function AdminPengaturanPage() {
                                   ></textarea>
                                 </div>
 
+                                <div className="border-t pt-3 mt-3">
+                                  <h4 className="text-sm font-medium text-gray-700 mb-3">🎨 Style Teks Slide</h4>
+                                  <div className="space-y-3 bg-gray-50 p-3 rounded">
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Warna Judul</label>
+                                        <input type="color" value={slide.titleColor || "#ffffff"} onChange={(e) => updateSlide(index, "titleColor", e.target.value)} className="w-full h-8 border rounded cursor-pointer" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Ukuran</label>
+                                        <input type="text" value={slide.titleFontSize || "32px"} onChange={(e) => updateSlide(index, "titleFontSize", e.target.value)} className="w-full px-2 py-1 border rounded text-xs" placeholder="32px" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Ketebalan</label>
+                                        <select value={slide.titleFontWeight || "bold"} onChange={(e) => updateSlide(index, "titleFontWeight", e.target.value)} className="w-full px-2 py-1 border rounded text-xs">
+                                          <option value="normal">Normal</option>
+                                          <option value="600">Semibold</option>
+                                          <option value="bold">Bold</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Warna Subtitle</label>
+                                        <input type="color" value={slide.subtitleColor || "#ffffff"} onChange={(e) => updateSlide(index, "subtitleColor", e.target.value)} className="w-full h-8 border rounded cursor-pointer" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Ukuran Subtitle</label>
+                                        <input type="text" value={slide.subtitleFontSize || "14px"} onChange={(e) => updateSlide(index, "subtitleFontSize", e.target.value)} className="w-full px-2 py-1 border rounded text-xs" placeholder="14px" />
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Warna Deskripsi</label>
+                                        <input type="color" value={slide.descriptionColor || "#bfdbfe"} onChange={(e) => updateSlide(index, "descriptionColor", e.target.value)} className="w-full h-8 border rounded cursor-pointer" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Ukuran Deskripsi</label>
+                                        <input type="text" value={slide.descriptionFontSize || "14px"} onChange={(e) => updateSlide(index, "descriptionFontSize", e.target.value)} className="w-full px-2 py-1 border rounded text-xs" placeholder="14px" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Posisi Gambar
@@ -2741,66 +3537,140 @@ export default function AdminPengaturanPage() {
                                   </select>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Teks Tombol CTA (Opsional)
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={slide.ctaText ?? ""}
-                                      onChange={(e) =>
-                                        updateSlide(
-                                          index,
-                                          "ctaText",
-                                          e.target.value
-                                        )
-                                      }
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      placeholder="Contoh: Selengkapnya, Daftar Sekarang"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      URL Tujuan CTA
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={slide.ctaUrl ?? ""}
-                                      onChange={(e) =>
-                                        updateSlide(
-                                          index,
-                                          "ctaUrl",
-                                          e.target.value
-                                        )
-                                      }
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      placeholder="/halaman-tujuan atau https://..."
-                                    />
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3 mt-3">
-                                  <label className="flex items-center">
+                                <div className="border-t pt-3 mt-3">
+                                  <label className="flex items-center mb-3">
                                     <input
                                       type="checkbox"
-                                      checked={slide.cleanNoCTA || false}
+                                      checked={slide.ctaEnabled || false}
                                       onChange={(e) =>
                                         updateSlide(
                                           index,
-                                          "cleanNoCTA",
+                                          "ctaEnabled",
                                           e.target.checked
                                         )
                                       }
                                       className="mr-2"
                                     />
-                                    <span className="text-sm">
-                                      Mode Clean (Tanpa CTA)
+                                    <span className="text-sm font-medium">
+                                      Aktifkan Tombol CTA
                                     </span>
                                   </label>
-                                  <label className="flex items-center">
+                                  
+                                  {slide.ctaEnabled && (
+                                    <div className="ml-6 space-y-3">
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Teks Tombol CTA
+                                          </label>
+                                          <input
+                                            type="text"
+                                            value={slide.ctaText ?? ""}
+                                            onChange={(e) =>
+                                              updateSlide(
+                                                index,
+                                                "ctaText",
+                                                e.target.value
+                                              )
+                                            }
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Contoh: Selengkapnya"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            URL Tujuan CTA
+                                          </label>
+                                          <input
+                                            type="text"
+                                            value={slide.ctaUrl ?? ""}
+                                            onChange={(e) =>
+                                              updateSlide(
+                                                index,
+                                                "ctaUrl",
+                                                e.target.value
+                                              )
+                                            }
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="/halaman-tujuan"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="bg-gray-50 p-3 rounded space-y-3">
+                                        <h5 className="text-xs font-medium text-gray-700">🔘 Style Tombol CTA</h5>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>
+                                            <label className="block text-xs text-gray-600 mb-1">Warna Background</label>
+                                            <input type="color" value={slide.ctaBackground || "#ffffff"} onChange={(e) => updateSlide(index, "ctaBackground", e.target.value)} className="w-full h-8 border rounded cursor-pointer" />
+                                          </div>
+                                          <div>
+                                            <label className="block text-xs text-gray-600 mb-1">Warna Teks</label>
+                                            <input type="color" value={slide.ctaTextColor || "#1e40af"} onChange={(e) => updateSlide(index, "ctaTextColor", e.target.value)} className="w-full h-8 border rounded cursor-pointer" />
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                          <div>
+                                            <label className="block text-xs text-gray-600 mb-1">Border Radius</label>
+                                            <input type="text" value={slide.ctaBorderRadius || "8px"} onChange={(e) => updateSlide(index, "ctaBorderRadius", e.target.value)} className="w-full px-2 py-1 border rounded text-xs" placeholder="8px" />
+                                          </div>
+                                          <div>
+                                            <label className="block text-xs text-gray-600 mb-1">Padding</label>
+                                            <input type="text" value={slide.ctaPadding || "10px 20px"} onChange={(e) => updateSlide(index, "ctaPadding", e.target.value)} className="w-full px-2 py-1 border rounded text-xs" placeholder="10px 20px" />
+                                          </div>
+                                          <div>
+                                            <label className="block text-xs text-gray-600 mb-1">Font Size</label>
+                                            <input type="text" value={slide.ctaFontSize || "14px"} onChange={(e) => updateSlide(index, "ctaFontSize", e.target.value)} className="w-full px-2 py-1 border rounded text-xs" placeholder="14px" />
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>
+                                            <label className="block text-xs text-gray-600 mb-1">Font Weight</label>
+                                            <select value={slide.ctaFontWeight || "600"} onChange={(e) => updateSlide(index, "ctaFontWeight", e.target.value)} className="w-full px-2 py-1 border rounded text-xs">
+                                              <option value="normal">Normal</option>
+                                              <option value="600">Semibold</option>
+                                              <option value="bold">Bold</option>
+                                            </select>
+                                          </div>
+                                          <div>
+                                            <label className="block text-xs text-gray-600 mb-1">Posisi</label>
+                                            <select value={slide.ctaPosition ?? "center"} onChange={(e) => updateSlide(index, "ctaPosition", e.target.value)} className="w-full px-2 py-1 border rounded text-xs">
+                                              <option value="left">Kiri</option>
+                                              <option value="center">Tengah</option>
+                                              <option value="right">Kanan</option>
+                                            </select>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Custom CSS Tambahan (Opsional)
+                                        </label>
+                                        <textarea
+                                          rows={2}
+                                          value={slide.ctaCustomCss ?? ""}
+                                          onChange={(e) =>
+                                            updateSlide(
+                                              index,
+                                              "ctaCustomCss",
+                                              e.target.value
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                                          placeholder="box-shadow: 0 4px 6px rgba(0,0,0,0.1);"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          Untuk style lanjutan seperti shadow, border, transform
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="border-t pt-3 mt-3">
+                                  <label className="flex items-center mb-3">
                                     <input
                                       type="checkbox"
-                                      checked={slide.cleanImage || false}
+                                      checked={slide.cleanImage ?? true}
                                       onChange={(e) =>
                                         updateSlide(
                                           index,
@@ -2810,69 +3680,84 @@ export default function AdminPengaturanPage() {
                                       }
                                       className="mr-2"
                                     />
-                                    <span className="text-sm">
+                                    <span className="text-sm font-medium">
                                       Gambar Clean (Tanpa Overlay)
                                     </span>
                                   </label>
-                                </div>
-                                <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded">
-                                  💡 <strong>Tips:</strong> Mode Clean
-                                  menghilangkan CTA, Gambar Clean menghilangkan
-                                  overlay gradient
+                                  
+                                  {!slide.cleanImage && (
+                                    <div className="ml-6 space-y-3">
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Warna Overlay
+                                          </label>
+                                          <div className="flex gap-2">
+                                            <input
+                                              type="color"
+                                              value={slide.overlayColor ?? "#0f172a"}
+                                              onChange={(e) =>
+                                                updateSlide(
+                                                  index,
+                                                  "overlayColor",
+                                                  e.target.value
+                                                )
+                                              }
+                                              className="h-10 w-16 border border-gray-300 rounded cursor-pointer"
+                                            />
+                                            <input
+                                              type="text"
+                                              value={slide.overlayColor ?? "#0f172a"}
+                                              onChange={(e) =>
+                                                updateSlide(
+                                                  index,
+                                                  "overlayColor",
+                                                  e.target.value
+                                                )
+                                              }
+                                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                              placeholder="#0f172a"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Opacity ({Math.round((slide.overlayOpacity ?? 0.7) * 100)}%)
+                                          </label>
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.1"
+                                            value={slide.overlayOpacity ?? 0.7}
+                                            onChange={(e) =>
+                                              updateSlide(
+                                                index,
+                                                "overlayOpacity",
+                                                parseFloat(e.target.value)
+                                              )
+                                            }
+                                            className="w-full h-10"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                                        💡 Overlay membantu teks lebih terbaca di atas gambar
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {slide.image && (
                                   <div>
                                     <p className="text-sm font-medium text-gray-700 mb-2">
-                                      Live Preview:
+                                      Preview Slide:
                                     </p>
-                                    <div
-                                      className="w-full h-40 rounded border relative overflow-hidden bg-gray-100"
-                                      style={{
-                                        backgroundImage: `url(${slide.image})`,
-                                        backgroundSize:
-                                          slide.backgroundPosition === "fill"
-                                            ? "100% 100%"
-                                            : slide.backgroundPosition ===
-                                              "contain"
-                                            ? "contain"
-                                            : "cover",
-                                        backgroundPosition: [
-                                          "top",
-                                          "bottom",
-                                          "left",
-                                          "right",
-                                          "center",
-                                        ].includes(
-                                          slide.backgroundPosition || "cover"
-                                        )
-                                          ? slide.backgroundPosition
-                                          : "center",
-                                        backgroundRepeat: "no-repeat",
-                                      }}
-                                    >
-                                      {(slide.title || slide.subtitle) && (
-                                        <div className="absolute bottom-2 left-2 right-2">
-                                          <div className="bg-black bg-opacity-50 text-white p-2 rounded text-center">
-                                            {slide.title && (
-                                              <h4 className="font-bold text-xs">
-                                                {slide.title}
-                                              </h4>
-                                            )}
-                                            {slide.subtitle && (
-                                              <p className="text-xs mt-1">
-                                                {slide.subtitle}
-                                              </p>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      Mode:{" "}
-                                      <strong>
-                                        {slide.backgroundPosition || "cover"}
-                                      </strong>
+                                    <HeroPreview slide={slide} />
+                                    <p className="text-xs text-gray-500 mt-2">
+                                      Mode: <strong>{slide.backgroundPosition || "cover"}</strong>
+                                      {slide.cleanImage && " • Clean Image"}
+                                      {!slide.cleanImage && ` • Overlay ${Math.round((slide.overlayOpacity ?? 0.7) * 100)}%`}
                                     </p>
                                   </div>
                                 )}
@@ -2895,17 +3780,7 @@ export default function AdminPengaturanPage() {
                 </div>
               </div>
 
-              {heroSettings.backgroundImage && (
-                <div className="mt-4">
-                  <h3 className="font-medium mb-2">Preview Background</h3>
-                  <div
-                    className="w-full h-32 bg-cover bg-center rounded-lg border"
-                    style={{
-                      backgroundImage: `url(${heroSettings.backgroundImage})`,
-                    }}
-                  ></div>
-                </div>
-              )}
+
             </div>
           </div>
         )}
@@ -2945,6 +3820,36 @@ export default function AdminPengaturanPage() {
           </div>
         </div>
       </div>
+      
+      {/* Enhanced Modals and Toast */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Berhasil Disimpan!"
+        message="Semua pengaturan berhasil disimpan dan akan diterapkan pada website."
+      />
+      
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={() => {
+          confirmAction();
+          setShowConfirmModal(false);
+        }}
+        title={confirmTitle}
+        message={confirmMessage}
+        type="warning"
+        confirmText="Ya, Reset"
+        cancelText="Batal"
+      />
+      
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

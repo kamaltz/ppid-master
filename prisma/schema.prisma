@@ -142,6 +142,7 @@ model InformasiPublik {
 model ActivityLog {
   id         Int      @id @default(autoincrement())
   action     String
+  level      String?  @default("INFO")
   details    String?
   user_id    String?
   user_role  String?

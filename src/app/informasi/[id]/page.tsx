@@ -153,10 +153,10 @@ export default function InformasiDetailPage() {
           {/* Thumbnail */}
           {informasi.thumbnail && (
             <div className="px-8 pt-6">
-              <div className="relative w-full h-[600px] overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity" onClick={() => {
+              <div className="relative w-full h-[600px] overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity group" onClick={() => {
                 setFullImageSrc(informasi.thumbnail!);
                 setShowFullImage(true);
-              }}>
+              }} title="Klik untuk tampilkan ukuran penuh">
                 <Image 
                   src={informasi.thumbnail} 
                   alt={informasi.judul}
@@ -167,6 +167,11 @@ export default function InformasiDetailPage() {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                  <div className="bg-white bg-opacity-90 text-gray-800 px-3 py-2 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm">
+                    Klik untuk tampilkan ukuran penuh
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -174,10 +179,10 @@ export default function InformasiDetailPage() {
           {/* Image Gallery */}
           {informasi.images && informasi.images.length > 0 && (
             <div className="px-8 pt-6">
-              <div className="relative w-full h-[600px] overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity" onClick={() => {
+              <div className="relative w-full h-[600px] overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity group" onClick={() => {
                 setFullImageSrc(informasi.images![currentImageIndex]);
                 setShowFullImage(true);
-              }}>
+              }} title="Klik untuk tampilkan ukuran penuh">
                 <Image 
                   src={informasi.images[currentImageIndex]} 
                   alt={`Gallery ${currentImageIndex + 1}`}
@@ -185,6 +190,11 @@ export default function InformasiDetailPage() {
                   className="object-cover h-full"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
                 />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                  <div className="bg-white bg-opacity-90 text-gray-800 px-3 py-2 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm">
+                    Klik untuk tampilkan ukuran penuh
+                  </div>
+                </div>
                 {informasi.images.length > 1 && (
                   <>
                     <button
@@ -216,7 +226,7 @@ export default function InformasiDetailPage() {
               {informasi.images.length > 1 && (
                 <div className="flex space-x-2 mt-4 overflow-x-auto">
                   {informasi.images.map((img, index) => (
-                    <div key={index} className={`relative w-16 h-16 flex-shrink-0 rounded cursor-pointer overflow-hidden ${
+                    <div key={index} className={`relative w-16 h-16 flex-shrink-0 rounded cursor-pointer group" title="Klik untuk tampilkan ukuran penuh overflow-hidden ${
                       index === currentImageIndex ? 'ring-2 ring-blue-500' : ''
                     }`} onClick={() => setCurrentImageIndex(index)}>
                       <Image

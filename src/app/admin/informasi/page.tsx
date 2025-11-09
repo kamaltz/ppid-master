@@ -5,6 +5,7 @@ import { ROLES, getRoleDisplayName } from "@/lib/roleUtils";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useInformasiData } from "@/hooks/useInformasiData";
 import { useAuth } from "@/context/AuthContext";
+import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { X, Upload, Link as LinkIcon, FileText, Filter } from "lucide-react";
 import Image from "next/image";
 
@@ -32,6 +33,7 @@ interface InformasiItem {
 
 export default function AdminInformasiPage() {
   const { getUserRole, getUserName } = useAuth();
+  const { logInformasiCreate, logInformasiUpdate, logInformasiDelete } = useActivityLogger();
   
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -222,7 +224,7 @@ export default function AdminInformasiPage() {
         thumbnail: formData.thumbnail,
         status: formData.status,
         jadwal_publish: formData.jadwal_publish,
-        pejabat_penguasa_informasi: getUserRole() === 'PPID_PELAKSANA' ? getUserName() || 'PPID Pelaksana' : getRoleDisplayName(getUserRole()) || 'PPID Diskominfo',
+        pejabat_penguasa_informasi: getUserRole() === 'PPID_PELAKSANA' ? (getUserName() || 'PPID Pelaksana Diskominfo Garut') : getRoleDisplayName(getUserRole()) || 'PPID Diskominfo Garut',
         files: allFiles,
         links: formData.links.filter(link => link.title.trim() !== '' && link.url.trim() !== ''),
         images: formData.images
@@ -230,8 +232,10 @@ export default function AdminInformasiPage() {
       
       if (editId) {
         await updateInformasi(editId, submitData);
+        logInformasiUpdate(formData.judul);
       } else {
         await createInformasi(submitData);
+        logInformasiCreate(formData.judul);
       }
       
       await fetchAllInformasi();
@@ -353,6 +357,7 @@ export default function AdminInformasiPage() {
     if (confirm(`Yakin ingin menghapus informasi "${item?.judul}"? Tindakan ini tidak dapat dibatalkan.`)) {
       try {
         await deleteInformasi(id);
+        logInformasiDelete(item?.judul || 'Informasi');
         alert('Informasi berhasil dihapus');
         await fetchAllInformasi(); // Refresh all data for filters
       } catch {
@@ -541,33 +546,7 @@ export default function AdminInformasiPage() {
             <Filter className="w-4 h-4" />
             Filter
           </button>
-          <RoleGuard requiredRoles={[ROLES.ADMIN]} showAccessDenied={false}>
-            <button 
-              onClick={async () => {
-                if (confirm('Update semua data pejabat penguasa informasi dengan nama penulis yang sebenarnya?\n\nProses ini akan:\n- Mencari informasi dengan penulis "PPID Pelaksana"\n- Mengganti dengan nama asli penulis jika ditemukan\n- Atau menggunakan nama yang lebih spesifik')) {
-                  try {
-                    const token = localStorage.getItem('auth_token');
-                    const response = await fetch('/api/admin/update-informasi-authors', {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                      alert(`✅ Berhasil!\n\nDitemukan: ${data.totalFound} informasi\nDiupdate: ${data.updated} informasi\n\nSilakan refresh halaman untuk melihat perubahan.`);
-                      window.location.reload();
-                    } else {
-                      alert(`❌ ${data.error}`);
-                    }
-                  } catch (error) {
-                    alert('❌ Gagal mengupdate data');
-                  }
-                }
-              }}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
-            >
-              🔄 Update Authors
-            </button>
-          </RoleGuard>
+
           <RoleGuard requiredRoles={[ROLES.ADMIN, ROLES.PPID_UTAMA, ROLES.PPID_PELAKSANA]} showAccessDenied={false}>
             <button 
               onClick={async () => {
@@ -1114,7 +1093,10 @@ export default function AdminInformasiPage() {
             
             <div className="bg-blue-50 p-3 rounded">
               <p className="text-sm text-blue-700">
-                <strong>Pejabat Penguasa Informasi:</strong> {getUserRole() === 'PPID_PELAKSANA' ? getUserName() || 'PPID Pelaksana' : getRoleDisplayName(getUserRole()) || 'PPID Diskominfo'}
+                <strong>Pejabat Penguasa Informasi:</strong> {getUserRole() === 'PPID_PELAKSANA' ? (getUserName() || 'PPID Pelaksana Diskominfo Garut') : getRoleDisplayName(getUserRole()) || 'PPID Diskominfo Garut'}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Nama penulis akan otomatis tersimpan sesuai dengan akun yang sedang login
               </p>
             </div>
             

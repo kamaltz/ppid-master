@@ -22,7 +22,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    if (decoded.role !== 'ADMIN') {
+    // Allow all PPID roles to view activity logs
+    const allowedRoles = ['ADMIN', 'PPID_UTAMA', 'PPID_PELAKSANA', 'ATASAN_PPID', 'PPID'];
+    if (!allowedRoles.includes(decoded.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 

@@ -24,7 +24,6 @@ export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [actionFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -41,17 +40,12 @@ export default function ActivityLogsPage() {
     ddosProtection: { suspiciousIPs: number; details: Array<{ ip: string; recentRequests: number }> };
     ipBlacklist: { totalBlacklisted: number; blacklistedIPs: string[] };
   } | null>(null);
-  const { token } = useAuth();
+  const { token, getUserRole } = useAuth();
+  const userRole = getUserRole();
 
   const fetchLogs = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (levelFilter !== 'all') params.append('level', levelFilter);
-      if (actionFilter !== 'all') params.append('action', actionFilter);
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      
-      const response = await fetch(`/api/logs?${params.toString()}`, {
+      const response = await fetch('/api/activity-logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -71,7 +65,7 @@ export default function ActivityLogsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, levelFilter, actionFilter, startDate, endDate]);
+  }, [token]);
 
   const fetchBlacklist = useCallback(async () => {
     try {
@@ -165,18 +159,25 @@ export default function ActivityLogsPage() {
         log.user_role.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (log.user_email && log.user_email.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      const matchesRole = roleFilter === "all" || log.user_role === roleFilter;
+      const matchesRole = (userRole === 'ADMIN' || userRole === 'PPID_UTAMA') 
+        ? (roleFilter === "all" || log.user_role === roleFilter)
+        : true;
       
-      return matchesSearch && matchesRole;
+      const matchesLevel = levelFilter === "all" || log.level === levelFilter;
+      
+      const matchesDate = (!startDate || new Date(log.created_at) >= new Date(startDate)) &&
+                          (!endDate || new Date(log.created_at) <= new Date(endDate));
+      
+      return matchesSearch && matchesRole && matchesLevel && matchesDate;
     });
-  }, [logs, searchTerm, roleFilter]);
+  }, [logs, searchTerm, roleFilter, levelFilter, userRole, startDate, endDate]);
 
   const exportLogs = useCallback(async () => {
     setIsExporting(true);
     try {
       const logsToExport = filteredLogs.map(log => {
         const details = typeof log.details === 'object' ? JSON.stringify(log.details) : log.details;
-        return `[${new Date(log.created_at).toLocaleString('id-ID')}] ${log.level} - ${log.action}\n` +
+        return `[${new Date(log.created_at).toLocaleString('id-ID')}] ${log.action}\n` +
                `User: ${log.user_email || 'Unknown'} (${log.user_role}) - ID: ${log.user_id}\n` +
                `Message: ${log.message}\n` +
                `IP: ${log.ip_address} | User Agent: ${log.user_agent || 'Unknown'}\n` +
@@ -188,8 +189,6 @@ export default function ActivityLogsPage() {
       const header = `PPID GARUT - LOG AKTIVITAS SISTEM\n` +
                     `Exported: ${new Date().toLocaleString('id-ID')}\n` +
                     `Total Records: ${filteredLogs.length}\n` +
-                    `Filter Applied: Role=${roleFilter}, Level=${levelFilter}, Action=${actionFilter}\n` +
-                    `Date Range: ${startDate || 'All'} to ${endDate || 'All'}\n` +
                     `${'='.repeat(80)}\n\n`;
       
       const content = header + logsToExport;
@@ -209,7 +208,7 @@ export default function ActivityLogsPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [filteredLogs, roleFilter, levelFilter, actionFilter, startDate, endDate]);
+  }, [filteredLogs]);
 
   const deleteLogs = useCallback(async () => {
     if (selectedLogs.length === 0) return;
@@ -367,22 +366,24 @@ export default function ActivityLogsPage() {
             </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Semua Role</option>
-              <option value="ADMIN">Admin</option>
-              <option value="PPID_UTAMA">PPID Utama</option>
-              <option value="PPID_PELAKSANA">PPID Pelaksana</option>
-              <option value="ATASAN_PPID">Atasan PPID</option>
-              <option value="PEMOHON">Pemohon</option>
-              <option value="SYSTEM">System</option>
-            </select>
-          </div>
+          {(userRole === 'ADMIN' || userRole === 'PPID_UTAMA') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Semua Role</option>
+                <option value="ADMIN">Admin</option>
+                <option value="PPID_UTAMA">PPID Utama</option>
+                <option value="PPID_PELAKSANA">PPID Pelaksana</option>
+                <option value="ATASAN_PPID">Atasan PPID</option>
+                <option value="PEMOHON">Pemohon</option>
+                <option value="SYSTEM">System</option>
+              </select>
+            </div>
+          )}
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
@@ -579,9 +580,11 @@ export default function ActivityLogsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <Activity className="w-5 h-5 text-blue-600" />
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getLevelColor(log.level)}`}>
-                          {log.level}
-                        </span>
+                        {log.level && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getLevelColor(log.level)}`}>
+                            {log.level}
+                          </span>
+                        )}
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getActionColor(log.action)}`}>
                           {log.action.replace(/_/g, ' ')}
                         </span>

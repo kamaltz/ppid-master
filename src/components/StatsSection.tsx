@@ -12,22 +12,54 @@ const StatsSection = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch('/api/stats/public');
-        const data = await response.json();
-        if (data.success) {
-          setStats(data.data);
+  const fetchStats = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🏠 [HOMEPAGE] Fetching stats from API...');
+      const response = await fetch(`/api/stats/public?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      } finally {
-        setIsLoading(false);
+      });
+      const data = await response.json();
+      console.log('🏠 [HOMEPAGE] API Response:', data);
+      
+      if (data.success) {
+        console.log('🏠 [HOMEPAGE] Setting stats to:', data.data);
+        setStats(data.data);
+      } else {
+        console.error('🏠 [HOMEPAGE] API returned error:', data);
       }
+    } catch (error) {
+      console.error('🏠 [HOMEPAGE] Failed to fetch stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    
+    const handleStatsUpdate = () => {
+      fetchStats();
     };
     
-    fetchStats();
+    window.addEventListener('statsConfigChanged', handleStatsUpdate);
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'statsUpdated') {
+        handleStatsUpdate();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('statsConfigChanged', handleStatsUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const statsData = [
@@ -66,6 +98,7 @@ const StatsSection = () => {
       </section>
     );
   }
+
   return (
     <section className="py-16 bg-gradient-to-r from-blue-800 to-blue-600">
       <div className="container mx-auto px-4">

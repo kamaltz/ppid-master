@@ -13,8 +13,25 @@ interface SlideContent {
   backgroundPosition?: string;
   ctaText?: string;
   ctaUrl?: string;
-  cleanNoCTA?: boolean;
+  ctaEnabled?: boolean;
+  ctaPosition?: string;
+  ctaCustomCss?: string;
   cleanImage?: boolean;
+  overlayColor?: string;
+  overlayOpacity?: number;
+  titleColor?: string;
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  subtitleColor?: string;
+  subtitleFontSize?: string;
+  descriptionColor?: string;
+  descriptionFontSize?: string;
+  ctaBackground?: string;
+  ctaTextColor?: string;
+  ctaBorderRadius?: string;
+  ctaPadding?: string;
+  ctaFontSize?: string;
+  ctaFontWeight?: string;
 }
 
 interface HeroSettings {
@@ -22,14 +39,35 @@ interface HeroSettings {
   subtitle: string;
   description: string;
   backgroundImage: string;
+  backgroundType?: 'gradient' | 'image' | 'solid';
+  backgroundGradient?: string;
+  backgroundColor?: string;
+  backgroundPosition?: string;
+  overlayColor?: string;
+  overlayOpacity?: number;
   ctaText: string;
   ctaUrl: string;
+  ctaPosition?: string;
+  ctaCustomCss?: string;
   isCarousel: boolean;
   autoSlide: boolean;
   slideInterval: number;
   showCarouselCTA: boolean;
   cleanTemplate: boolean;
   slides: SlideContent[];
+  titleColor?: string;
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  subtitleColor?: string;
+  subtitleFontSize?: string;
+  descriptionColor?: string;
+  descriptionFontSize?: string;
+  ctaBackground?: string;
+  ctaTextColor?: string;
+  ctaBorderRadius?: string;
+  ctaPadding?: string;
+  ctaFontSize?: string;
+  ctaFontWeight?: string;
 }
 
 const HeroSection = () => {
@@ -135,9 +173,68 @@ const HeroSection = () => {
   const currentContent = getCurrentContent();
   
   const getBackgroundStyle = () => {
+    // For static hero, use new background settings
+    if (!heroSettings.isCarousel) {
+      const bgType = heroSettings.backgroundType || 'gradient';
+      
+      if (bgType === 'solid') {
+        return {
+          background: heroSettings.backgroundColor || '#0f172a'
+        };
+      }
+      
+      if (bgType === 'gradient') {
+        return {
+          background: heroSettings.backgroundGradient || 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)'
+        };
+      }
+      
+      if (bgType === 'image' && currentContent.image) {
+        const position = heroSettings.backgroundPosition || 'cover';
+        let backgroundSize = 'cover';
+        let backgroundPosition = 'center';
+        
+        switch (position) {
+          case 'contain':
+            backgroundSize = 'contain';
+            break;
+          case 'fill':
+            backgroundSize = '100% 100%';
+            break;
+          case 'top':
+          case 'bottom':
+          case 'left':
+          case 'right':
+          case 'center':
+            backgroundPosition = position;
+            break;
+          default:
+            backgroundSize = 'cover';
+        }
+        
+        const overlayColor = heroSettings.overlayColor || '#0f172a';
+        const overlayOpacity = heroSettings.overlayOpacity ?? 0.7;
+        
+        return {
+          backgroundImage: heroSettings.cleanTemplate
+            ? `url(${currentContent.image})`
+            : `linear-gradient(${overlayColor}${Math.round(overlayOpacity * 255).toString(16).padStart(2, '0')}, ${overlayColor}${Math.round(overlayOpacity * 255).toString(16).padStart(2, '0')}), url(${currentContent.image})`,
+          backgroundSize,
+          backgroundPosition,
+          backgroundRepeat: 'no-repeat'
+        };
+      }
+      
+      return {
+        background: heroSettings.backgroundGradient || 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)'
+      };
+    }
+    
+    // For carousel, use slide-specific settings
     if (!currentContent.image) {
-      // No background image, let CSS gradient show through
-      return {};
+      return {
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)'
+      };
     }
     
     const position = currentContent.backgroundPosition || 'cover';
@@ -162,10 +259,13 @@ const HeroSection = () => {
         backgroundSize = 'cover';
     }
     
+    const overlayColor = currentContent.overlayColor || '#0f172a';
+    const overlayOpacity = currentContent.overlayOpacity ?? 0.7;
+    
     return {
       backgroundImage: (heroSettings.cleanTemplate || currentContent.cleanImage)
         ? `url(${currentContent.image})`
-        : `linear-gradient(rgba(15, 23, 42, 0.7), rgba(30, 58, 138, 0.7)), url(${currentContent.image})`,
+        : `linear-gradient(${overlayColor}${Math.round(overlayOpacity * 255).toString(16).padStart(2, '0')}, ${overlayColor}${Math.round(overlayOpacity * 255).toString(16).padStart(2, '0')}), url(${currentContent.image})`,
       backgroundSize,
       backgroundPosition,
       backgroundRepeat: 'no-repeat'
@@ -177,35 +277,69 @@ const HeroSection = () => {
   return (
     <section 
       className="text-white relative"
-      style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3730a3 100%)',
-        ...sectionStyle
-      }}
+      style={sectionStyle}
     >
       <div className="container mx-auto px-4 py-20 md:py-32 text-center min-h-[70vh] flex flex-col justify-center">
-        {!currentContent.cleanNoCTA && !currentContent.cleanImage && !heroSettings.cleanTemplate && (
+        {!currentContent.cleanImage && !heroSettings.cleanTemplate && (
           <>
             <div className="mb-6">
-              <span className="bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium">
+              <span 
+                className="bg-white/20 px-4 py-2 rounded-full font-medium"
+                style={{
+                  color: currentContent.subtitleColor || heroSettings.subtitleColor || '#ffffff',
+                  fontSize: currentContent.subtitleFontSize || heroSettings.subtitleFontSize || '14px'
+                }}
+              >
                 {currentContent.subtitle}
               </span>
             </div>
-            <h1 className={`text-3xl md:text-4xl font-bold mb-4 leading-tight`}>
+            <h1 
+              className="mb-4 leading-tight"
+              style={{
+                color: currentContent.titleColor || heroSettings.titleColor || '#ffffff',
+                fontSize: currentContent.titleFontSize || heroSettings.titleFontSize || '36px',
+                fontWeight: currentContent.titleFontWeight || heroSettings.titleFontWeight || 'bold'
+              }}
+            >
               {currentContent.title}
             </h1>
-            <p className={`text-lg mb-8 max-w-2xl mx-auto text-blue-100`}>
+            <p 
+              className="mb-8 max-w-2xl mx-auto"
+              style={{
+                color: currentContent.descriptionColor || heroSettings.descriptionColor || '#bfdbfe',
+                fontSize: currentContent.descriptionFontSize || heroSettings.descriptionFontSize || '18px'
+              }}
+            >
               {currentContent.description}
             </p>
           </>
         )}
         {/* CTA Buttons */}
         {heroSettings.isCarousel ? (
-          // Carousel mode - show CTA if slide has CTA text and URL, and not in clean modes
-          !currentContent.cleanNoCTA && !currentContent.cleanImage && !heroSettings.cleanTemplate && currentContent.ctaText && currentContent.ctaUrl && (
-            <div className="flex justify-center">
+          // Carousel mode - show CTA only if ctaEnabled is true and has text/URL
+          currentContent.ctaEnabled && currentContent.ctaText && currentContent.ctaUrl && (
+            <div className={`flex ${
+              currentContent.ctaPosition === 'left' ? 'justify-start' :
+              currentContent.ctaPosition === 'right' ? 'justify-end' :
+              'justify-center'
+            }`}>
               <button 
                 onClick={() => router.push(currentContent.ctaUrl || '/permohonan')}
-                className="bg-white text-blue-800 hover:bg-gray-100 font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center"
+                className="hero-cta-button transition-all flex items-center justify-center"
+                style={{
+                  background: currentContent.ctaBackground || '#ffffff',
+                  color: currentContent.ctaTextColor || '#1e40af',
+                  padding: currentContent.ctaPadding || '12px 24px',
+                  borderRadius: currentContent.ctaBorderRadius || '8px',
+                  fontSize: currentContent.ctaFontSize || '16px',
+                  fontWeight: currentContent.ctaFontWeight || '600',
+                  ...(currentContent.ctaCustomCss ? Object.fromEntries(
+                    currentContent.ctaCustomCss.split(';').filter(s => s.trim()).map(s => {
+                      const [key, value] = s.split(':').map(p => p.trim());
+                      return [key.replace(/-([a-z])/g, (_, l) => l.toUpperCase()), value];
+                    })
+                  ) : {})
+                }}
               >
                 <ArrowRight className="mr-2 h-5 w-5" />
                 {currentContent.ctaText}
@@ -215,10 +349,28 @@ const HeroSection = () => {
         ) : (
           // Static mode - show single CTA button only if not in clean mode and has CTA text
           !heroSettings.cleanTemplate && heroSettings.ctaText && (
-            <div className="flex justify-center">
+            <div className={`flex ${
+              heroSettings.ctaPosition === 'left' ? 'justify-start' :
+              heroSettings.ctaPosition === 'right' ? 'justify-end' :
+              'justify-center'
+            }`}>
               <button 
                 onClick={handleCTA}
-                className="bg-white text-blue-800 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-all flex items-center justify-center"
+                className="hero-cta-button transition-all flex items-center justify-center"
+                style={{
+                  background: heroSettings.ctaBackground || '#ffffff',
+                  color: heroSettings.ctaTextColor || '#1e40af',
+                  padding: heroSettings.ctaPadding || '12px 24px',
+                  borderRadius: heroSettings.ctaBorderRadius || '8px',
+                  fontSize: heroSettings.ctaFontSize || '16px',
+                  fontWeight: heroSettings.ctaFontWeight || '600',
+                  ...(heroSettings.ctaCustomCss ? Object.fromEntries(
+                    heroSettings.ctaCustomCss.split(';').filter(s => s.trim()).map(s => {
+                      const [key, value] = s.split(':').map(p => p.trim());
+                      return [key.replace(/-([a-z])/g, (_, l) => l.toUpperCase()), value];
+                    })
+                  ) : {})
+                }}
               >
                 <ArrowRight className="mr-2 h-5 w-5" />
                 {heroSettings.ctaText}

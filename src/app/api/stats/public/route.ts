@@ -2,94 +2,60 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prismaClient';
 
 export async function GET() {
+  console.log('🏠 [PUBLIC-API] Stats API called');
+  
   try {
-    // Get statistics settings
+    // Step 1: Get settings
+    console.log('🏠 [PUBLIC-API] Step 1: Getting settings...');
     const statsSettings = await prisma.setting.findUnique({
       where: { key: 'homepage_stats' }
     });
-
-    let statsConfig = {
-      mode: 'manual', // 'manual' or 'auto'
-      manual: {
-        permintaanSelesai: 150,
-        rataRataHari: 7,
-        totalInformasi: 85,
-        aksesOnline: '24/7'
-      }
-    };
-
-    if (statsSettings) {
-      try {
-        statsConfig = JSON.parse(statsSettings.value);
-      } catch (error) {
-        console.error('Error parsing stats config:', error);
-      }
-    }
-
-    if (statsConfig.mode === 'auto') {
-      // Get automatic statistics from database
-      const [
-        completedRequests,
-        totalInformation,
-        avgProcessingTime
-      ] = await Promise.all([
-        prisma.request.count({
-          where: { status: 'Selesai' }
-        }),
-        prisma.informasiPublik.count({
-          where: { status: 'published' }
-        }),
-        prisma.request.findMany({
-          where: { 
-            status: 'Selesai',
-            updated_at: { not: null as any }
-          },
-          select: {
-            created_at: true,
-            updated_at: true
-          }
-        })
-      ]);
-
-      // Calculate average processing days
-      let avgDays = 7; // default
-      if (avgProcessingTime.length > 0) {
-        const totalDays = avgProcessingTime.reduce((sum, req) => {
-          const start = new Date(req.created_at);
-          const end = new Date(req.updated_at!);
-          const diffTime = Math.abs(end.getTime() - start.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          return sum + diffDays;
-        }, 0);
-        avgDays = Math.round(totalDays / avgProcessingTime.length);
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          permintaanSelesai: completedRequests,
-          rataRataHari: avgDays,
-          totalInformasi: totalInformation,
-          aksesOnline: '24/7'
-        }
-      });
-    } else {
-      // Return manual statistics
-      return NextResponse.json({
-        success: true,
-        data: statsConfig.manual
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching public stats:', error);
+    console.log('🏠 [PUBLIC-API] Settings result:', statsSettings);
     
-    // Return default stats on error
+    // Step 2: Parse config
+    console.log('🏠 [PUBLIC-API] Step 2: Parsing config...');
+    let statsConfig = { mode: 'auto', manual: {} };
+    if (statsSettings?.value) {
+      statsConfig = JSON.parse(statsSettings.value);
+    }
+    console.log('🏠 [PUBLIC-API] Config:', statsConfig);
+    
+    // Step 3: Get database counts
+    console.log('🏠 [PUBLIC-API] Step 3: Getting database counts...');
+    const completedRequests = await prisma.request.count({
+      where: { status: 'Selesai' }
+    });
+    console.log('🏠 [PUBLIC-API] Completed requests:', completedRequests);
+    
+    const totalInformation = await prisma.informasiPublik.count();
+    console.log('🏠 [PUBLIC-API] Total information:', totalInformation);
+    
+    // Step 4: Build response
+    const autoData = {
+      permintaanSelesai: completedRequests,
+      rataRataHari: 5,
+      totalInformasi: totalInformation,
+      aksesOnline: '24/7'
+    };
+    
+    console.log('🏠 [PUBLIC-API] Final data:', autoData);
+    
     return NextResponse.json({
       success: true,
+      data: autoData
+    });
+    
+  } catch (error) {
+    console.error('🏠 [PUBLIC-API] ERROR:', error);
+    console.error('🏠 [PUBLIC-API] ERROR STACK:', error.stack);
+    
+    return NextResponse.json({
+      success: false,
+      error: error.message,
       data: {
-        permintaanSelesai: 150,
-        rataRataHari: 7,
-        totalInformasi: 85,
+        permintaanSelesai: 999,
+        rataRataHari: 999,
+        totalInformasi: 999,
         aksesOnline: '24/7'
       }
     });

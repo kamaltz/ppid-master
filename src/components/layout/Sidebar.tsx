@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useOptimizedNotifications } from "@/hooks/useOptimizedNotifications";
+import ActivityNotification from "@/components/ActivityNotification";
 import React from "react";
 
 type PermissionKey =
@@ -269,6 +270,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
             {/* Desktop Toggle Button - Integrated */}
             <div className="flex gap-1 flex-shrink-0">
+              <ActivityNotification />
               <button
                 onClick={refreshNotifications}
                 className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
@@ -330,9 +332,26 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                       } else if (item.label === 'Keberatan') {
                         setTimeout(() => clearNotification('newObjections'), 100);
                       } else if (item.label === 'Log Aktivitas') {
-                        setTimeout(() => clearNotification('newLogs'), 100);
+                        setTimeout(() => clearNotification('activityLogs'), 100);
                       } else if (item.label === 'Media') {
                         setTimeout(() => clearNotification('newMedia'), 100);
+                      }
+                      
+                      // Mark logs as viewed in localStorage with user-specific key
+                      if (item.label === 'Log Aktivitas') {
+                        const token = localStorage.getItem('auth_token');
+                        if (token) {
+                          const storageKey = `lastViewedLogId_${userRole}_${token.substring(0, 10)}`;
+                          
+                          // Fetch latest log ID and store it
+                          fetch('/api/activity-logs?limit=1', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          }).then(res => res.json()).then(data => {
+                            if (data.success && data.data && data.data.length > 0) {
+                              localStorage.setItem(storageKey, String(data.data[0].id));
+                            }
+                          }).catch(() => {});
+                        }
                       }
                       
                       // Close sidebar on mobile after navigation
@@ -371,7 +390,7 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                           else if (item.label === 'Chat') count = counts.newChats || 0;
                           else if (item.label === 'Permohonan') count = counts.newRequests || 0;
                           else if (item.label === 'Keberatan') count = counts.newObjections || 0;
-                          else if (item.label === 'Log Aktivitas') count = counts.newLogs || 0;
+                          else if (item.label === 'Log Aktivitas') count = counts.activityLogs || 0;
                           else if (item.label === 'Media') count = counts.newMedia || 0;
                         }
                         

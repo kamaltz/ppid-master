@@ -594,7 +594,7 @@ export default function AdminAkunPage() {
                 <label className="block text-sm font-medium mb-1">Nama Lengkap</label>
                 <input
                   type="text"
-                  value={formData.nama || ''}
+                  value={formData.nama}
                   onChange={(e) => setFormData({...formData, nama: e.target.value})}
                   className="w-full border rounded px-3 py-2"
                   required
@@ -605,7 +605,7 @@ export default function AdminAkunPage() {
                 <label className="block text-sm font-medium mb-1">Email</label>
                 <input
                   type="email"
-                  value={formData.email || ''}
+                  value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   className="w-full border rounded px-3 py-2"
                   required
@@ -615,7 +615,7 @@ export default function AdminAkunPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select
-                  value={formData.role || 'PEMOHON'}
+                  value={formData.role}
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                   className="w-full border rounded px-3 py-2"
                 >

@@ -53,6 +53,10 @@ export default function Home() {
         text={settings.general?.marqueeText || ''}
         enabled={settings.general?.marqueeEnabled || false}
         speed={settings.general?.marqueeSpeed || 'slow'}
+        textColor={settings.general?.marqueeTextColor || '#ffffff'}
+        backgroundColor={settings.general?.marqueeBackgroundColor || '#2563eb'}
+        fontSize={settings.general?.marqueeFontSize || '14'}
+        fontWeight={settings.general?.marqueeFontWeight || 'normal'}
       />
       
       {settings.applications?.enabled && (

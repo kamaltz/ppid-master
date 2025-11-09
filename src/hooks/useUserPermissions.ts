@@ -19,13 +19,15 @@ interface UserPermissions {
 
 export const useUserPermissions = () => {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
-  const { token, user, getUserRole } = useAuth();
-  const userRole = getUserRole();
+  const { token, user } = useAuth();
+  const userRole = user?.role;
 
   useEffect(() => {
+    if (!userRole || permissions) return;
+    
     // Admin and PPID Utama get immediate full access
     if (userRole === 'ADMIN' || userRole === 'PPID_UTAMA' || userRole === 'PPID') {
-      const fullPermissions: UserPermissions = {
+      setPermissions({
         informasi: true,
         kategori: true,
         chat: true,
@@ -39,60 +41,29 @@ export const useUserPermissions = () => {
         media: true,
         profile: true,
         kelola_halaman: true
-      };
-      setPermissions(fullPermissions);
-      return;
+      });
+    } else if (userRole === 'PPID_PELAKSANA' || userRole === 'ATASAN_PPID') {
+      setPermissions({
+        informasi: true,
+        kategori: true,
+        chat: true,
+        permohonan: true,
+        keberatan: true,
+        kelola_akun: false,
+        manajemen_role: false,
+        kelola_akses: false,
+        log_aktivitas: true,
+        pengaturan: false,
+        media: false,
+        profile: true,
+        kelola_halaman: false
+      });
     }
-
-    const fetchPermissions = async () => {
-      if (!token || !user) return;
-
-      try {
-        const response = await fetch('/api/user/permissions', {
-          headers: { Authorization: `Bearer ${token}` },
-          // Add timeout to prevent hanging
-          signal: AbortSignal.timeout(5000)
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setPermissions(data.permissions);
-        } else {
-          console.warn('Permission API failed, using fallback permissions');
-          // Set fallback permissions based on role
-          setFallbackPermissions();
-        }
-      } catch (error) {
-        console.error('Failed to fetch permissions, using fallback:', error);
-        setFallbackPermissions();
-      }
-    };
-    
-    const setFallbackPermissions = () => {
-      if (userRole === 'PPID' || userRole === 'PPID_PELAKSANA' || userRole === 'ATASAN_PPID') {
-        const fallbackPermissions: UserPermissions = {
-          informasi: true,
-          kategori: true,
-          chat: true,
-          permohonan: true,
-          keberatan: true,
-          kelola_akun: false,
-          manajemen_role: false,
-          kelola_akses: false,
-          log_aktivitas: false,
-          pengaturan: false,
-          media: false,
-          profile: true,
-          kelola_halaman: (userRole === 'PPID' || userRole === 'PPID_UTAMA') // Only PPID Utama gets access
-        };
-        setPermissions(fallbackPermissions);
-      }
-    };
-
-    fetchPermissions();
-  }, [token, user, userRole]);
+  }, [userRole, permissions]);
 
   const hasPermission = (permission: keyof UserPermissions): boolean => {
+    if (!userRole) return false;
+    
     // Admin and PPID Utama always have permission
     if (userRole === 'ADMIN' || userRole === 'PPID_UTAMA' || userRole === 'PPID') return true;
     
@@ -100,7 +71,7 @@ export const useUserPermissions = () => {
     if (!permissions) {
       // Basic permissions for PPID roles when database is down
       if (userRole === 'PPID_PELAKSANA' || userRole === 'ATASAN_PPID') {
-        const basicPermissions = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile'];
+        const basicPermissions = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile', 'log_aktivitas'];
         return basicPermissions.includes(permission);
       }
       

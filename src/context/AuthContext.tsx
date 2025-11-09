@@ -21,6 +21,7 @@ interface AuthContextType {
   loading: boolean;
   getUserRole: () => string | null;
   getUserName: () => string | null;
+  getUserId: () => string | null;
   getToken: () => string | null;
 }
 
@@ -33,13 +34,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   const logout = useCallback(() => {
+    // Log logout activity (non-blocking)
+    try {
+      const currentUser = user || JSON.parse(localStorage.getItem("user_data") || '{}');
+      const currentRole = currentUser.role || localStorage.getItem("user_role");
+      
+      if (currentUser.userId && currentRole) {
+        fetch('/api/logs/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'LOGOUT',
+            level: 'INFO',
+            message: `${currentRole} logout: ${currentUser.nama || currentUser.email}`,
+            user_id: currentUser.userId,
+            user_role: currentRole,
+            user_email: currentUser.email
+          })
+        }).catch(err => console.error('Failed to log logout:', err));
+      }
+    } catch (error) {
+      console.error('Failed to log logout activity:', error);
+    }
+    
     setToken(null);
     setUser(null);
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_data");
     localStorage.removeItem("user_role");
     router.push("/login");
-  }, [router]);
+  }, [router, user]);
 
   useEffect(() => {
     const checkTokenExpiration = () => {
@@ -81,19 +105,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const interval = setInterval(checkTokenExpiration, 60000);
     
     return () => clearInterval(interval);
-  }, [router, logout]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Login attempt for:', email);
       const data = await loginUser(email, password);
+      console.log('Login API response:', data);
+      
       const newToken = data.token;
       
       if (!newToken) {
+        console.error('No token in response');
         throw new Error("Token tidak ditemukan dalam response");
       }
       
+      console.log('Token received, decoding...');
       // Decode JWT untuk mendapatkan user data
       const payload = JSON.parse(atob(newToken.split('.')[1]));
+      console.log('Decoded payload:', payload);
+      
       const finalUserData = {
         userId: payload.userId,
         email: payload.email,
@@ -101,22 +132,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: payload.role
       };
       
+      console.log('Setting user data:', finalUserData);
       setToken(newToken);
       setUser(finalUserData);
       localStorage.setItem("auth_token", newToken);
       localStorage.setItem("user_data", JSON.stringify(finalUserData));
       localStorage.setItem("user_role", finalUserData.role);
       
+      // Log login activity (non-blocking)
+      fetch('/api/logs/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'LOGIN',
+          level: 'INFO',
+          message: `${finalUserData.role} login: ${finalUserData.nama || finalUserData.email}`,
+          user_id: finalUserData.userId,
+          user_role: finalUserData.role,
+          user_email: finalUserData.email
+        })
+      }).catch(err => console.error('Failed to log login:', err));
+      
+      console.log('Redirecting based on role:', finalUserData.role);
       // Direct redirect based on role
       if (isAdminRole(finalUserData.role)) {
+        console.log('Redirecting to admin dashboard');
         router.push("/admin/dashboard");
       } else if (isPemohon(finalUserData.role)) {
+        console.log('Redirecting to pemohon dashboard');
         router.push("/pemohon/dashboard");
       } else {
+        console.log('Redirecting to default dashboard');
         router.push("/dashboard");
       }
     } catch (error) {
       console.error('AuthContext login error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : error);
       throw error;
     }
   };
@@ -131,6 +182,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return user?.nama || null;
   }, [user?.nama]);
 
+  const getUserId = useCallback(() => {
+    return user?.userId || null;
+  }, [user?.userId]);
+
   const getToken = useCallback(() => {
     return token || localStorage.getItem("auth_token");
   }, [token]);
@@ -138,7 +193,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated, loading, getUserRole, getUserName, getToken }}>
+    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated, loading, getUserRole, getUserName, getUserId, getToken }}>
       {children}
     </AuthContext.Provider>
   );
