@@ -6,7 +6,6 @@ import { useAuth } from "@/context/AuthContext";
 import { getRoleDisplayName } from "@/lib/roleUtils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useOptimizedNotifications } from "@/hooks/useOptimizedNotifications";
-import ActivityNotification from "@/components/ActivityNotification";
 import React from "react";
 
 type PermissionKey =
@@ -43,7 +42,7 @@ import {
   Minus,
   BarChart3,
   Globe,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 
 const menuItems = [
@@ -173,37 +172,49 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const { getUserRole } = useAuth();
   const userRole = getUserRole();
   const { hasPermission } = useUserPermissions();
-  const { counts, clearNotification, getDisplayCount, refreshNotifications } = useOptimizedNotifications();
-
-
-
-
+  const { counts, clearNotification, getDisplayCount, refreshNotifications } =
+    useOptimizedNotifications();
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (!item.permission) return true; // Dashboard, Kelola Halaman, Laporan always visible
-    
+
     // Admin and PPID Utama have full access to all menus immediately
-    if (userRole === 'ADMIN' || userRole === 'PPID_UTAMA' || userRole === 'PPID') return true;
-    
+    if (
+      userRole === "ADMIN" ||
+      userRole === "PPID_UTAMA" ||
+      userRole === "PPID"
+    )
+      return true;
+
     // Fallback permissions when database is unstable
     // Show basic menus based on role even if permission check fails
-    if (userRole === 'PPID_PELAKSANA' || userRole === 'ATASAN_PPID') {
-      const basicMenus = ['permohonan', 'keberatan', 'chat', 'informasi', 'kategori', 'profile'];
+    if (userRole === "PPID_PELAKSANA" || userRole === "ATASAN_PPID") {
+      const basicMenus = [
+        "permohonan",
+        "keberatan",
+        "chat",
+        "informasi",
+        "kategori",
+        "profile",
+      ];
       if (basicMenus.includes(item.permission as string)) {
         return true;
       }
     }
-    
+
     // PPID Utama gets access to kelola_halaman
-    if ((userRole === 'PPID' || userRole === 'PPID_UTAMA') && item.permission === 'kelola_halaman') {
+    if (
+      (userRole === "PPID" || userRole === "PPID_UTAMA") &&
+      item.permission === "kelola_halaman"
+    ) {
       return true;
     }
-    
+
     // Try permission check, but don't fail if database is down
     try {
       return hasPermission(item.permission as PermissionKey);
     } catch (error) {
-      console.warn('Permission check failed, using fallback:', error);
+      console.warn("Permission check failed, using fallback:", error);
       // Fallback: show basic menus for authenticated users
       return userRole !== null;
     }
@@ -270,7 +281,6 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
             {/* Desktop Toggle Button - Integrated */}
             <div className="flex gap-1 flex-shrink-0">
-              <ActivityNotification />
               <button
                 onClick={refreshNotifications}
                 className="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
@@ -323,37 +333,59 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                     href={item.href}
                     onClick={() => {
                       // Clear notifications based on menu
-                      if (item.label === 'Approve Akun') {
-                        setTimeout(() => clearNotification('pendingAccounts'), 100);
-                      } else if (item.label === 'Chat') {
-                        setTimeout(() => clearNotification('newChats'), 100);
-                      } else if (item.label === 'Permohonan') {
-                        setTimeout(() => clearNotification('newRequests'), 100);
-                      } else if (item.label === 'Keberatan') {
-                        setTimeout(() => clearNotification('newObjections'), 100);
-                      } else if (item.label === 'Log Aktivitas') {
-                        setTimeout(() => clearNotification('activityLogs'), 100);
-                      } else if (item.label === 'Media') {
-                        setTimeout(() => clearNotification('newMedia'), 100);
+                      if (item.label === "Approve Akun") {
+                        setTimeout(
+                          () => clearNotification("pendingAccounts"),
+                          100
+                        );
+                      } else if (item.label === "Chat") {
+                        setTimeout(() => clearNotification("newChats"), 100);
+                      } else if (item.label === "Permohonan") {
+                        setTimeout(() => clearNotification("newRequests"), 100);
+                      } else if (item.label === "Keberatan") {
+                        setTimeout(
+                          () => clearNotification("newObjections"),
+                          100
+                        );
+                      } else if (item.label === "Log Aktivitas") {
+                        setTimeout(
+                          () => clearNotification("activityLogs"),
+                          100
+                        );
+                      } else if (item.label === "Media") {
+                        setTimeout(() => clearNotification("newMedia"), 100);
                       }
-                      
+
                       // Mark logs as viewed in localStorage with user-specific key
-                      if (item.label === 'Log Aktivitas') {
-                        const token = localStorage.getItem('auth_token');
+                      if (item.label === "Log Aktivitas") {
+                        const token = localStorage.getItem("auth_token");
                         if (token) {
-                          const storageKey = `lastViewedLogId_${userRole}_${token.substring(0, 10)}`;
-                          
+                          const storageKey = `lastViewedLogId_${userRole}_${token.substring(
+                            0,
+                            10
+                          )}`;
+
                           // Fetch latest log ID and store it
-                          fetch('/api/activity-logs?limit=1', {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                          }).then(res => res.json()).then(data => {
-                            if (data.success && data.data && data.data.length > 0) {
-                              localStorage.setItem(storageKey, String(data.data[0].id));
-                            }
-                          }).catch(() => {});
+                          fetch("/api/activity-logs?limit=1", {
+                            headers: { Authorization: `Bearer ${token}` },
+                          })
+                            .then((res) => res.json())
+                            .then((data) => {
+                              if (
+                                data.success &&
+                                data.data &&
+                                data.data.length > 0
+                              ) {
+                                localStorage.setItem(
+                                  storageKey,
+                                  String(data.data[0].id)
+                                );
+                              }
+                            })
+                            .catch(() => {});
                         }
                       }
-                      
+
                       // Close sidebar on mobile after navigation
                       if (window.innerWidth < 1024) {
                         onToggle();
@@ -385,27 +417,36 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                     {(() => {
                       try {
                         let count = 0;
-                        if (counts && typeof counts === 'object') {
-                          if (item.label === 'Approve Akun') count = counts.pendingAccounts || 0;
-                          else if (item.label === 'Chat') count = counts.newChats || 0;
-                          else if (item.label === 'Permohonan') count = counts.newRequests || 0;
-                          else if (item.label === 'Keberatan') count = counts.newObjections || 0;
-                          else if (item.label === 'Log Aktivitas') count = counts.activityLogs || 0;
-                          else if (item.label === 'Media') count = counts.newMedia || 0;
+                        if (counts && typeof counts === "object") {
+                          if (item.label === "Approve Akun")
+                            count = counts.pendingAccounts || 0;
+                          else if (item.label === "Chat")
+                            count = counts.newChats || 0;
+                          else if (item.label === "Permohonan")
+                            count = counts.newRequests || 0;
+                          else if (item.label === "Keberatan")
+                            count = counts.newObjections || 0;
+                          else if (item.label === "Log Aktivitas")
+                            count = counts.activityLogs || 0;
+                          else if (item.label === "Media")
+                            count = counts.newMedia || 0;
                         }
-                        
+
                         if (count > 0) {
                           return (
-                            <span key={`badge-${item.href}-${count}`} className={`bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${
-                              isOpen ? 'ml-auto' : 'absolute -top-1 -right-1'
-                            }`}>
-                              {count > 99 ? '99+' : count}
+                            <span
+                              key={`badge-${item.href}-${count}`}
+                              className={`bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${
+                                isOpen ? "ml-auto" : "absolute -top-1 -right-1"
+                              }`}
+                            >
+                              {count > 99 ? "99+" : count}
                             </span>
                           );
                         }
                         return null;
                       } catch (error) {
-                        console.warn('Badge render error:', error);
+                        console.warn("Badge render error:", error);
                         return null;
                       }
                     })()}

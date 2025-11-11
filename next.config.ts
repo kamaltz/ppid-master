@@ -24,6 +24,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' *; img-src 'self' data: blob: http: https: *; connect-src 'self' http: https: *; script-src 'self' 'unsafe-inline' 'unsafe-eval' *;",
+          },
+        ],
+      },
+      {
         source: '/api/uploads/:path*',
         headers: [
           {
@@ -38,10 +47,6 @@ const nextConfig: NextConfig = {
             key: 'Expires',
             value: '0',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: "img-src 'self' data: blob: *; default-src 'self' 'unsafe-inline' 'unsafe-eval' *;",
-          },
         ],
       },
       {
@@ -50,10 +55,6 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "img-src 'self' data: blob: *;",
           },
         ],
       },

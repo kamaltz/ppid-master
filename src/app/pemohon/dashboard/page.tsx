@@ -125,8 +125,20 @@ export default function PemohonDashboardPage() {
       onConfirm: async () => {
         setIsProcessing(true);
         try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          const token = localStorage.getItem('auth_token');
+          const response = await fetch(`/api/permintaan/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Gagal menarik permohonan');
+          }
           
           setConfirmModal({ ...confirmModal, isOpen: false });
           setSuccessModal({
@@ -134,8 +146,13 @@ export default function PemohonDashboardPage() {
             title: 'Berhasil Ditarik',
             message: `Permohonan #${id} berhasil ditarik kembali dari sistem.`
           });
-        } catch {
-          alert('Gagal menarik permohonan');
+          
+          // Refresh page after 1.5 seconds
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } catch (error) {
+          alert(error instanceof Error ? error.message : 'Gagal menarik permohonan');
         } finally {
           setIsProcessing(false);
         }
@@ -151,8 +168,20 @@ export default function PemohonDashboardPage() {
   const handleConfirmKeberatanWithdraw = async () => {
     setIsProcessing(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/keberatan/${selectedKeberatanId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Gagal menarik keberatan');
+      }
       
       setShowKeberatanModal(false);
       setSuccessModal({
@@ -160,8 +189,13 @@ export default function PemohonDashboardPage() {
         title: 'Berhasil Ditarik',
         message: `Keberatan #${selectedKeberatanId} berhasil ditarik kembali dari sistem.`
       });
-    } catch {
-      alert('Gagal menarik keberatan');
+      
+      // Refresh page after 1.5 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Gagal menarik keberatan');
     } finally {
       setIsProcessing(false);
     }

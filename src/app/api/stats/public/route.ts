@@ -47,11 +47,11 @@ export async function GET() {
     
   } catch (error) {
     console.error('🏠 [PUBLIC-API] ERROR:', error);
-    console.error('🏠 [PUBLIC-API] ERROR STACK:', error.stack);
+    console.error('🏠 [PUBLIC-API] ERROR STACK:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       data: {
         permintaanSelesai: 999,
         rataRataHari: 999,

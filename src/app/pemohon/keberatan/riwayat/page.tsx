@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import ConfirmationModal from "@/components/ConfirmationModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 interface Keberatan {
   id: number;
@@ -21,6 +23,10 @@ export default function RiwayatKeberatanPage() {
   const [selectedKeberatan, setSelectedKeberatan] = useState<Keberatan | null>(null);
   const [keberatan, setKeberatan] = useState<Keberatan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawId, setWithdrawId] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [successModal, setSuccessModal] = useState({ isOpen: false, title: '', message: '' });
 
   useEffect(() => {
     const fetchKeberatan = async () => {
@@ -67,6 +73,46 @@ export default function RiwayatKeberatanPage() {
       case 'PPID Pelaksana': return 'bg-orange-100 text-orange-800';
       case 'Selesai': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleWithdraw = (id: string) => {
+    setWithdrawId(id);
+    setShowWithdrawModal(true);
+  };
+
+  const confirmWithdraw = async () => {
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/keberatan/${withdrawId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Gagal menarik keberatan');
+      }
+      
+      setShowWithdrawModal(false);
+      setSuccessModal({
+        isOpen: true,
+        title: 'Berhasil Ditarik',
+        message: `Keberatan #${withdrawId} berhasil ditarik kembali dari sistem.`
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Gagal menarik keberatan');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -128,13 +174,27 @@ export default function RiwayatKeberatanPage() {
                       }
                     })()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                     <button 
                       onClick={() => setSelectedKeberatan(item)}
                       className="text-blue-600 hover:text-blue-900 text-xs"
                     >
                       Detail
                     </button>
+                    <a 
+                      href={`/pemohon/chat?id=${item.id}&type=keberatan`}
+                      className="text-green-600 hover:text-green-900 text-xs"
+                    >
+                      Chat
+                    </a>
+                    {(item.status === 'Diproses' || item.status === 'Diajukan' || !item.status) && (
+                      <button 
+                        onClick={() => handleWithdraw(item.id.toString())}
+                        className="text-red-600 hover:text-red-900 text-xs"
+                      >
+                        Tarik
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -218,6 +278,25 @@ export default function RiwayatKeberatanPage() {
           </div>
         </div>
       )}
+      
+      {/* Withdraw Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        onConfirm={confirmWithdraw}
+        title="Tarik Keberatan"
+        message={`Apakah Anda yakin ingin menarik kembali keberatan #${withdrawId}? Tindakan ini tidak dapat dibatalkan dan keberatan akan dihapus dari sistem.`}
+        confirmText="Ya, Tarik"
+        isLoading={isProcessing}
+      />
+      
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+        title={successModal.title}
+        message={successModal.message}
+      />
     </div>
   );
 }

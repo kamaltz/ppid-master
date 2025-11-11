@@ -145,7 +145,7 @@ export default function PermohonanPage() {
 
   if (!token) {
     return (
-      <div className="container mx-auto px-4 py-16">
+      <div className="p-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">
           Permohonan Informasi
         </h1>
@@ -178,7 +178,7 @@ export default function PermohonanPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-16">
+    <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-8">
         Permohonan Informasi
       </h1>

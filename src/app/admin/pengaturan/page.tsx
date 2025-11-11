@@ -3734,7 +3734,7 @@ export default function AdminPengaturanPage() {
                                               updateSlide(
                                                 index,
                                                 "overlayOpacity",
-                                                parseFloat(e.target.value)
+                                                e.target.value
                                               )
                                             }
                                             className="w-full h-10"

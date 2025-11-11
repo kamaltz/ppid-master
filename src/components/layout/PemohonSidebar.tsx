@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +20,8 @@ import { usePemohonNotifications } from "@/hooks/usePemohonNotifications";
 const PemohonSidebar = () => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [permohonanExpanded, setPermohonanExpanded] = useState(false);
+  const [keberatanExpanded, setKeberatanExpanded] = useState(false);
   const { chatCount, clearNotifications, refreshNotifications } =
     usePemohonNotifications();
 
@@ -96,6 +100,86 @@ const PemohonSidebar = () => {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
+
+          if (item.label === "Permohonan") {
+            return (
+              <div key={item.href}>
+                <button
+                  onClick={() => setPermohonanExpanded(!permohonanExpanded)}
+                  className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    pathname.includes('/permohonan')
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                  title={isCollapsed ? item.label : ""}
+                >
+                  <div className="flex items-center">
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span className="ml-3">{item.label}</span>}
+                  </div>
+                  {!isCollapsed && (
+                    permohonanExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+                {permohonanExpanded && !isCollapsed && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    <Link
+                      href="/permohonan"
+                      className="block px-3 py-2 text-xs text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                    >
+                      Ajukan Permohonan
+                    </Link>
+                    <Link
+                      href="/pemohon/permohonan"
+                      className="block px-3 py-2 text-xs text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                    >
+                      Daftar Permohonan
+                    </Link>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          if (item.label === "Keberatan") {
+            return (
+              <div key={item.href}>
+                <button
+                  onClick={() => setKeberatanExpanded(!keberatanExpanded)}
+                  className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    pathname.includes('/keberatan')
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                  title={isCollapsed ? item.label : ""}
+                >
+                  <div className="flex items-center">
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span className="ml-3">{item.label}</span>}
+                  </div>
+                  {!isCollapsed && (
+                    keberatanExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+                {keberatanExpanded && !isCollapsed && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    <Link
+                      href="/pemohon/keberatan"
+                      className="block px-3 py-2 text-xs text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                    >
+                      Ajukan Keberatan
+                    </Link>
+                    <Link
+                      href="/pemohon/keberatan/riwayat"
+                      className="block px-3 py-2 text-xs text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                    >
+                      Daftar Keberatan
+                    </Link>
+                  </div>
+                )}
+              </div>
+            );
+          }
 
           return (
             <Link

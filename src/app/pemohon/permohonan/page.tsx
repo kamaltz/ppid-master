@@ -4,6 +4,8 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { usePemohonData } from "@/hooks/usePemohonData";
 import RequestChat from "@/components/RequestChat";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 interface Request {
   id: number;
@@ -20,6 +22,10 @@ interface Request {
 export default function RiwayatPermohonanPage() {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const { permintaan, isLoading } = usePemohonData();
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawId, setWithdrawId] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [successModal, setSuccessModal] = useState({ isOpen: false, title: '', message: '' });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -32,8 +38,42 @@ export default function RiwayatPermohonanPage() {
   };
 
   const handleWithdrawRequest = (id: string) => {
-    if (confirm(`Yakin ingin menarik kembali permohonan ${id}? Tindakan ini tidak dapat dibatalkan.`)) {
-      alert(`Permohonan ${id} berhasil ditarik kembali`);
+    setWithdrawId(id);
+    setShowWithdrawModal(true);
+  };
+
+  const confirmWithdraw = async () => {
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/permintaan/${withdrawId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Gagal menarik permohonan');
+      }
+      
+      setShowWithdrawModal(false);
+      setSuccessModal({
+        isOpen: true,
+        title: 'Berhasil Ditarik',
+        message: `Permohonan #${withdrawId} berhasil ditarik kembali dari sistem.`
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Gagal menarik permohonan');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -101,12 +141,20 @@ export default function RiwayatPermohonanPage() {
                       Chat
                     </a>
                     {(request.status === 'Diproses' || request.status === 'Diajukan') && (
-                      <button 
-                        onClick={() => handleWithdrawRequest(request.id.toString())}
-                        className="text-red-600 hover:text-red-900 text-xs"
-                      >
-                        Tarik
-                      </button>
+                      <>
+                        <a 
+                          href={`/pemohon/keberatan?permintaan_id=${request.id}`}
+                          className="text-orange-600 hover:text-orange-900 text-xs"
+                        >
+                          Ajukan Keberatan
+                        </a>
+                        <button 
+                          onClick={() => handleWithdrawRequest(request.id.toString())}
+                          className="text-red-600 hover:text-red-900 text-xs"
+                        >
+                          Tarik
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -205,6 +253,25 @@ export default function RiwayatPermohonanPage() {
           </div>
         </div>
       )}
+      
+      {/* Withdraw Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        onConfirm={confirmWithdraw}
+        title="Tarik Permohonan"
+        message={`Apakah Anda yakin ingin menarik kembali permohonan #${withdrawId}? Tindakan ini tidak dapat dibatalkan dan permohonan akan dihapus dari sistem.`}
+        type="danger"
+        isLoading={isProcessing}
+      />
+      
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+        title={successModal.title}
+        message={successModal.message}
+      />
     </div>
   );
 }

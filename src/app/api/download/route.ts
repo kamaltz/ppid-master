@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     const fileBuffer = await readFile(filePath);
     
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(fileBuffer as unknown as BodyInit, {
       headers: {
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Type': 'application/octet-stream',

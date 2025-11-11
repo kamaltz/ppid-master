@@ -23,8 +23,9 @@ function getUploadDir() {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { filename: string } }
+  { params }: { params: Promise<{ filename: string }> }
 ) {
+  const { filename } = await params;
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token') || request.headers.get('authorization')?.split(' ')[1];
@@ -38,10 +39,10 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const filename = params.filename.replace('.enc', '');
+    const cleanFilename = filename.replace('.enc', '');
     const uploadDir = getUploadDir();
-    const encPath = join(uploadDir, `${filename}.enc`);
-    const ivPath = join(uploadDir, `${filename}.iv`);
+    const encPath = join(uploadDir, `${cleanFilename}.enc`);
+    const ivPath = join(uploadDir, `${cleanFilename}.iv`);
 
     if (!existsSync(encPath) || !existsSync(ivPath)) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
@@ -51,7 +52,7 @@ export async function GET(
     const iv = await readFile(ivPath, 'utf-8');
     const decrypted = decryptFile(encrypted, iv);
 
-    return new NextResponse(decrypted, {
+    return new NextResponse(decrypted as unknown as BodyInit, {
       headers: {
         'Content-Type': 'image/jpeg',
         'Cache-Control': 'private, no-cache',

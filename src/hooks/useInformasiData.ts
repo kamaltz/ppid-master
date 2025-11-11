@@ -90,7 +90,7 @@ export const useInformasiData = (limit = 10, page = 1, setTotalPages?: (pages: n
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/informasi/${id}`, {
+    const response = await fetch(`/api/informasi/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ export const useInformasiData = (limit = 10, page = 1, setTotalPages?: (pages: n
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('No token found');
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/informasi/${id}`, {
+    const response = await fetch(`/api/informasi/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
