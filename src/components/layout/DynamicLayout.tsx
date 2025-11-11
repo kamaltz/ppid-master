@@ -65,7 +65,8 @@ export default function DynamicLayout() {
 
       // Update favicon with aggressive cache busting
       if (settings.general.favicon) {
-        const faviconUrl = settings.general.favicon;
+        // Remove localhost prefix if present
+        const faviconUrl = settings.general.favicon.replace(/^https?:\/\/localhost:\d+/, '');
         const timestamp = Date.now();
         const randomId = Math.random().toString(36).substring(7);
         

@@ -35,9 +35,9 @@ export default function CustomHeader() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-3">
-              {settings?.general?.logo && settings.general.logo.startsWith('/') && (
+              {settings?.general?.logo && (
                 <Image 
-                  src={settings.general.logo} 
+                  src={settings.general.logo.replace(/^https?:\/\/localhost:\d+/, '')} 
                   alt="Logo" 
                   width={40}
                   height={40}
