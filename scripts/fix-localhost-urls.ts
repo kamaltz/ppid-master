@@ -15,7 +15,7 @@ async function fixLocalhostUrls() {
     }
 
     let updated = false;
-    const newValue = { ...settings.value };
+    const newValue = JSON.parse(JSON.stringify(settings.value)) as any;
 
     // Fix general.logo
     if (newValue.general?.logo && typeof newValue.general.logo === 'string') {
