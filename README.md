@@ -256,6 +256,7 @@ docker-compose -f docker-compose.deploy.yml exec postgres pg_dump -U postgres pp
 ### 💬 **Menggunakan Sistem Chat**
 
 **Untuk Pemohon:**
+
 1. Buat permohonan/keberatan baru
 2. Otomatis diarahkan ke halaman chat
 3. Chat muncul di daftar dengan status terkini
@@ -263,6 +264,7 @@ docker-compose -f docker-compose.deploy.yml exec postgres pg_dump -U postgres pp
 5. Tunggu balasan dari PPID
 
 **Untuk PPID:**
+
 1. Akses menu "Chat" untuk melihat semua percakapan
 2. Tab "Chat Pemohon" untuk komunikasi dengan pemohon
 3. Tab "Chat PPID" untuk komunikasi internal
@@ -557,58 +559,6 @@ Setiap push ke branch `main` akan otomatis:
 - ✅ **PostgreSQL + Prisma** - Modern database stack
 - ✅ **Production Ready** - Optimized untuk production deployment
 
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**API Returns 500 Errors:**
-
-```bash
-# Check container logs
-docker-compose -f docker-compose.deploy.yml logs app
-
-# Check database connection
-docker-compose -f docker-compose.deploy.yml logs postgres
-
-# Restart services
-docker-compose -f docker-compose.deploy.yml restart
-```
-
-**Database Connection Issues:**
-
-```bash
-# Check if database is ready
-docker-compose -f docker-compose.deploy.yml exec postgres pg_isready -U postgres
-
-# Manual migration if needed
-docker-compose -f docker-compose.deploy.yml exec app npx prisma migrate deploy
-
-# Manual seeding if needed
-docker-compose -f docker-compose.deploy.yml exec app npx prisma db seed
-```
-
-**Health Check:**
-
-```bash
-# Check application health
-curl http://localhost:3000/api/health
-
-# Should return: {"status":"healthy","database":"connected"}
-```
-
-**Reset Everything:**
-
-```bash
-# Stop and remove all containers and volumes
-docker-compose -f docker-compose.deploy.yml down -v
-
-# Remove images
-docker rmi $(docker images "*ppid-master*" -q)
-
-# Start fresh
-./deploy.sh
-```
-
 ### Performance Optimization
 
 - **DDoS Protection**: Removed aggressive rate limiting that caused API errors
@@ -619,6 +569,7 @@ docker rmi $(docker images "*ppid-master*" -q)
 ## 🆕 Fitur Terbaru
 
 ### Chat System Enhancement
+
 - **Auto-display All Requests** - Semua permohonan/keberatan otomatis muncul sebagai chat
 - **Role-based Chat Visibility** - PPID melihat chat sesuai assignment
 - **Bulk Chat Management** - Delete dan end multiple chats sekaligus
@@ -626,12 +577,14 @@ docker rmi $(docker images "*ppid-master*" -q)
 - **Cross-tab Communication** - Event-driven updates antar tab
 
 ### User Experience Improvements
+
 - **Auto-redirect to Chat** - Langsung ke chat setelah buat permohonan/keberatan
 - **Visual New Indicators** - Badge "Baru" untuk item terbaru
 - **Enhanced Sidebar** - Collapsible dengan arrow toggle yang jelas
 - **Improved Navigation** - Link yang benar ke semua halaman chat
 
 ### Technical Enhancements
+
 - **New API Endpoints** - Bulk delete/end chat, enhanced chat-list
 - **Better Error Handling** - Graceful fallbacks dan user feedback
 - **Performance Optimization** - Efficient data fetching dan caching
